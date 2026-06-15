@@ -1,0 +1,23 @@
+{
+  "name": "admin",
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.8.2",
+    "db": "workspace:*",
+    "nuxt": "^4.4.8",
+    "shared": "workspace:*",
+    "vue": "^3.5.35",
+    "vue-router": "^5.1.0",
+    "workflow-editor-layer": "workspace:*"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.3.1"
+  }
+}

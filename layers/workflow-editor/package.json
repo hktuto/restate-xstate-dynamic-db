@@ -1,0 +1,13 @@
+{
+  "name": "workflow-editor-layer",
+  "type": "module",
+  "dependencies": {
+    "@vue-flow/background": "^1.3.2",
+    "@vue-flow/core": "^1.48.2",
+    "shared": "workspace:*",
+    "workflow-actions": "workspace:*"
+  },
+  "devDependencies": {
+    "nuxt": "^4.4.8"
+  }
+}

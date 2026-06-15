@@ -1,0 +1,16 @@
+services:
+  restate:
+    image: docker.io/restatedev/restate:latest
+    ports:
+      - "8080:8080"
+      - "9070:9070"
+    environment:
+      - RESTATE_OBSERVABILITY__JAEGER__ENDPOINT=http://host.docker.internal:4317
+
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    ports:
+      - "8000:8000"
+    command: start --user root --pass root surrealkv:///data/surreal.db
+    volumes:
+      - ./data/surreal:/data

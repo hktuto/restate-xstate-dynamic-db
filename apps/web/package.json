@@ -1,0 +1,27 @@
+{
+  "name": "web",
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.8.2",
+    "@vue-flow/background": "^1.3.2",
+    "@vue-flow/core": "^1.48.2",
+    "@xstate/vue": "^5.0.0",
+    "db": "workspace:*",
+    "nuxt": "^4.4.8",
+    "shared": "workspace:*",
+    "vue": "^3.5.35",
+    "vue-router": "^5.1.0",
+    "workflow-editor-layer": "workspace:*",
+    "xstate": "^5.32.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.3.1"
+  }
+}

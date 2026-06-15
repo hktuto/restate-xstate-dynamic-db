@@ -1,0 +1,21 @@
+{
+  "name": "workflow-runtime",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@restatedev/restate-sdk": "^1.14.5",
+    "db": "workspace:*",
+    "shared": "workspace:*",
+    "workflow-actions": "workspace:*",
+    "xstate": "^5.32.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "tsx": "^4.22.4",
+    "typescript": "^5.8.3"
+  }
+}

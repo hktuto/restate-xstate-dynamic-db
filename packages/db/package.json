@@ -1,0 +1,43 @@
+{
+  "name": "db",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./platform": {
+      "types": "./dist/platform.d.ts",
+      "default": "./dist/platform.js"
+    },
+    "./provision": {
+      "types": "./dist/provision.d.ts",
+      "default": "./dist/provision.js"
+    },
+    "./seed": {
+      "types": "./dist/seed.d.ts",
+      "default": "./dist/seed.js"
+    },
+    "./tenant": {
+      "types": "./dist/tenant.d.ts",
+      "default": "./dist/tenant.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "seed": "tsx src/seed.ts",
+    "seed:workflows": "tsx src/seed-workflows.ts"
+  },
+  "dependencies": {
+    "shared": "workspace:*",
+    "surrealdb": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "tsx": "^4.22.4",
+    "typescript": "^5.8.3"
+  }
+}

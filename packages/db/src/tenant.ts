@@ -1,0 +1,497 @@
+import { getSurreal, closeSurreal } from './client.js'
+import type { WorkflowDefinition } from 'shared'
+
+export interface MemberRecord {
+  id: string
+  profileId?: string
+  email: string
+  role: 'owner' | 'admin' | 'member'
+  status: 'pending' | 'active' | 'inactive'
+  inviteCode?: string
+  joinedAt?: string
+  invitedBy?: string
+  createdAt: string
+  updatedAt: string
+  [key: string]: unknown
+}
+
+export interface MemberInput {
+  email: string
+  role: 'owner' | 'admin' | 'member'
+  status?: 'pending' | 'active' | 'inactive'
+  inviteCode?: string | null
+  invitedBy?: string
+  profileId?: string
+  joinedAt?: string
+}
+
+export async function listMembers(namespace: string): Promise<MemberRecord[]> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [members] = await surreal.query<[MemberRecord[]]>('SELECT * FROM members')
+    return members
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function createMember(namespace: string, input: MemberInput): Promise<MemberRecord> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const data = {
+      ...input,
+      status: input.status ?? 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    const [created] = await surreal.query<[MemberRecord[]]>('CREATE members CONTENT $data', { data })
+    return created[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getMemberById(namespace: string, id: string): Promise<MemberRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[MemberRecord[]]>(
+      'SELECT * FROM members WHERE id = $id LIMIT 1',
+      { id }
+    )
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getMemberByProfileId(
+  namespace: string,
+  profileId: string
+): Promise<MemberRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[MemberRecord[]]>(
+      'SELECT * FROM members WHERE profileId = $profileId LIMIT 1',
+      { profileId }
+    )
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getMemberByInviteCode(
+  namespace: string,
+  inviteCode: string
+): Promise<MemberRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[MemberRecord[]]>(
+      'SELECT * FROM members WHERE inviteCode = $inviteCode LIMIT 1',
+      { inviteCode }
+    )
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function updateMember(
+  namespace: string,
+  id: string,
+  input: Partial<MemberInput>
+): Promise<MemberRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const data = {
+      ...input,
+      updatedAt: new Date().toISOString()
+    }
+    const [updated] = await surreal.query<[MemberRecord[]]>(
+      'UPDATE $id MERGE $data',
+      { id, data }
+    )
+    return updated[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function deleteMember(namespace: string, id: string): Promise<void> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    await surreal.query('DELETE $id', { id })
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export interface WorkflowRecord {
+  id: string
+  name: string
+  xstateConfig: WorkflowDefinition
+  [key: string]: unknown
+}
+
+export interface WorkflowInput {
+  name: string
+  xstateConfig: WorkflowDefinition
+}
+
+export async function listWorkflows(namespace: string): Promise<WorkflowRecord[]> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [workflows] = await surreal.query<[WorkflowRecord[]]>('SELECT * FROM workflows')
+    return workflows
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function createWorkflow(namespace: string, input: WorkflowInput): Promise<WorkflowRecord> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const data = {
+      name: input.name,
+      xstateConfig: input.xstateConfig
+    }
+    const [created] = await surreal.query<[WorkflowRecord[]]>('CREATE workflows CONTENT $data', { data })
+    return created[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getWorkflow(namespace: string, id: string): Promise<WorkflowRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[WorkflowRecord[]]>('SELECT * FROM workflows WHERE id = $id LIMIT 1', { id })
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function updateWorkflow(namespace: string, id: string, input: Partial<WorkflowInput>): Promise<WorkflowRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [updated] = await surreal.query<[WorkflowRecord[]]>('UPDATE $id CONTENT $data', { id, data: input })
+    return updated[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function deleteWorkflow(namespace: string, id: string): Promise<void> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    await surreal.query('DELETE $id', { id })
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export interface TriggerRecord {
+  id: string
+  tableName: string
+  event: string
+  workflowId: string
+  [key: string]: unknown
+}
+
+export interface TriggerInput {
+  tableName: string
+  event: string
+  workflowId: string
+}
+
+export async function listTriggers(namespace: string): Promise<TriggerRecord[]> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [triggers] = await surreal.query<[TriggerRecord[]]>('SELECT * FROM triggers')
+    return triggers
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function createTrigger(namespace: string, input: TriggerInput): Promise<TriggerRecord> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const data = {
+      tableName: input.tableName,
+      event: input.event,
+      workflowId: input.workflowId
+    }
+    const [created] = await surreal.query<[TriggerRecord[]]>('CREATE triggers CONTENT $data', { data })
+    return created[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function deleteTrigger(namespace: string, id: string): Promise<void> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    await surreal.query('DELETE $id', { id })
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export interface ApprovalRecord {
+  id: string
+  tableName: string
+  recordId: string
+  workflowId: string
+  awakeableId: string
+  status: 'pending' | 'approved' | 'rejected'
+  [key: string]: unknown
+}
+
+export interface ApprovalInput {
+  tableName: string
+  recordId: string
+  workflowId: string
+  awakeableId: string
+}
+
+export async function listApprovals(namespace: string): Promise<ApprovalRecord[]> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [approvals] = await surreal.query<[ApprovalRecord[]]>('SELECT * FROM approvals ORDER BY id DESC')
+    return approvals
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getApprovalById(namespace: string, id: string): Promise<ApprovalRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[ApprovalRecord[]]>('SELECT * FROM approvals WHERE id = $id LIMIT 1', { id })
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function createApproval(namespace: string, input: ApprovalInput): Promise<ApprovalRecord> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const data = {
+      tableName: input.tableName,
+      recordId: input.recordId,
+      workflowId: input.workflowId,
+      awakeableId: input.awakeableId,
+      status: 'pending'
+    }
+    const [created] = await surreal.query<[ApprovalRecord[]]>('CREATE approvals CONTENT $data', { data })
+    return created[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function updateApprovalStatus(namespace: string, id: string, status: ApprovalRecord['status']): Promise<ApprovalRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [updated] = await surreal.query<[ApprovalRecord[]]>('UPDATE $id CONTENT $data', { id, data: { status } })
+    return updated[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function deleteApproval(namespace: string, id: string): Promise<void> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    await surreal.query('DELETE $id', { id })
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export type WorkflowInstanceStatus = 'pending' | 'running' | 'waiting' | 'done' | 'error'
+
+export interface WorkflowInstanceRecord {
+  id: string
+  workflowId: string
+  tableName: string
+  recordId: string
+  namespace: string
+  companyId?: string
+  status: WorkflowInstanceStatus
+  createdAt: string
+  updatedAt: string
+  [key: string]: unknown
+}
+
+export interface WorkflowInstanceInput {
+  workflowId: string
+  tableName: string
+  recordId: string
+  namespace: string
+  companyId?: string
+  status?: WorkflowInstanceStatus
+}
+
+export async function listWorkflowInstances(namespace: string): Promise<WorkflowInstanceRecord[]> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [instances] = await surreal.query<[WorkflowInstanceRecord[]]>('SELECT * FROM workflow_instances ORDER BY createdAt DESC')
+    return instances
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getWorkflowInstance(namespace: string, id: string): Promise<WorkflowInstanceRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[WorkflowInstanceRecord[]]>('SELECT * FROM workflow_instances WHERE id = $id LIMIT 1', { id })
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function findActiveWorkflowInstance(
+  namespace: string,
+  workflowId: string,
+  recordId: string
+): Promise<WorkflowInstanceRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[WorkflowInstanceRecord[]]>(
+      `SELECT * FROM workflow_instances
+       WHERE workflowId = $workflowId AND recordId = $recordId
+       AND status IN ['pending', 'running', 'waiting']
+       ORDER BY createdAt DESC
+       LIMIT 1`,
+      { workflowId, recordId }
+    )
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function createWorkflowInstance(namespace: string, input: WorkflowInstanceInput): Promise<WorkflowInstanceRecord> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const now = new Date().toISOString()
+    const data = {
+      ...input,
+      status: input.status ?? 'pending',
+      createdAt: now,
+      updatedAt: now
+    }
+    const [created] = await surreal.query<[WorkflowInstanceRecord[]]>('CREATE workflow_instances CONTENT $data', { data })
+    return created[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function updateWorkflowInstanceStatus(
+  namespace: string,
+  id: string,
+  status: WorkflowInstanceStatus
+): Promise<WorkflowInstanceRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [updated] = await surreal.query<[WorkflowInstanceRecord[]]>(
+      'UPDATE $id MERGE $data',
+      { id, data: { status, updatedAt: new Date().toISOString() } }
+    )
+    return updated[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export type UserTaskStatus = 'pending' | 'completed' | 'cancelled' | 'rejected'
+export type UserTaskType = 'approval' | 'review' | 'manual'
+
+export interface UserTaskRecord {
+  id: string
+  instanceId: string
+  type: UserTaskType
+  status: UserTaskStatus
+  tableName: string
+  recordId: string
+  workflowId: string
+  createdAt: string
+  resolvedAt?: string
+  [key: string]: unknown
+}
+
+export interface UserTaskInput {
+  instanceId: string
+  type: UserTaskType
+  tableName: string
+  recordId: string
+  workflowId: string
+}
+
+export async function listUserTasks(namespace: string): Promise<UserTaskRecord[]> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [tasks] = await surreal.query<[UserTaskRecord[]]>('SELECT * FROM user_tasks ORDER BY createdAt DESC')
+    return tasks
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getUserTaskById(namespace: string, id: string): Promise<UserTaskRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [result] = await surreal.query<[UserTaskRecord[]]>('SELECT * FROM user_tasks WHERE id = $id LIMIT 1', { id })
+    return result[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function createUserTask(namespace: string, input: UserTaskInput): Promise<UserTaskRecord> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const data = {
+      ...input,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    }
+    const [created] = await surreal.query<[UserTaskRecord[]]>('CREATE user_tasks CONTENT $data', { data })
+    return created[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function updateUserTaskStatus(
+  namespace: string,
+  id: string,
+  status: UserTaskStatus
+): Promise<UserTaskRecord | undefined> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [updated] = await surreal.query<[UserTaskRecord[]]>(
+      'UPDATE $id MERGE $data',
+      { id, data: { status, resolvedAt: new Date().toISOString() } }
+    )
+    return updated[0]
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function deleteUserTask(namespace: string, id: string): Promise<void> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    await surreal.query('DELETE $id', { id })
+  } finally {
+    await closeSurreal(surreal)
+  }
+}

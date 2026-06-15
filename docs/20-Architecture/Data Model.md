@@ -1,0 +1,56 @@
+---
+title: Data Model
+type: note
+status: done
+area: architecture
+created: 2026-06-14
+updated: 2026-06-14
+related:
+  - [[Multi-tenancy]]
+  - [[50-Features/Tenant Authentication & Authorization]]
+  - [[40-Packages/db]]
+---
+
+# Data Model
+
+## Platform namespace (`platform/admin`)
+
+| Record | Purpose |
+|--------|---------|
+| `platform_users` | Superadmin accounts. |
+| `companies` | Tenant companies with slug and namespace. |
+| `platform_workflows` | Workflow templates available to all tenants. |
+
+## Tenant namespace (`company_<uuid>/main`)
+
+| Record | Purpose |
+|--------|---------|
+| `workflows` | Company-specific workflow definitions. |
+| `workflow_instances` | Running and historical workflow instances. |
+| `triggers` | Trigger configurations. |
+| `members` | Company membership, role, invite status. |
+
+## Global identity records
+
+| Record | Purpose |
+|--------|---------|
+| `accounts` | Authentication credentials (provider, provider key, credential hash). |
+| `user_profiles` | User name, gender, birthday, and preferences. |
+
+A single `user_profile` can be linked to multiple company `member` records, enabling cross-company membership.
+
+## Company namespace format
+
+A company's namespace is derived from its UUID with hyphens removed:
+
+```
+company_<uuid-without-hyphens>/main
+```
+
+Example: `company_550e8400e29b41d4a716446655440000/main`
+
+## Related
+
+- [[Multi-tenancy]]
+- [[50-Features/Tenant Authentication & Authorization|Tenant Authentication & Authorization]]
+- [[40-Packages/db|db package]]
