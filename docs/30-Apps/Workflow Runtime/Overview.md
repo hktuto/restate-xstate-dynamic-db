@@ -4,13 +4,14 @@ type: app
 status: done
 area: runtime
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 app:
   - runtime
 related:
   - [[Workflow Runtime]]
   - [[50-Features/Workflow Engine]]
   - [[40-Packages/workflow-actions]]
+  - [[50-Features/User Tasks]]
 ---
 
 # Workflow Runtime Overview
@@ -21,10 +22,26 @@ The Restate service that executes workflow definitions durably.
 
 ## Key behaviors
 
-- Loads workflow definitions from SurrealDB tenant namespaces.
-- Starts workflow instances from triggers.
-- Executes XState actions and evaluates guards.
-- Relies on Restate for persistence, retries, and timers.
+- Compiles workflow definitions into XState machines at runtime.
+- Exposes a Restate Virtual Object named `workflow` keyed by instance ID.
+- Creates instances from triggers via the `create` handler.
+- Sends events to existing instances via the `send` handler.
+- Executes XState actions and evaluates guards from `workflow-actions`.
+- Persists actor snapshots via Restate Virtual Object state.
+- Creates user tasks when a state is tagged `waiting`.
+- Supports blocking `waitFor` calls with conditions and optional timeouts.
+- Relies on Restate for persistence, retries, timers, and idempotency.
+
+## Handlers
+
+| Handler | Kind | Purpose |
+|---------|------|---------|
+| `create` | exclusive | Start a new instance from a definition and optional first event. |
+| `send` | exclusive | Send an event to an existing instance. |
+| `subscribe` | exclusive | Register an awakeable for a wait condition. |
+| `unsubscribe` | exclusive | Remove an awakeable subscription. |
+| `waitFor` | shared | Block until a condition is met or a timeout occurs. |
+| `snapshot` | exclusive | Return the persisted actor snapshot. |
 
 ## Ports
 
@@ -37,3 +54,4 @@ The Restate service that executes workflow definitions durably.
 - [[Workflow Runtime]]
 - [[50-Features/Workflow Engine|Workflow Engine]]
 - [[40-Packages/workflow-actions|workflow-actions]]
+- [[50-Features/User Tasks|User Tasks]]

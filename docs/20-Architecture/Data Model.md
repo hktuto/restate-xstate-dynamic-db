@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
@@ -20,6 +20,8 @@ related:
 | `platform_users` | Superadmin accounts. |
 | `companies` | Tenant companies with slug and namespace. |
 | `platform_workflows` | Workflow templates available to all tenants. |
+| `workflow_instances` | Running and historical platform workflow instances. |
+| `user_tasks` | Manual tasks created by platform workflow instances. |
 
 ## Tenant namespace (`company_<uuid>/main`)
 
@@ -27,8 +29,24 @@ related:
 |--------|---------|
 | `workflows` | Company-specific workflow definitions. |
 | `workflow_instances` | Running and historical workflow instances. |
+| `user_tasks` | Manual tasks created by workflow instances. |
 | `triggers` | Trigger configurations. |
 | `members` | Company membership, role, invite status. |
+
+## Workflow instance statuses
+
+- `pending`
+- `running`
+- `waiting`
+- `done`
+- `error`
+
+## User task statuses
+
+- `pending`
+- `completed`
+- `rejected`
+- `cancelled`
 
 ## Global identity records
 

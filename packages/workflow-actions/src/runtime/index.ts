@@ -1,4 +1,5 @@
-import type { WorkflowDefinition, ExecuteWorkflowRequest } from 'shared'
+import type { ObjectContext } from '@restatedev/restate-sdk'
+import type { WorkflowDefinition, CreateWorkflowRequest } from 'shared'
 import { runtimeActions } from './actions.js'
 import { runtimeGuards } from './guards.js'
 
@@ -14,8 +15,8 @@ export interface GuardRegistry {
 }
 
 export function createActionRegistry(
-  ctx: { run: (name: string, fn: () => Promise<void> | void) => Promise<unknown> },
-  req: ExecuteWorkflowRequest
+  ctx: Pick<ObjectContext, 'run'>,
+  req: CreateWorkflowRequest
 ): ActionRegistry {
   const promises: Promise<unknown>[] = []
   const actions: Record<string, (args: { event: any }) => void> = {}
@@ -52,19 +53,39 @@ function resolveActionRef(actionId: string, config: WorkflowDefinition): ActionR
   return actionId
 }
 
-export function createGuardRegistry(_req: ExecuteWorkflowRequest): GuardRegistry {
+export function createGuardRegistry(req: CreateWorkflowRequest): GuardRegistry {
   const guards: Record<string, (args: { event: any }) => boolean> = {}
 
   for (const [guardId, runtimeGuard] of Object.entries(runtimeGuards)) {
+    const ref = resolveGuardRef(req.config, guardId)
     guards[guardId] = ({ event }) => {
       return runtimeGuard.evaluate({
         event,
-        record: _req.record
+        record: req.record,
+        params: ref?.params
       })
     }
   }
 
   return { guards }
+}
+
+function resolveGuardRef(
+  config: WorkflowDefinition,
+  guardId: string
+): { type: string; params?: Record<string, unknown> } | undefined {
+  for (const state of Object.values(config.states)) {
+    if (!state.on) continue
+    for (const transitions of Object.values(state.on)) {
+      const normalized = Array.isArray(transitions) ? transitions : [transitions]
+      for (const t of normalized) {
+        if (typeof t !== 'object' || !t.guard) continue
+        const ref = typeof t.guard === 'string' ? { type: t.guard } : t.guard
+        if (ref.type === guardId) return ref
+      }
+    }
+  }
+  return undefined
 }
 
 export { runtimeActions, runtimeGuards }

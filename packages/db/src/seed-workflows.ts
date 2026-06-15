@@ -17,7 +17,8 @@ async function seed() {
           }
         },
         provisioning: {
-          entry: ['provisionCompanyNamespace']
+          entry: ['provisionCompanyNamespace'],
+          type: 'final'
         }
       }
     }

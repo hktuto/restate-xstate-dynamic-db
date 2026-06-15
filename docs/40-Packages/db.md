@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 package: db
 related:
   - [[Data Model]]
@@ -28,12 +28,31 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 
 ## Key helpers
 
+### Companies
+
 - `listCompanies()`
 - `getCompanyBySlug(slug)`
 - `getCompanyByNamespace(namespace)`
 - `createCompany(...)`
-- `listPlatformWorkflows()`
-- `createPlatformWorkflow(...)`
+
+### Workflows and triggers
+
+- `listWorkflows(namespace)` / `listPlatformWorkflows()`
+- `createWorkflow(namespace, ...)` / `createPlatformWorkflow(...)`
+- `listTriggers(namespace)` / `listPlatformTriggers()`
+
+### Workflow instances
+
+- `listWorkflowInstances(namespace)` / `listPlatformWorkflowInstances()`
+- `findActiveWorkflowInstance(namespace, workflowId, tableName, recordId)`
+- `createWorkflowInstance(namespace, ...)` / `createPlatformWorkflowInstance(...)`
+- `updateWorkflowInstanceStatus(namespace, id, status)`
+
+### User tasks
+
+- `listUserTasks(namespace)` / `listPlatformUserTasks()`
+- `createUserTask(namespace, ...)` / `createPlatformUserTask(...)`
+- `updateUserTaskStatus(namespace, id, status)`
 
 ## Related
 

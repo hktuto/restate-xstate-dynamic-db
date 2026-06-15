@@ -4,7 +4,7 @@ type: index
 status: in-progress
 area: docs
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[Vision]]
   - [[System Overview]]
@@ -13,6 +13,8 @@ related:
   - [[Getting Started]]
   - [[50-Features/Company Management]]
   - [[50-Features/Tenant Authentication & Authorization]]
+  - [[50-Features/Workflow Engine]]
+  - [[50-Features/User Tasks]]
   - [[Documentation Conventions]]
   - [[20-Architecture/Decision Log/ADR-001 SurrealDB as primary database]]
   - [[20-Architecture/Decision Log/ADR-002 Restate for workflow runtime]]
@@ -44,7 +46,9 @@ See [[Roadmap]] and [[Status Board]] for details.
 ## Current active work
 
 - [[50-Features/Company Management|Company Management]] — `done`
-- [[50-Features/Tenant Authentication & Authorization|Tenant Authentication & Authorization]] — `in-progress` for tenant users, `done` for admin.
+- [[50-Features/Tenant Authentication & Authorization|Tenant Authentication & Authorization]] — `done`.
+- [[50-Features/Workflow Engine|Workflow Engine]] — `done`
+- [[50-Features/User Tasks|User Tasks]] — `done`
 - [[Documentation Conventions]] — `in-progress`
 
 ## Key architecture decisions

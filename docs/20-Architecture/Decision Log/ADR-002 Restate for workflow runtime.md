@@ -4,7 +4,7 @@ type: adr
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[Workflow Runtime]]
   - [[30-Apps/Workflow Runtime/Overview]]
@@ -30,6 +30,7 @@ Use Restate as the durable runtime for workflow execution.
 
 - Adds a runtime dependency.
 - Requires understanding of Restate service/ingress concepts.
+- We use the lower-level `restate.object` API rather than `@restatedev/xstate` because workflow definitions are loaded dynamically from SurrealDB and cannot be registered statically at startup.
 
 ## Related
 
