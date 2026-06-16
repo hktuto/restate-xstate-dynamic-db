@@ -21,7 +21,8 @@
   "dependencies": {
     "@restatedev/restate-sdk": "^1.14.5",
     "db": "workspace:*",
-    "shared": "workspace:*"
+    "shared": "workspace:*",
+    "xstate": "^5.32.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.17",

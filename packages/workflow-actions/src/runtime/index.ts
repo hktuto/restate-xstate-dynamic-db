@@ -1,90 +1,58 @@
 import type { ObjectContext } from '@restatedev/restate-sdk'
-import type { WorkflowDefinition, CreateWorkflowRequest } from 'shared'
+import { fromPromise } from 'xstate'
+import type { PromiseActorLogic } from 'xstate'
+import type { CreateWorkflowRequest } from 'shared'
+import type { ActionExecutorContext } from '../types.js'
 import { runtimeActions } from './actions.js'
 import { runtimeGuards } from './guards.js'
 
-export type ActionRef = string | { id: string; params?: Record<string, unknown> }
+export { runtimeActions, runtimeGuards }
 
-export interface ActionRegistry {
-  actions: Record<string, (args: { event: any }) => void>
-  promises: Promise<unknown>[]
+export interface ActionActorInput {
+  params?: Record<string, unknown>
+  outputKey?: string
+  context: Record<string, unknown>
+  event: any
+}
+
+export interface ActionActors {
+  actors: Record<string, PromiseActorLogic<unknown, ActionActorInput>>
+}
+
+export function createActionActors(
+  objectCtx: Pick<ObjectContext, 'run'>,
+  req: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace'>
+): ActionActors {
+  const actors: Record<string, PromiseActorLogic<unknown, ActionActorInput>> = {}
+
+  for (const [actionId, runtimeAction] of Object.entries(runtimeActions)) {
+    actors[actionId] = fromPromise(async ({ input }: { input: ActionActorInput }) => {
+      const executorCtx: ActionExecutorContext = {
+        event: input.event,
+        context: input.context,
+        record: (input.context.record ?? req.record) as Record<string, unknown>,
+        tableName: (input.context.tableName ?? req.tableName) as string,
+        companyId: (input.context.companyId ?? req.companyId) as string | undefined,
+        namespace: (input.context.namespace ?? req.namespace) as string | undefined,
+        params: input.params
+      }
+
+      return objectCtx.run(actionId, async () => {
+        return runtimeAction.execute(executorCtx)
+      })
+    })
+  }
+
+  return { actors }
 }
 
 export interface GuardRegistry {
-  guards: Record<string, (args: { event: any }) => boolean>
-}
-
-export function createActionRegistry(
-  ctx: Pick<ObjectContext, 'run'>,
-  req: CreateWorkflowRequest
-): ActionRegistry {
-  const promises: Promise<unknown>[] = []
-  const actions: Record<string, (args: { event: any }) => void> = {}
-
-  for (const [actionId, runtimeAction] of Object.entries(runtimeActions)) {
-    actions[actionId] = ({ event }) => {
-      const ref = resolveActionRef(actionId, req.config)
-      const params = typeof ref === 'object' ? ref.params : undefined
-      promises.push(
-        ctx.run(actionId, async () => {
-          await runtimeAction.execute({
-            event,
-            context: {
-              record: req.record,
-              tableName: req.tableName,
-              companyId: req.companyId,
-              namespace: req.namespace
-            },
-            record: req.record,
-            tableName: req.tableName,
-            companyId: req.companyId,
-            namespace: req.namespace,
-            params
-          })
-        })
-      )
-    }
-  }
-
-  return { actions, promises }
-}
-
-function resolveActionRef(actionId: string, config: WorkflowDefinition): ActionRef {
-  for (const state of Object.values(config.states)) {
-    for (const entry of state.entry ?? []) {
-      if (typeof entry === 'string' && entry === actionId) return entry
-      if (typeof entry === 'object' && entry.id === actionId) return entry
-    }
-  }
-  return actionId
-}
-
-export function createGuardRegistry(req: CreateWorkflowRequest): GuardRegistry {
-  const guards: Record<string, (args: { event: any }) => boolean> = {}
-
-  for (const [guardId, runtimeGuard] of Object.entries(runtimeGuards)) {
-    const ref = resolveGuardRef(req.config, guardId)
-    guards[guardId] = ({ event }) => {
-      return runtimeGuard.evaluate({
-        event,
-        context: {
-          record: req.record,
-          tableName: req.tableName,
-          companyId: req.companyId,
-          namespace: req.namespace
-        },
-        record: req.record,
-        params: ref?.params
-      })
-    }
-  }
-
-  return { guards }
+  guards: Record<string, (args: { context: Record<string, unknown>; event: any }) => boolean>
 }
 
 function resolveGuardRef(
-  config: WorkflowDefinition,
-  guardId: string
+  guardId: string,
+  config: CreateWorkflowRequest['config']
 ): { type: string; params?: Record<string, unknown> } | undefined {
   for (const state of Object.values(config.states)) {
     if (!state.on) continue
@@ -100,4 +68,22 @@ function resolveGuardRef(
   return undefined
 }
 
-export { runtimeActions, runtimeGuards }
+export function createGuardRegistry(
+  req: Pick<CreateWorkflowRequest, 'record' | 'config'>
+): GuardRegistry {
+  const guards: GuardRegistry['guards'] = {}
+
+  for (const [guardId, runtimeGuard] of Object.entries(runtimeGuards)) {
+    guards[guardId] = ({ context, event }) => {
+      const ref = resolveGuardRef(guardId, req.config)
+      return runtimeGuard.evaluate({
+        event,
+        context,
+        record: (context?.record ?? req.record) as Record<string, unknown>,
+        params: ref?.params
+      })
+    }
+  }
+
+  return { guards }
+}
