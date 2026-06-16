@@ -5,9 +5,6 @@ export default defineNuxtConfig({
   extends: ['../../layers/workflow-editor'],
   modules: ['@nuxt/ui'],
   css: ['~/assets/css/main.css'],
-  devServer: {
-    host: '0.0.0.0'
-  },
   vite: {
     optimizeDeps: {
       include: ['@vue-flow/core', '@vue-flow/background', 'xstate', '@xstate/vue']

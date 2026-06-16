@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[System Overview]]
   - [[Technology Stack]]
@@ -17,7 +17,8 @@ restate-xstate/
 ├── apps/
 │   ├── admin/                 # Superadmin Nuxt app (port 3001)
 │   ├── web/                   # Tenant Nuxt app (port 3000)
-│   └── workflow-runtime/      # Restate service (port 9080)
+│   ├── workflow-runtime/      # Restate service (port 9080)
+│   └── health-monitor/        # Standalone health-check service (Bun)
 ├── layers/
 │   └── workflow-editor/       # Shared Nuxt layer for the editor
 ├── packages/

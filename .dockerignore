@@ -1,0 +1,13 @@
+.git
+**/node_modules
+.nuxt
+.output
+.cache
+data
+docs
+*.log
+.env
+.env.*
+Dockerfile
+docker-compose.yml
+*.md

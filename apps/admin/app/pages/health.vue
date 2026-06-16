@@ -14,17 +14,11 @@ interface HistoryData {
 const DEFAULT_HISTORY_LIMIT = 20
 
 const { data, refresh, pending, error } = await useFetch<LatestData>('/api/health-checks')
-const running = ref(false)
-const runError = ref<string | null>(null)
 const expanded = ref<Set<HealthCheckService>>(new Set())
 
 const historyByService = ref<Partial<Record<HealthCheckService, HealthCheckRecord[]>>>({})
 const historyPending = ref<Set<HealthCheckService>>(new Set())
 const historyError = ref<Partial<Record<HealthCheckService, string>>>({})
-
-const firstService = computed<HealthCheckService | null>(() => data.value?.latest[0]?.service ?? null)
-
-
 
 async function loadHistory(service: HealthCheckService, force = false) {
   if (!force && historyByService.value[service] !== undefined) return
@@ -72,44 +66,26 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString()
 }
 
-async function runNow() {
-  running.value = true
-  runError.value = null
-  try {
-    await $fetch('/api/health-checks/run', { method: 'POST' })
-    await refresh()
-    await Promise.all(
-      Array.from(expanded.value).map(service => loadHistory(service, true))
-    )
-  } catch (err) {
-    runError.value = err instanceof Error ? err.message : String(err)
-  } finally {
-    running.value = false
-  }
-}
 </script>
 
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold">Health Monitor</h1>
-      <div class="flex items-center gap-3">
-        <span v-if="runError" class="text-sm text-red-600">{{ runError }}</span>
-        <button
-          :disabled="running"
-          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          @click="runNow"
-        >
-          {{ running ? 'Running...' : 'Run checks now' }}
-        </button>
-      </div>
+      <button
+        :disabled="pending"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        @click="refresh()"
+      >
+        {{ pending ? 'Refreshing...' : 'Refresh' }}
+      </button>
     </div>
 
     <div v-if="pending" class="text-gray-500">Loading health checks...</div>
     <div v-else-if="error" class="text-red-600">Failed to load health checks: {{ error.message }}</div>
     <template v-else>
       <div v-if="!data?.latest?.length" class="text-gray-500">
-        No health checks available yet. Click "Run checks now" to populate.
+        No health checks available yet. The health monitor service will populate them on its next scheduled run.
       </div>
       <div v-else class="space-y-4">
         <div

@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[Getting Started]]
   - [[Troubleshooting]]
@@ -15,7 +15,7 @@ related:
 ## Full stack
 
 ```bash
-# 1. Infrastructure
+# 1. Infrastructure and health monitor
 docker compose up -d
 
 # 2. Seed

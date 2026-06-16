@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[System Overview]]
   - [[Monorepo Layout]]
@@ -28,6 +28,7 @@ related:
 ## Tooling
 
 - `tsx` for running TypeScript scripts.
+- Bun for the `health-monitor` service (direct TypeScript execution, no build step).
 - Docker Compose for local infrastructure.
 - Vitest for tests (planned).
 

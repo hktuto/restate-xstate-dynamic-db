@@ -9,6 +9,7 @@ created: 2026-06-15
 updated: 2026-06-15
 related:
   - [[30-Apps/Admin App/Overview]]
+  - [[30-Apps/Health Monitor/Overview]]
   - [[Workflow Runtime]]
   - [[40-Packages/db]]
 ---
@@ -17,7 +18,7 @@ related:
 
 ## Overview
 
-Superadmins can view the health of core platform services from the admin app. A background scheduler runs periodic checks and stores the results in SurrealDB. The same data also drives the web app's platform status, which can show a maintenance page or a degradation banner.
+Superadmins can view the health of core platform services from the admin app. A standalone health-monitor service runs periodic checks and stores the results in SurrealDB. The same data also drives the web app's platform status, which can show a maintenance page or a degradation banner.
 
 ## Monitored services
 
@@ -32,28 +33,29 @@ Superadmins can view the health of core platform services from the admin app. A 
 
 - Service status cards with the latest status, last check datetime, and response time.
 - Clicking a card expands it inline to show the last 20 history entries (status, checked-at datetime, response time, and any error message).
-- The first service’s history loads automatically on page load; other services fetch history on demand when expanded.
-- A manual "Run checks now" button re-runs all checks and refreshes the histories of all expanded services.
+- Service history is fetched on demand when a card is expanded.
+- A **Refresh** button reloads the latest health-check data.
 
 ## API
 
 - `GET /api/health-checks` returns the latest result for each monitored service.
 - `GET /api/health-checks/history?service=<service>&limit=20` returns the recent history for a single service.
-- `POST /api/health-checks/run` triggers an immediate check for all services.
 
 ## Configuration
 
-See `.env.example`:
+The standalone health-monitor service is configured via `.env.example`:
 
 - `RESTATE_META_URL`
 - `WORKFLOW_RUNTIME_URL`
 - `WEB_API_URL`
 - `HEALTH_CHECK_INTERVAL_MS`
-- `HEALTH_CHECK_HISTORY_LIMIT`
+- `HEALTH_CHECK_RETENTION_DAYS`
 
-## Future scaling
+The admin app only reads the existing health-check records through `GET /api/health-checks` and `GET /api/health-checks/history`.
 
-The check runner is isolated from the scheduler. To scale the admin app behind a load balancer, move `server/utils/health-monitor.ts` and the scheduler plugin into a standalone Docker service. The admin app and DB schema stay the same.
+## Architecture
+
+The health-check runner lives in the standalone `apps/health-monitor` service (`apps/health-monitor/src/runner.ts`), which writes results to SurrealDB. The admin app only reads those records, so it remains stateless and can be scaled behind a load balancer.
 
 ## Related
 

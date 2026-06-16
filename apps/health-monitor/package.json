@@ -1,0 +1,16 @@
+{
+  "name": "health-monitor",
+  "type": "module",
+  "scripts": {
+    "dev": "bun src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "db": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "bun-types": "^1.3.14"
+  }
+}

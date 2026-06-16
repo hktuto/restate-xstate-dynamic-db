@@ -10,6 +10,7 @@ app:
 related:
   - [[Authentication & Authorization]]
   - [[30-Apps/Web App/Overview]]
+  - [[30-Apps/Health Monitor/Overview]]
   - [[Roadmap]]
   - [[50-Features/Admin Health Monitor]]
 ---
@@ -26,7 +27,7 @@ The superadmin Nuxt application for platform-level management.
 - Global auth middleware redirects unauthenticated users to `/login`.
 - Uses a dedicated `auth.vue` layout for the login page.
 - Dashboard shows aggregate stats: companies, workflows, users.
-- Server util `health-monitor.ts` runs concurrent health checks for SurrealDB, Restate, workflow-runtime, and web-api.
+- The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
 
 ## Routes
 

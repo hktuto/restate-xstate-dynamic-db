@@ -102,3 +102,19 @@ export async function pruneHealthChecks(service: HealthCheckService, keep: numbe
     await closeSurreal(surreal)
   }
 }
+
+export async function pruneHealthChecksByAge(
+  service: HealthCheckService,
+  retentionMs: number
+): Promise<void> {
+  const cutoff = new Date(Date.now() - retentionMs).toISOString()
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    await surreal.query(
+      'DELETE health_checks WHERE service = $service AND checkedAt < $cutoff',
+      { service, cutoff }
+    )
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
