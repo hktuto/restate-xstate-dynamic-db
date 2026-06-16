@@ -8,10 +8,11 @@ export async function provisionCompanyNamespace(namespace: string) {
       USE NS ${namespace} DB main;
       DEFINE DATABASE IF NOT EXISTS main;
       USE NS ${namespace} DB main;
-      DEFINE TABLE IF NOT EXISTS _tables SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS _columns SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS _relations SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS members SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS workflows SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS triggers SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
       DEFINE INDEX IF NOT EXISTS idx_members_inviteCode ON members FIELDS inviteCode UNIQUE;
     `)

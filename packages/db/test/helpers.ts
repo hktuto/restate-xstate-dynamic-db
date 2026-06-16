@@ -1,5 +1,11 @@
 import { getSurreal, closeSurreal } from '../src/client.js'
 
+export function assertValidNamespace(name: string) {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+    throw new Error(`Invalid namespace name: ${name}`)
+  }
+}
+
 export async function ensurePlatformNamespace() {
   const surreal = await getSurreal()
   try {
@@ -29,6 +35,7 @@ export async function resetPlatformTables() {
   try {
     await surreal.query(`
       DELETE companies;
+      DELETE platform_users;
       DELETE accounts;
       DELETE user_profiles;
       DELETE workflows;
@@ -42,10 +49,11 @@ export async function resetPlatformTables() {
 }
 
 export function uniqueTenantName() {
-  return `test_tenant_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  return `test_tenant_${crypto.randomUUID().replaceAll('-', '_')}`
 }
 
 export async function createTenantNamespace(namespace: string) {
+  assertValidNamespace(namespace)
   const surreal = await getSurreal()
   try {
     await surreal.query(`
@@ -67,6 +75,7 @@ export async function createTenantNamespace(namespace: string) {
 }
 
 export async function removeTenantNamespace(namespace: string) {
+  assertValidNamespace(namespace)
   const surreal = await getSurreal()
   try {
     await surreal.query(`REMOVE NAMESPACE IF EXISTS ${namespace};`)
