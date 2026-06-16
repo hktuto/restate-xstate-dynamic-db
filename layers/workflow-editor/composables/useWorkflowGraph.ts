@@ -8,6 +8,7 @@ export interface EditorNode {
     label: string
     entry: (string | { id: string; params?: Record<string, unknown> })[]
     exit: (string | { id: string; params?: Record<string, unknown> })[]
+    meta?: Record<string, unknown>
   }
 }
 
@@ -20,6 +21,7 @@ export interface EditorEdge {
   data?: {
     guard?: { type: string; params?: Record<string, unknown> }
     actions?: (string | { id: string; params?: Record<string, unknown> })[]
+    sourceAction?: string
   }
 }
 
@@ -42,7 +44,8 @@ export function useWorkflowGraph() {
         data: {
           label: stateId,
           entry: normalizeActions(stateDef.entry),
-          exit: normalizeActions(stateDef.exit)
+          exit: normalizeActions(stateDef.exit),
+          meta: stateDef.meta
         }
       }
     })
@@ -67,7 +70,8 @@ export function useWorkflowGraph() {
             animated: true,
             data: {
               guard: targetDef.guard,
-              actions: targetDef.actions
+              actions: targetDef.actions,
+              sourceAction: stateDef.meta?.action as string | undefined
             }
           })
         }
@@ -75,6 +79,17 @@ export function useWorkflowGraph() {
     }
 
     return { nodes, edges }
+  }
+
+  function mergeMeta(
+    original: Record<string, unknown>,
+    update: Record<string, unknown>
+  ): Record<string, unknown> {
+    return {
+      ...original,
+      ...update,
+      params: update.params ?? original.params
+    }
   }
 
   function graphToDefinition(
@@ -95,9 +110,18 @@ export function useWorkflowGraph() {
       states[node.id] = { ...original }
       if (node.data.entry.length) {
         states[node.id].entry = node.data.entry
+      } else {
+        delete states[node.id].entry
       }
       if (node.data.exit.length) {
         states[node.id].exit = node.data.exit
+      } else {
+        delete states[node.id].exit
+      }
+      if (node.data.meta?.action) {
+        states[node.id].meta = mergeMeta(original.meta ?? {}, node.data.meta)
+      } else if (original.meta?.action) {
+        delete states[node.id].meta
       }
     }
 
