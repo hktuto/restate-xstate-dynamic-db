@@ -4,7 +4,7 @@ type: note
 status: in-progress
 area: docs
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[Data Model]]
   - [[Company Management]]
@@ -13,7 +13,7 @@ related:
 
 # Tenant Authentication & Identity Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Split tenant user identity into global `account`/`user_profile` tables and per-company `member` tables, enabling multi-provider login and cross-company membership with an invite-by-code flow.
 
@@ -49,7 +49,7 @@ related:
 **Files:**
 - Modify: `packages/db/src/seed.ts`
 
-- [ ] **Step 1: Add `accounts` and `user_profiles` table/index definitions**
+- [x] **Step 1: Add `accounts` and `user_profiles` table/index definitions**
 
 Replace the existing `UPSERT platform_users:admin` block with the same block plus new `DEFINE TABLE`/`DEFINE INDEX` statements for `accounts` and `user_profiles`.
 
@@ -87,12 +87,12 @@ seed().catch(err => {
 })
 ```
 
-- [ ] **Step 2: Verify seed compiles**
+- [x] **Step 2: Verify seed compiles**
 
 Run: `pnpm --filter db build`
 Expected: no TypeScript errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/db/src/seed.ts
@@ -106,7 +106,7 @@ git commit -m "db: define global account and user_profile tables/indexes"
 **Files:**
 - Modify: `packages/db/src/platform.ts`
 
-- [ ] **Step 1: Append global identity types and functions**
+- [x] **Step 1: Append global identity types and functions**
 
 Add the following at the end of `packages/db/src/platform.ts` (after `getCompanyByNamespace`).
 
@@ -251,12 +251,12 @@ export async function updateAccountCredential(
 }
 ```
 
-- [ ] **Step 2: Build db package**
+- [x] **Step 2: Build db package**
 
 Run: `pnpm --filter db build`
 Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/db/src/platform.ts
@@ -271,7 +271,7 @@ git commit -m "db: add account and user_profile CRUD"
 - Modify: `packages/db/src/tenant.ts`
 - Modify: `packages/db/src/provision.ts`
 
-- [ ] **Step 1: Remove `UserRecord`/`UserInput`/`users` CRUD and add `member` CRUD**
+- [x] **Step 1: Remove `UserRecord`/`UserInput`/`users` CRUD and add `member` CRUD**
 
 In `packages/db/src/tenant.ts`, delete lines defining `UserRecord`, `UserInput`, `listUsers`, `createUser`, `updateUser`, `deleteUser`, `getUserById`. Replace them with:
 
@@ -400,7 +400,7 @@ export async function deleteMember(namespace: string, id: string): Promise<void>
 }
 ```
 
-- [ ] **Step 2: Add member indexes in provision.ts**
+- [x] **Step 2: Add member indexes in provision.ts**
 
 Modify `packages/db/src/provision.ts` to define `members` table and indexes when a company namespace is provisioned.
 
@@ -427,12 +427,12 @@ export async function provisionCompanyNamespace(namespace: string) {
 }
 ```
 
-- [ ] **Step 3: Build db package**
+- [x] **Step 3: Build db package**
 
 Run: `pnpm --filter db build`
 Expected: no errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/db/src/tenant.ts packages/db/src/provision.ts
@@ -446,7 +446,7 @@ git commit -m "db: replace tenant users with members and invite indexes"
 **Files:**
 - Create: `apps/web/server/utils/auth.ts`
 
-- [ ] **Step 1: Create session utilities**
+- [x] **Step 1: Create session utilities**
 
 ```typescript
 import type { H3Event } from 'h3'
@@ -492,7 +492,7 @@ export function clearTenantSession(event: H3Event) {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/utils/auth.ts
@@ -506,7 +506,7 @@ git commit -m "web: add tenant session cookie helpers"
 **Files:**
 - Create: `apps/web/server/middleware/member.ts`
 
-- [ ] **Step 1: Resolve active member from session**
+- [x] **Step 1: Resolve active member from session**
 
 ```typescript
 import { getMemberByProfileId } from 'db/tenant'
@@ -535,7 +535,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/middleware/member.ts
@@ -549,7 +549,7 @@ git commit -m "web: add member resolution middleware"
 **Files:**
 - Create: `apps/web/server/api/auth/login.post.ts`
 
-- [ ] **Step 1: Create login handler**
+- [x] **Step 1: Create login handler**
 
 ```typescript
 import { getAccountByProviderKey, getUserProfileById } from 'db/platform'
@@ -601,7 +601,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/api/auth/login.post.ts
@@ -615,7 +615,7 @@ git commit -m "web: add tenant email/password login endpoint"
 **Files:**
 - Modify: `apps/web/server/api/users/index.get.ts`
 
-- [ ] **Step 1: List members and join profiles**
+- [x] **Step 1: List members and join profiles**
 
 ```typescript
 import { listMembers } from 'db/tenant'
@@ -636,7 +636,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/api/users/index.get.ts
@@ -650,7 +650,7 @@ git commit -m "web: list members with joined profile data"
 **Files:**
 - Modify: `apps/web/server/api/users/index.post.ts`
 
-- [ ] **Step 1: Replace user creation with member invitation**
+- [x] **Step 1: Replace user creation with member invitation**
 
 ```typescript
 import { createMember } from 'db/tenant'
@@ -683,7 +683,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/api/users/index.post.ts
@@ -697,7 +697,7 @@ git commit -m "web: invite members by email with random code"
 **Files:**
 - Create: `apps/web/server/api/users/accept-invite.post.ts`
 
-- [ ] **Step 1: Accept invite and create/claim identity**
+- [x] **Step 1: Accept invite and create/claim identity**
 
 ```typescript
 import { getMemberByInviteCode, updateMember } from 'db/tenant'
@@ -758,7 +758,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/api/users/accept-invite.post.ts
@@ -772,7 +772,7 @@ git commit -m "web: add invite acceptance endpoint"
 **Files:**
 - Modify: `apps/web/server/api/users/[id].patch.ts`
 
-- [ ] **Step 1: Update member and/or linked profile**
+- [x] **Step 1: Update member and/or linked profile**
 
 ```typescript
 import { updateMember } from 'db/tenant'
@@ -803,7 +803,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/api/users/[id].patch.ts
@@ -817,7 +817,7 @@ git commit -m "web: update member role/status and linked profile"
 **Files:**
 - Modify: `apps/web/server/api/users/[id].delete.ts`
 
-- [ ] **Step 1: Delete member by id**
+- [x] **Step 1: Delete member by id**
 
 ```typescript
 import { deleteMember } from 'db/tenant'
@@ -832,7 +832,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/web/server/api/users/[id].delete.ts
@@ -846,11 +846,11 @@ git commit -m "web: delete member endpoint"
 **Files:**
 - Modify: `apps/web/app/pages/users/index.vue`
 
-- [ ] **Step 1: Read current page**
+- [x] **Step 1: Read current page**
 
 Read `apps/web/app/pages/users/index.vue` first to see existing fields.
 
-- [ ] **Step 2: Adjust fields for member + profile**
+- [x] **Step 2: Adjust fields for member + profile**
 
 Update the page to:
 - Display `member.email`, `member.role`, `member.status`, `profile.name`.
@@ -859,7 +859,7 @@ Update the page to:
 
 Exact markup depends on the current page; keep existing Nuxt UI patterns.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/web/app/pages/users/index.vue
@@ -870,17 +870,17 @@ git commit -m "web: update users page for member/profile model"
 
 ## Task 13: Build and verify
 
-- [ ] **Step 1: Build all packages and apps**
+- [x] **Step 1: Build all packages and apps**
 
 Run: `pnpm -r build`
 Expected: no TypeScript or build errors.
 
-- [ ] **Step 2: Run db seed (if starting fresh)**
+- [x] **Step 2: Run db seed (if starting fresh)**
 
 Run: `docker compose up -d` then `pnpm --filter db seed`
 Expected: platform namespace seeded with new indexes.
 
-- [ ] **Step 3: Manual smoke test**
+- [x] **Step 3: Manual smoke test**
 
 1. Start web app: `pnpm --filter web dev`
 2. Create a company from admin app.
@@ -889,7 +889,7 @@ Expected: platform namespace seeded with new indexes.
 5. POST `/api/auth/login` with email + password → expect `ok: true`.
 6. GET `/api/users` → expect list with joined profile.
 
-- [ ] **Step 4: Commit any fixes**
+- [x] **Step 4: Commit any fixes**
 
 ---
 
@@ -900,7 +900,7 @@ Expected: platform namespace seeded with new indexes.
 - Modify: `docs/20-Architecture/Data Model.md`
 - Modify: `docs/00-Atlas/Project Brief.md`
 
-- [ ] **Step 1: Create feature note**
+- [x] **Step 1: Create feature note**
 
 Create `docs/50-Features/Authentication & Authorization.md` with frontmatter:
 
@@ -908,12 +908,12 @@ Create `docs/50-Features/Authentication & Authorization.md` with frontmatter:
 ---
 title: "Authentication & Authorization"
 type: feature
-status: in-progress
+status: done
 area: web
 app:
   - web
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 related:
   - [[Data Model]]
   - [[Company Management]]
@@ -925,7 +925,7 @@ related:
 Tenant users authenticate through global `account` records linked to a single `user_profile`. Each company namespace holds a `member` record that connects the profile to the company and defines role and status.
 ```
 
-- [ ] **Step 2: Update Data Model note**
+- [x] **Step 2: Update Data Model note**
 
 In `docs/20-Architecture/Data Model.md`, replace the `users` row under tenant namespace with:
 
@@ -935,11 +935,11 @@ In `docs/20-Architecture/Data Model.md`, replace the `users` row under tenant na
 
 Add a new section describing global `accounts` and `user_profiles`.
 
-- [ ] **Step 3: Update Project Brief dates**
+- [x] **Step 3: Update Project Brief dates**
 
 Update `updated:` in `docs/00-Atlas/Project Brief.md` to today.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/

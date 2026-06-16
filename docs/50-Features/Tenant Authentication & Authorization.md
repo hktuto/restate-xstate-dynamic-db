@@ -4,7 +4,7 @@ type: feature
 status: in-progress
 area: web
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 app:
   - web
 related:

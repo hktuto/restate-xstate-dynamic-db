@@ -1,3 +1,12 @@
+---
+title: Workflow Runtime Snapshot Persistence Implementation Plan
+type: note
+status: in-progress
+area: docs
+created: 2026-06-15
+updated: 2026-06-15
+---
+
 > **I'm using the writing-plans skill to create the implementation plan.**
 
 # Workflow Runtime Snapshot Persistence Implementation Plan

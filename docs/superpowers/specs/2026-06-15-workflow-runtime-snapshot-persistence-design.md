@@ -1,21 +1,15 @@
 ---
-title: "Workflow Runtime Snapshot Persistence Design"
+title: Workflow Runtime Snapshot Persistence Design
 type: note
-status: planned
-area: architecture
-app:
-  - runtime
-  - web
-  - admin
-package:
-  - workflow-actions
+status: done
+area: docs
 created: 2026-06-15
 updated: 2026-06-15
 related:
-  - "[[Workflow Runtime]]"
-  - "[[Workflow Engine]]"
-  - "[[Workflow Actions Catalog]]"
-  - "[[Guards & Conditions]]"
+  - [[Workflow Runtime]]
+  - [[Workflow Engine]]
+  - [[Workflow Actions Catalog]]
+  - [[Guards & Conditions]]
 ---
 
 # Workflow Runtime Snapshot Persistence Design

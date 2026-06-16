@@ -34,6 +34,62 @@ function extractFirstHeading(content) {
   return match ? match[1].trim() : ''
 }
 
+function parseExistingFrontmatter(content) {
+  const trimmed = content.trimStart()
+  if (!trimmed.startsWith('---\n') && !trimmed.startsWith('---\r\n')) return null
+  const end = trimmed.search(/\n---\r?\n/)
+  if (end === -1) return null
+  const block = trimmed.slice(4, end)
+  const result = {}
+  let currentKey = null
+  for (const rawLine of block.split(/\r?\n/)) {
+    const line = rawLine.trimEnd()
+    if (line.trim() === '') continue
+    const arrayItem = line.match(/^\s*-\s+(.+)$/)
+    if (arrayItem) {
+      if (currentKey) {
+        if (!Array.isArray(result[currentKey])) result[currentKey] = []
+        result[currentKey].push(arrayItem[1].trim())
+      }
+      continue
+    }
+    const keyValue = line.match(/^\s*([a-zA-Z0-9_]+):\s*(.*)$/)
+    if (keyValue) {
+      currentKey = keyValue[1].trim()
+      const value = keyValue[2].trim()
+      if (value === '') {
+        result[currentKey] = []
+      } else if (value.startsWith('[') && value.endsWith(']')) {
+        const inner = value.slice(1, -1).trim()
+        result[currentKey] = inner ? inner.split(',').map(s => s.trim()) : []
+      } else {
+        result[currentKey] = value
+      }
+    }
+  }
+  return result
+}
+
+function frontmatterEqual(a, b) {
+  const keysA = Object.keys(a)
+  const keysB = Object.keys(b)
+  if (keysA.length !== keysB.length) return false
+  for (const key of keysA) {
+    if (!keysB.includes(key)) return false
+    const va = a[key]
+    const vb = b[key]
+    if (Array.isArray(va) && Array.isArray(vb)) {
+      if (va.length !== vb.length) return false
+      for (let i = 0; i < va.length; i++) {
+        if (va[i] !== vb[i]) return false
+      }
+    } else if (va !== vb) {
+      return false
+    }
+  }
+  return true
+}
+
 function extractTags(content) {
   const tags = new Set()
   const matches = content.matchAll(/#([a-zA-Z0-9_/-]+)/g)
@@ -53,7 +109,10 @@ function extractWikilinks(content) {
   return Array.from(links)
 }
 
-function inferStatus(tags, defaults) {
+function inferStatus(tags, defaults, relPath, existingStatus) {
+  if (existingStatus) return existingStatus
+  const override = STATUS_OVERRIDES[relPath]
+  if (override) return override
   const statusTag = tagValue(tags, 'status')
   if (statusTag === 'active') return 'in-progress'
   if (statusTag === 'blocker') return 'in-progress'
@@ -207,13 +266,13 @@ function inferStatus(tags, defaults, relPath) {
   return statusTag || defaults.status
 }
 
-function buildFrontmatter(file, relPath) {
+function buildFrontmatter(file, relPath, existing) {
   const raw = fs.readFileSync(file, 'utf8')
   const title = extractFirstHeading(raw) || path.basename(file, '.md')
   const tags = extractTags(raw)
   const type = inferType(relPath)
   const area = inferArea(relPath, tags)
-  const status = inferStatus(tags, { status: inferDefaultStatus(type) }, relPath)
+  const status = inferStatus(tags, { status: inferDefaultStatus(type) }, relPath, existing?.status)
   const app = inferApp(relPath, type, title)
   const pkg = inferPackage(relPath, type)
   const related = extractWikilinks(raw)
@@ -224,7 +283,7 @@ function buildFrontmatter(file, relPath) {
     type,
     status,
     area,
-    created: today,
+    created: existing?.created || today,
     updated: today,
   }
 
@@ -308,13 +367,25 @@ function stripInlineTags(content) {
 function processFile(file) {
   const relPath = path.relative(DOCS_ROOT, file).replace(/\\/g, '/')
   let content = fs.readFileSync(file, 'utf8')
+  const existing = parseExistingFrontmatter(content)
 
   if (hasFrontmatter(content) && !FORCE) {
     console.log(`skip  ${relPath}`)
     return
   }
 
-  const fm = buildFrontmatter(file, relPath)
+  const fm = buildFrontmatter(file, relPath, existing)
+
+  // If the file already has frontmatter and it would not change (ignoring
+  // updated), leave it alone so created/updated dates and the git diff stay clean.
+  if (existing) {
+    const compareFm = { ...fm, updated: existing.updated }
+    if (frontmatterEqual(compareFm, existing)) {
+      console.log(`skip  ${relPath}`)
+      return
+    }
+  }
+
   content = stripExistingFrontmatter(content)
   content = stripInlineTags(content)
   const newContent = stringifyFrontmatter(fm) + '\n' + content.trimStart()
