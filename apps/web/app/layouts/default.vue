@@ -1,5 +1,11 @@
 <script setup lang="ts">
 const status = usePlatformStatus()
+const session = useCookie('tenant_session')
+
+async function logout() {
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  await navigateTo('/login')
+}
 </script>
 
 <template>
@@ -21,7 +27,17 @@ const status = usePlatformStatus()
           <NuxtLink to="/triggers" class="hover:text-blue-600">Triggers</NuxtLink>
           <NuxtLink to="/user-tasks" class="hover:text-blue-600">Tasks</NuxtLink>
         </div>
-        <CompanySwitcher />
+        <div class="flex items-center gap-3">
+          <CompanySwitcher />
+          <button
+            v-if="session"
+            class="text-sm text-gray-600 hover:text-red-600"
+            @click="logout"
+          >
+            Logout
+          </button>
+          <NuxtLink v-else to="/login" class="text-sm text-blue-600 hover:underline">Login</NuxtLink>
+        </div>
       </div>
     </nav>
     <main class="max-w-5xl mx-auto px-4 py-6">
