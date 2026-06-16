@@ -126,6 +126,7 @@ const AREA_OVERRIDES = {
   '50-Features/User Management.md': 'admin',
   '50-Features/Company Management.md': 'admin',
   '50-Features/Tenant Authentication & Authorization.md': 'web',
+  '50-Features/Admin Health Monitor.md': 'admin',
 }
 
 function inferArea(relPath, tags) {
@@ -169,6 +170,7 @@ function inferApp(relPath, type, title) {
   }
   if (type === 'feature') {
     const t = title.toLowerCase()
+    if (t.includes('admin health monitor')) return ['admin']
     if (t.includes('user management')) return ['admin', 'web']
     if (t.includes('company management')) return ['admin']
     if (t.includes('tenant authentication')) return ['web']
@@ -234,6 +236,7 @@ const STATUS_OVERRIDES = {
   '40-Packages/shared.md': 'done',
   '40-Packages/workflow-actions.md': 'done',
   '40-Packages/workflow-editor-layer.md': 'done',
+  '50-Features/Admin Health Monitor.md': 'done',
   '50-Features/User Management.md': 'planned',
   '50-Features/Company Management.md': 'done',
   '50-Features/Tenant Authentication & Authorization.md': 'in-progress',
