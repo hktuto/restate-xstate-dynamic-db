@@ -5,6 +5,7 @@ import type { WorkflowDefinition } from 'shared'
 export interface CompanyInput {
   name: string
   slug: string
+  namespace?: string
 }
 
 export interface CompanyRecord extends CompanyInput {
@@ -66,7 +67,7 @@ export async function updatePlatformWorkflow(id: string, input: Partial<Platform
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [updated] = await surreal.query<[PlatformWorkflowRecord[]]>(
-      'UPDATE $id MERGE $data',
+      'UPDATE type::record($id) MERGE $data',
       { id, data: input }
     )
     return normalizeId(updated[0])
@@ -78,7 +79,7 @@ export async function updatePlatformWorkflow(id: string, input: Partial<Platform
 export async function deletePlatformWorkflow(id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -124,7 +125,7 @@ export async function createPlatformTrigger(input: PlatformTriggerInput): Promis
 export async function deletePlatformTrigger(id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -225,7 +226,7 @@ export async function updatePlatformWorkflowInstanceStatus(
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [updated] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
-      'UPDATE $id MERGE $data',
+      'UPDATE type::record($id) MERGE $data',
       { id, data: { status, updatedAt: new Date().toISOString() } }
     )
     return normalizeId(updated[0])
@@ -237,7 +238,7 @@ export async function updatePlatformWorkflowInstanceStatus(
 export async function deletePlatformWorkflowInstance(id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -320,7 +321,7 @@ export async function updatePlatformUserTaskStatus(
       data.resolvedAt = new Date().toISOString()
     }
     const [updated] = await surreal.query<[PlatformUserTaskRecord[]]>(
-      'UPDATE $id MERGE $data',
+      'UPDATE type::record($id) MERGE $data',
       { id, data }
     )
     return normalizeId(updated[0])
@@ -332,7 +333,7 @@ export async function updatePlatformUserTaskStatus(
 export async function deletePlatformUserTask(id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -354,7 +355,7 @@ export async function createCompany(input: CompanyInput): Promise<CompanyRecord>
     const id = crypto.randomUUID().replace(/-/g, '')
     const record = {
       ...input,
-      namespace: `company_${id}`,
+      namespace: input.namespace ?? `company_${id}`,
       createdAt: new Date().toISOString()
     }
     const [created] = await surreal.query<[CompanyRecord[]]>(
@@ -394,22 +395,25 @@ export async function getCompanyByNamespace(namespace: string): Promise<CompanyR
 }
 
 export async function listCompaniesForProfile(profileId: string): Promise<CompanyRecord[]> {
-  const companies = await listCompanies()
-  const memberships = await Promise.all(
-    companies.map(async (company) => {
-      const surreal = await getSurreal(company.namespace, 'main')
-      try {
-        const [members] = await surreal.query<[Array<{ id: string }>]>(
-          'SELECT id FROM members WHERE profileId = $profileId LIMIT 1',
-          { profileId }
-        )
-        return Array.isArray(members) && members.length > 0 ? company : null
-      } finally {
-        await closeSurreal(surreal)
-      }
-    })
-  )
-  return memberships.filter((c): c is CompanyRecord => c !== null)
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    const [members] = await surreal.query<[Array<{ company: unknown }>]>(
+      'SELECT company FROM members WHERE profile = $profileId OR profile = type::record($profileId)',
+      { profileId }
+    )
+    const companyIds = (members ?? [])
+      .map((m) => String(m.company))
+      .filter((id): id is string => Boolean(id))
+    if (companyIds.length === 0) return []
+
+    const [companies] = await surreal.query<[CompanyRecord[]]>(
+      'SELECT * FROM companies WHERE id IN array::map($ids, |$id| type::record($id))',
+      { ids: companyIds }
+    )
+    return normalizeIds(companies ?? [])
+  } finally {
+    await closeSurreal(surreal)
+  }
 }
 
 
@@ -467,7 +471,7 @@ export async function getUserProfilesByIds(ids: string[]): Promise<UserProfileRe
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [profiles] = await surreal.query<[UserProfileRecord[]]>(
-      'SELECT * FROM user_profiles WHERE id IN $ids',
+      'SELECT * FROM user_profiles WHERE id IN array::map($ids, |$id| type::record($id))',
       { ids }
     )
     return normalizeIds(profiles ?? [])
@@ -487,7 +491,7 @@ export async function updateUserProfile(
       updatedAt: new Date().toISOString()
     }
     const [updated] = await surreal.query<[UserProfileRecord[]]>(
-      'UPDATE $id MERGE $data',
+      'UPDATE type::record($id) MERGE $data',
       { id, data }
     )
     return normalizeId(updated[0])
@@ -557,7 +561,7 @@ export async function updateAccountCredential(
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [updated] = await surreal.query<[AccountRecord[]]>(
-      'UPDATE $id SET credential = $credential, updatedAt = $updatedAt',
+      'UPDATE type::record($id) SET credential = $credential, updatedAt = $updatedAt',
       { id, credential, updatedAt: new Date().toISOString() }
     )
     return normalizeId(updated[0])
