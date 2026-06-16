@@ -3,7 +3,6 @@ import { getSurreal, closeSurreal } from './client.js'
 async function seed() {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    // Clean up previous seed so this script is idempotent
     await surreal.query('DELETE triggers WHERE tableName = "companies" AND event = "create"')
     await surreal.query('DELETE workflows WHERE name = "provisionCompany"')
 
@@ -13,13 +12,25 @@ async function seed() {
       states: {
         idle: {
           on: {
-            create: 'provisioning'
+            create: { target: 'activating' }
           }
         },
-        provisioning: {
-          entry: ['provisionCompanyNamespace'],
-          type: 'final'
-        }
+        activating: {
+          meta: {
+            action: 'updateRecord',
+            params: {
+              table: 'companies',
+              fields: { status: 'active' }
+            },
+            outputKey: 'updatedCompany'
+          },
+          on: {
+            ok: { target: 'done' },
+            error: { target: 'failed' }
+          }
+        },
+        done: { type: 'final' },
+        failed: { type: 'final' }
       }
     }
 
@@ -40,7 +51,7 @@ async function seed() {
   }
 }
 
-seed().catch(err => {
+seed().catch((err) => {
   console.error('Workflow seed failed:', err)
   process.exit(1)
 })
