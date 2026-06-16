@@ -1,16 +1,19 @@
 import { assign, createMachine, raise } from 'xstate'
-import type { AnyStateMachine } from 'xstate'
+import type { AnyEventObject, AnyStateMachine } from 'xstate'
 import type { ObjectContext } from '@restatedev/restate-sdk'
 import type { WorkflowDefinition, CreateWorkflowRequest } from 'shared'
 import { createActionActors, createGuardRegistry } from 'workflow-actions/runtime'
+import type { ActionActorInput } from 'workflow-actions/runtime'
 import type { RuntimeContext } from './types.js'
 
+// Cast because the event carries a dynamic output key that cannot be typed statically.
 const assignOutput = assign(({ event }: any) => {
   const outputKey = event.output?.outputKey
   if (!outputKey) return {}
   return { [outputKey]: event.output.data }
 }) as any
 
+// Cast because the event carries a dynamic error shape that cannot be typed statically.
 const assignError = assign(({ event }: any) => ({
   lastError: {
     message: event.error?.message ?? String(event.error ?? 'unknown error')
@@ -21,7 +24,7 @@ export function compileWorkflow(
   definition: WorkflowDefinition,
   context: RuntimeContext,
   objectCtx: Pick<ObjectContext, 'run'>
-): { machine: AnyStateMachine } {
+): { machine: AnyStateMachine; promises: Promise<unknown>[] } {
   const registryContext: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace' | 'config'> = {
     config: definition,
     tableName: context.tableName,
@@ -30,7 +33,8 @@ export function compileWorkflow(
     namespace: context.namespace
   }
 
-  const { actors } = createActionActors(objectCtx, registryContext)
+  const promises: Promise<unknown>[] = []
+  const { actors } = createActionActors(objectCtx, registryContext, promises)
   const guardRegistry = createGuardRegistry(registryContext)
 
   const states: Record<string, Record<string, unknown>> = {}
@@ -49,18 +53,19 @@ export function compileWorkflow(
 
       states[stateId].invoke = {
         src: actionId,
-        input: ({ context: machineContext, event }: any) => ({
+        input: ({ context: machineContext, event }: { context: unknown; event: AnyEventObject }): ActionActorInput => ({
           params: stateDef.meta?.params as Record<string, unknown> | undefined,
           outputKey: stateDef.meta?.outputKey as string | undefined,
-          context: machineContext,
+          context: machineContext as Record<string, unknown>,
           event
         }),
         onDone: isCondition
           ? {
               actions: [
-                raise(({ event }: any) => ({
-                  type: event.output?.data === true ? 'true' : 'false'
-                }))
+                raise(({ event }) => {
+                  const output = (event as { output?: { data: unknown } }).output
+                  return { type: output?.data === true ? 'true' : 'false' }
+                })
               ]
             }
           : {
@@ -98,6 +103,7 @@ export function compileWorkflow(
         guards: guardRegistry.guards,
         actions: { assignOutput, assignError }
       }
-    )
+    ),
+    promises
   }
 }

@@ -26,7 +26,8 @@ export interface ActionActors {
 
 export function createActionActors(
   objectCtx: Pick<ObjectContext, 'run'>,
-  req: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace'>
+  req: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace'>,
+  promises: Promise<unknown>[] = []
 ): ActionActors {
   const actors: Record<string, PromiseActorLogic<ActionActorOutput, ActionActorInput>> = {}
 
@@ -42,9 +43,12 @@ export function createActionActors(
         params: input.params
       }
 
-      const result = await objectCtx.run(actionId, async () => {
+      const runPromise = objectCtx.run(actionId, async () => {
         return runtimeAction.execute(executorCtx)
       })
+      promises.push(runPromise)
+
+      const result = await runPromise
 
       return { data: result, outputKey: input.outputKey }
     })

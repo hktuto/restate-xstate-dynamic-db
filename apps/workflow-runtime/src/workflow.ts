@@ -117,9 +117,10 @@ async function runTransition(
     ...state.context,
     ...(event.record ? { record: event.record } : {})
   }
-  const { machine } = compileWorkflow(state.config, context, objectCtx)
+  const { machine, promises } = compileWorkflow(state.config, context, objectCtx)
   const actor = restoreActor(machine, state.snapshot)
   actor.send(event as any)
+  await Promise.all(promises)
   const snapshot = getSnapshot(actor)
   actor.stop()
   return { snapshot, machine }
@@ -173,12 +174,13 @@ export const workflowObject = restate.object({
       }
 
       const context = toRuntimeContext(req)
-      const { machine } = compileWorkflow(req.config, context, objectCtx)
+      const { machine, promises } = compileWorkflow(req.config, context, objectCtx)
       const actor = createActor(machine)
       actor.start()
       if (req.event) {
         actor.send({ type: req.event, record: req.record } as any)
       }
+      await Promise.all(promises)
       const rawSnapshot = getSnapshot(actor)
       actor.stop()
       const snapshot = snapshotWithContext(rawSnapshot, context)
