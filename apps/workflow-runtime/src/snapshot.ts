@@ -8,6 +8,5 @@ export function restoreActor(machine: AnyStateMachine, snapshot?: AnyMachineSnap
 }
 
 export function getSnapshot(actor: AnyActorRef): AnyMachineSnapshot {
-  // getPersistedSnapshot is typed as Snapshot<unknown> on AnyActorRef
-  return actor.getPersistedSnapshot() as AnyMachineSnapshot
+  return actor.getSnapshot()
 }

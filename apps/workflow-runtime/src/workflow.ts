@@ -3,7 +3,7 @@ import type { AnyMachineSnapshot, AnyStateMachine } from 'xstate'
 import { createActor, getStateNodes } from 'xstate'
 import type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest } from 'shared'
 import { compileWorkflow } from './compile.js'
-import { restoreActor, getSnapshot } from './snapshot.js'
+import { restoreActor } from './snapshot.js'
 import { evaluateCondition, registerSubscription, resolveMatchingSubscriptions } from './subscriptions.js'
 import type { Condition, PersistedState, RuntimeContext } from './types.js'
 
@@ -121,9 +121,16 @@ async function runTransition(
   const actor = restoreActor(machine, state.snapshot)
   actor.send(event as any)
   await Promise.all(promises)
-  const snapshot = getSnapshot(actor)
+  const liveSnapshot = actor.getSnapshot()
+  const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
   actor.stop()
-  return { snapshot, machine }
+
+  const nextState = { snapshot: persistedSnapshot, config: state.config, context }
+  await maybeCreateUserTask(objectCtx, machine, liveSnapshot, nextState)
+  await resolveMatchingSubscriptions(objectCtx, liveSnapshot)
+  await updateInstanceStatus(objectCtx, liveSnapshot, context.namespace)
+
+  return { snapshot: persistedSnapshot, machine }
 }
 
 async function updateInstanceStatus(
@@ -181,14 +188,15 @@ export const workflowObject = restate.object({
         actor.send({ type: req.event, record: req.record } as any)
       }
       await Promise.all(promises)
-      const rawSnapshot = getSnapshot(actor)
+      const liveSnapshot = actor.getSnapshot()
+      const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
       actor.stop()
-      const snapshot = snapshotWithContext(rawSnapshot, context)
+      const snapshot = snapshotWithContext(persistedSnapshot, context)
 
       const state = { snapshot, config: req.config, context }
-      await maybeCreateUserTask(objectCtx, machine, snapshot, state)
-      await resolveMatchingSubscriptions(objectCtx, snapshot)
-      await updateInstanceStatus(objectCtx, snapshot, context.namespace)
+      await maybeCreateUserTask(objectCtx, machine, liveSnapshot, state)
+      await resolveMatchingSubscriptions(objectCtx, liveSnapshot)
+      await updateInstanceStatus(objectCtx, liveSnapshot, context.namespace)
       await saveState(objectCtx, { snapshot, config: req.config, context })
 
       return snapshot
@@ -204,13 +212,9 @@ export const workflowObject = restate.object({
         ...state.context,
         ...(req.record ? { record: req.record } : {})
       }
-      const { snapshot: rawSnapshot, machine } = await runTransition(objectCtx, state, { type: req.event, record: req.record })
+      const { snapshot: rawSnapshot } = await runTransition(objectCtx, state, { type: req.event, record: req.record })
       const snapshot = snapshotWithContext(rawSnapshot, context)
 
-      const nextState = { snapshot, config: state.config, context }
-      await maybeCreateUserTask(objectCtx, machine, snapshot, nextState)
-      await resolveMatchingSubscriptions(objectCtx, snapshot)
-      await updateInstanceStatus(objectCtx, snapshot, context.namespace)
       await saveState(objectCtx, { snapshot, context })
 
       return snapshot
