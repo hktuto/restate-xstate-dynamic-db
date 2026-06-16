@@ -4,16 +4,13 @@ import type { HealthCheckInput, HealthCheckService } from 'db/health-checks'
 const CHECK_TIMEOUT_MS = 5000
 type CheckResult = Omit<HealthCheckInput, 'checkedAt'>
 
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: NodeJS.Timeout | undefined
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+    promise
+      .then(resolve, reject)
+      .finally(() => clearTimeout(timer))
   })
-  try {
-    return await Promise.race([promise, timeout])
-  } finally {
-    if (timer) clearTimeout(timer)
-  }
 }
 
 async function checkSurrealDB(): Promise<CheckResult> {
