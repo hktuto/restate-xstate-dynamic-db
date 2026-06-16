@@ -9,6 +9,21 @@ interface WhereResult {
   nextIndex: number
 }
 
+const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/
+
+function assertArray(value: unknown, name: string): asserts value is unknown[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`Expected ${name} to be an array`)
+  }
+}
+
+function validateField(field: string): string {
+  if (!VALID_IDENTIFIER.test(field)) {
+    throw new Error(`Invalid field identifier: ${field}`)
+  }
+  return field
+}
+
 export function buildSelectQuery(
   table: string,
   filter: Record<string, unknown>,
@@ -42,16 +57,18 @@ function buildWhere(
 
   for (const [key, value] of entries) {
     if (key === '$and') {
+      assertArray(value, '$and')
       const parts: string[] = []
-      for (const sub of value as unknown[]) {
+      for (const sub of value) {
         const res = buildWhere(sub, params, index, context)
         if (res.where) parts.push(res.where)
         index = res.nextIndex
       }
       if (parts.length) clauses.push(`(${parts.join(' AND ')})`)
     } else if (key === '$or') {
+      assertArray(value, '$or')
       const parts: string[] = []
-      for (const sub of value as unknown[]) {
+      for (const sub of value) {
         const res = buildWhere(sub, params, index, context)
         if (res.where) parts.push(res.where)
         index = res.nextIndex
@@ -62,7 +79,7 @@ function buildWhere(
       if (res.where) clauses.push(`NOT (${res.where})`)
       index = res.nextIndex
     } else {
-      const res = buildFieldClause(key, value as Record<string, unknown>, params, index, context)
+      const res = buildFieldClause(validateField(key), value as Record<string, unknown>, params, index, context)
       if (res.where) clauses.push(res.where)
       index = res.nextIndex
     }

@@ -62,4 +62,36 @@ describe('buildSelectQuery', () => {
     )
     expect(sql).toContain('role IS NOT NONE')
   })
+
+  it('rejects unsafe field names', () => {
+    expect(() => buildSelectQuery('members', { 'status; DROP TABLE members': { $eq: 'active' } })).toThrow(
+      'Invalid field identifier: status; DROP TABLE members'
+    )
+    expect(() => buildSelectQuery('members', { 'status--': { $eq: 'active' } })).toThrow(
+      'Invalid field identifier: status--'
+    )
+  })
+
+  it('produces no WHERE for an empty filter', () => {
+    const { sql } = buildSelectQuery('members', {})
+    expect(sql).toBe('SELECT * FROM type::table($table)')
+  })
+
+  it('throws when $and value is not an array', () => {
+    expect(() => buildSelectQuery('members', { $and: { status: { $eq: 'active' } } })).toThrow(
+      'Expected $and to be an array'
+    )
+  })
+
+  it('throws when $or value is not an array', () => {
+    expect(() => buildSelectQuery('members', { $or: { status: { $eq: 'active' } } })).toThrow(
+      'Expected $or to be an array'
+    )
+  })
+
+  it('matches exact SQL for simple equality', () => {
+    const { sql, params } = buildSelectQuery('members', { status: { $eq: 'active' } })
+    expect(sql).toBe('SELECT * FROM type::table($table) WHERE (status = $p0)')
+    expect(params).toEqual({ table: 'members', p0: 'active' })
+  })
 })
