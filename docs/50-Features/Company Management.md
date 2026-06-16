@@ -2,38 +2,46 @@
 title: Company Management
 type: feature
 status: done
-area: admin
+area: web
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-16
 app:
-  - admin
+  - web
 related:
   - [[Data Model]]
   - [[Multi-tenancy]]
-  - [[30-Apps/Admin App/Overview]]
+  - [[Tenant Authentication & Authorization]]
+  - [[30-Apps/Web App/Overview|Web App]]
 ---
 
 # Company Management
 
 ## Overview
 
-Create and manage tenant companies from the superadmin app.
+Tenant companies are created from the web app by authenticated users. Each company gets its own SurrealDB namespace and an `owner` member for the creator.
 
 ## Company fields
 
 - `id` — SurrealDB record ID.
 - `name` — Display name.
-- `slug` — URL-friendly identifier.
-- `namespace` — SurrealDB namespace for tenant data.
+- `slug` — URL-friendly identifier; auto-generated from the name and deduplicated.
+- `namespace` — SurrealDB namespace for tenant data (`company_<uuid>`).
 
 ## Behaviors
 
-- Creating a company provisions a new SurrealDB namespace.
-- The web app resolves the company by slug cookie.
-- The runtime resolves the company by namespace header.
+- **Public creation** — any authenticated web user can create a company at `/companies/new`.
+- **Ownership** — the creator receives an `owner` member record in the new namespace.
+- **Provisioning** — company creation dispatches the `companies.create` trigger for provisioning (e.g., default workflows, schema setup).
+- **Selection** — the active company is stored in the `company` cookie and resolved by server middleware.
+- **Switching** — `CompanySwitcher` reads `/api/companies` and updates the `company` cookie.
+
+## Removed
+
+The admin app's company creation pages and APIs have been removed; companies are now self-service in the web app.
 
 ## Related
 
 - [[Data Model]]
 - [[Multi-tenancy]]
-- [[30-Apps/Admin App/Overview|Admin App]]
+- [[Tenant Authentication & Authorization]]
+- [[30-Apps/Web App/Overview|Web App]]
