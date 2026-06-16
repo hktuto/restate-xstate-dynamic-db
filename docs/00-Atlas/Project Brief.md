@@ -4,7 +4,7 @@ type: index
 status: in-progress
 area: docs
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-16
 related:
   - [[Vision]]
   - [[System Overview]]
@@ -103,14 +103,10 @@ docs/                     # This Obsidian vault
 
 ```bash
 pnpm install
-pnpm -r build
 docker compose up -d
 pnpm --filter db seed
-# Infrastructure + health monitor
-docker compose up -d
 
 # Apps
 pnpm --filter admin dev
 pnpm --filter web dev
-pnpm --filter workflow-runtime dev
 ```

@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-16
 package: workflow-actions
 related:
   - [[50-Features/Workflow Actions Catalog]]
@@ -26,6 +26,14 @@ Catalog of reusable workflow actions and guards, plus runtime execution helpers.
 
 - `src/catalog/` — definitions of available actions and guards.
 - `src/runtime/` — runtime execution logic.
+
+## Build
+
+`workflow-actions` is imported directly as TypeScript source. Consumers resolve `packages/workflow-actions/src/*.ts` via the package `exports` field. There is no build step.
+
+```bash
+pnpm --filter workflow-actions typecheck
+```
 
 ## Runtime registries
 

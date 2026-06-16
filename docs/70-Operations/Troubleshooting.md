@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: ops
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-16
 related:
   - [[Getting Started]]
   - [[Running locally]]
@@ -24,11 +24,11 @@ related:
 - Verify the admin password is hashed, not plaintext.
 - Check browser cookies are not blocked.
 
-## Build errors
+## Type or build errors
 
 - Run `pnpm install` to refresh workspace links.
-- Run `pnpm -r build` to surface package-level errors.
-- Clear `.nuxt` / `.output` / `dist` folders if stale.
+- Run `pnpm -r typecheck` to surface package-level type errors.
+- Clear `.nuxt` / `.output` folders if stale.
 
 ## Related
 

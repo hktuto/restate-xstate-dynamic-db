@@ -4,7 +4,7 @@ type: app
 status: done
 area: ops
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 app:
   - health-monitor
 related:
@@ -41,8 +41,10 @@ See `.env.example` for required env vars.
 
 ## Commands
 
+Run via Docker Compose (recommended):
+
 ```bash
-pnpm --filter health-monitor dev
+docker compose up -d
 ```
 
 ## Related

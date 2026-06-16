@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-16
 related:
   - [[Environment Setup]]
   - [[Running locally]]
@@ -26,13 +26,13 @@ related:
 pnpm install
 ```
 
-## Start infrastructure
+## Start infrastructure and services
 
 ```bash
 docker compose up -d
 ```
 
-This starts SurrealDB, Restate, and the health-monitor service.
+This starts SurrealDB, Restate, health-monitor, and workflow-runtime. The `restate-register` service automatically registers the workflow runtime.
 
 ## Seed the platform database
 
@@ -42,20 +42,12 @@ pnpm --filter db seed
 
 ## Run apps
 
-The health-monitor service starts automatically with `docker compose up -d`. You can also run it manually via pnpm when preferred.
-
 ```bash
 # Admin app
 pnpm --filter admin dev
 
 # Web app
 pnpm --filter web dev
-
-# Workflow runtime
-pnpm --filter workflow-runtime dev
-
-# Health monitor (alternative to Docker Compose)
-pnpm --filter health-monitor dev
 ```
 
 ## Default credentials

@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-16
 related:
   - [[Getting Started]]
   - [[Troubleshooting]]
@@ -15,7 +15,7 @@ related:
 ## Full stack
 
 ```bash
-# 1. Infrastructure and health monitor
+# 1. Infrastructure and services (SurrealDB, Restate, health-monitor, workflow-runtime)
 docker compose up -d
 
 # 2. Seed
@@ -24,7 +24,6 @@ pnpm --filter db seed
 # 3. Apps (in separate terminals)
 pnpm --filter admin dev
 pnpm --filter web dev
-pnpm --filter workflow-runtime dev
 ```
 
 ## Verify

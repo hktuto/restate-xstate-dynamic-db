@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-16
 package: shared
 related:
   - [[Authentication & Authorization]]
@@ -24,6 +24,14 @@ Shared utilities used across apps and packages.
 ## Key modules
 
 - `src/auth.ts` — `hashPassword()` and `comparePassword()` using bcryptjs.
+
+## Build
+
+`shared` is imported directly as TypeScript source. Consumers (Vite, Bun, tsc) resolve `packages/shared/src/index.ts` via the package `exports` field. There is no build step.
+
+```bash
+pnpm --filter shared typecheck
+```
 
 ## Related
 
