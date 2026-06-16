@@ -1,12 +1,12 @@
 ---
 title: Admin Health Monitor Design
 type: note
-status: planned
+status: done
 area: admin
 app:
   - admin
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 related:
   - [[30-Apps/Admin App/Overview]]
   - [[20-Architecture/System Overview]]

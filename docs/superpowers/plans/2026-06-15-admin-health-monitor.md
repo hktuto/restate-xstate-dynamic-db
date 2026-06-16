@@ -1,3 +1,16 @@
+---
+title: Admin Health Monitor Implementation Plan
+type: note
+status: done
+area: docs
+created: 2026-06-15
+updated: 2026-06-16
+related:
+  - [[30-Apps/Admin App/Overview]]
+  - [[Workflow Runtime]]
+  - [[40-Packages/db]]
+---
+
 > **I'm using the writing-plans skill to create the implementation plan.**
 
 # Admin Health Monitor Implementation Plan
