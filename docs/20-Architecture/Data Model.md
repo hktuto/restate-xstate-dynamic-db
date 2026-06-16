@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-16
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
@@ -22,6 +22,7 @@ related:
 | `platform_workflows` | Workflow templates available to all tenants. |
 | `workflow_instances` | Running and historical platform workflow instances. |
 | `user_tasks` | Manual tasks created by platform workflow instances. |
+| `health_checks` | Service health check records. |
 
 ## Tenant namespace (`company_<uuid>/main`)
 

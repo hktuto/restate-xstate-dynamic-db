@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { getSurreal, closeSurreal } from '../src/client.js'
 
 export function assertValidNamespace(name: string) {
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+  if (!/^[a-z_][a-z0-9_]*$/.test(name)) {
     throw new Error(`Invalid namespace name: ${name}`)
   }
 }
@@ -22,6 +23,7 @@ export async function ensurePlatformNamespace() {
       DEFINE TABLE IF NOT EXISTS triggers SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS health_checks SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_companies_slug ON companies FIELDS slug UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_accounts_provider_key ON accounts FIELDS provider, providerKey UNIQUE;
     `)
@@ -42,6 +44,7 @@ export async function resetPlatformTables() {
       DELETE triggers;
       DELETE workflow_instances;
       DELETE user_tasks;
+      DELETE health_checks;
     `)
   } finally {
     await closeSurreal(surreal)
@@ -49,7 +52,7 @@ export async function resetPlatformTables() {
 }
 
 export function uniqueTenantName() {
-  return `test_tenant_${crypto.randomUUID().replaceAll('-', '_')}`
+  return `test_tenant_${randomUUID().replaceAll('-', '_')}`
 }
 
 export async function createTenantNamespace(namespace: string) {

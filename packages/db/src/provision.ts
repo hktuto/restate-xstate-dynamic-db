@@ -1,6 +1,9 @@
 import { getSurreal, closeSurreal } from './client.js'
 
 export async function provisionCompanyNamespace(namespace: string) {
+  if (!/^[a-z_][a-z0-9_]*$/.test(namespace)) {
+    throw new Error(`Invalid namespace name: ${namespace}. Namespace must match /^[a-z_][a-z0-9_]*$/`)
+  }
   const surreal = await getSurreal()
   try {
     await surreal.query(`
