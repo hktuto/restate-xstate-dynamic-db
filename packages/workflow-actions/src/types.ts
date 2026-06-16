@@ -4,6 +4,7 @@ export type { ActionMetadata, GuardMetadata }
 
 export interface ActionExecutorContext {
   event: any
+  context: Record<string, unknown>
   record: Record<string, unknown>
   tableName: string
   companyId?: string
@@ -11,7 +12,7 @@ export interface ActionExecutorContext {
   params?: Record<string, unknown>
 }
 
-export type ActionExecutor = (ctx: ActionExecutorContext) => Promise<void> | void
+export type ActionExecutor = (ctx: ActionExecutorContext) => Promise<unknown> | unknown
 
 export interface RuntimeAction {
   meta: ActionMetadata
@@ -20,6 +21,7 @@ export interface RuntimeAction {
 
 export interface GuardExecutorContext {
   event: any
+  context: Record<string, unknown>
   record: Record<string, unknown>
   params?: Record<string, unknown>
 }
