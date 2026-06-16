@@ -45,4 +45,21 @@ describe('buildSelectQuery', () => {
     })
     expect(params.p0).toBe('rec-123')
   })
+
+  it('supports $not', () => {
+    const { sql } = buildSelectQuery('members', {
+      $not: { status: { $eq: 'archived' } }
+    })
+    expect(sql).toContain('NOT ((status = $p0))')
+  })
+
+  it('resolves $context values inside $exists', () => {
+    const { sql } = buildSelectQuery(
+      'members',
+      { role: { $exists: '$context.includeRole' } },
+      undefined,
+      { includeRole: true }
+    )
+    expect(sql).toContain('role IS NOT NONE')
+  })
 })

@@ -82,7 +82,8 @@ function buildFieldClause(
 
   for (const [op, raw] of Object.entries(ops)) {
     if (op === '$exists') {
-      clauses.push(raw === true || raw === 'true' ? `${field} IS NOT NONE` : `${field} IS NONE`)
+      const resolved = resolveValue(raw, context)
+      clauses.push(resolved === true || resolved === 'true' ? `${field} IS NOT NONE` : `${field} IS NONE`)
       continue
     }
 
