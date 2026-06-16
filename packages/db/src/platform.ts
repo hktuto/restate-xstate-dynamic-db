@@ -52,8 +52,7 @@ export async function getPlatformWorkflow(id: string): Promise<PlatformWorkflowR
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformWorkflowRecord[]]>(
-      'SELECT * FROM workflows WHERE id = $id LIMIT 1',
-      { id }
+      `SELECT * FROM ${id}`,
     )
     return result[0]
   } finally {
