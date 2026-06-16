@@ -1,0 +1,161 @@
+<script setup lang="ts">
+import type { ActionMetadata, ParamSchema } from 'shared'
+
+export interface ActionConfig {
+  action?: string
+  params?: Record<string, unknown>
+  outputKey?: string
+}
+
+const props = defineProps<{
+  modelValue: ActionConfig
+  actions: ActionMetadata[]
+  readonly?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: ActionConfig): void
+}>()
+
+const activeAction = computed(() => props.actions.find((a) => a.id === props.modelValue.action))
+
+function update(patch: Partial<ActionConfig>) {
+  emit('update:modelValue', { ...props.modelValue, ...patch })
+}
+
+function updateParam(key: string, value: unknown) {
+  const next = { ...(props.modelValue.params ?? {}), [key]: value }
+  emit('update:modelValue', { ...props.modelValue, params: next })
+}
+
+function parseJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return raw
+  }
+}
+
+function formatJson(value: unknown): string {
+  return JSON.stringify(value ?? {}, null, 2)
+}
+
+function defaultValue(schema: ParamSchema): unknown {
+  if (schema.default !== undefined) return schema.default
+  if (schema.type === 'json') return {}
+  if (schema.type === 'boolean') return false
+  if (schema.type === 'number') return 0
+  return ''
+}
+
+function autoOutputKey(actionId: string, params?: Record<string, unknown>): string {
+  const table = String(params?.table ?? '')
+  const cap = table ? table.charAt(0).toUpperCase() + table.slice(1) : 'Record'
+  if (actionId === 'getRecord') {
+    const type = (params?.result as { type?: string })?.type ?? 'first'
+    return type === 'list' ? `${table}List` : table
+  }
+  if (actionId === 'createRecord') return `new${cap}`
+  if (actionId === 'updateRecord') return `updated${cap}`
+  if (actionId === 'deleteRecord') return `deleted${cap}`
+  return ''
+}
+
+function onSelectAction(actionId: string) {
+  const action = props.actions.find((a) => a.id === actionId)
+  const params: Record<string, unknown> = {}
+  for (const [key, schema] of Object.entries(action?.paramsSchema ?? {})) {
+    params[key] = defaultValue(schema)
+  }
+  update({
+    action: actionId,
+    params,
+    outputKey: actionId === 'condition' ? undefined : autoOutputKey(actionId, params)
+  })
+}
+
+function onUpdateTable() {
+  if (!props.modelValue.action || props.modelValue.action === 'condition') return
+  update({ outputKey: autoOutputKey(props.modelValue.action, props.modelValue.params) })
+}
+</script>
+
+<template>
+  <div class="space-y-3">
+    <div>
+      <label class="block text-xs font-medium text-gray-600 mb-1">Action</label>
+      <select
+        :value="modelValue.action"
+        class="w-full border rounded px-2 py-1 text-sm"
+        :disabled="readonly"
+        @change="onSelectAction(($event.target as HTMLSelectElement).value)"
+      >
+        <option value="">No action</option>
+        <option v-for="action in actions" :key="action.id" :value="action.id">{{ action.label }}</option>
+      </select>
+    </div>
+
+    <template v-if="activeAction">
+      <div v-for="(schema, key) in activeAction.paramsSchema" :key="key">
+        <label class="block text-xs font-medium text-gray-600 mb-1">{{ schema.label }}</label>
+
+        <input
+          v-if="schema.type === 'string'"
+          :value="(modelValue.params?.[key] as string) ?? ''"
+          type="text"
+          class="w-full border rounded px-2 py-1 text-sm"
+          :readonly="readonly"
+          @input="updateParam(key, ($event.target as HTMLInputElement).value)"
+          @change="key === 'table' ? onUpdateTable() : undefined"
+        />
+
+        <input
+          v-else-if="schema.type === 'number'"
+          :value="(modelValue.params?.[key] as number) ?? 0"
+          type="number"
+          class="w-full border rounded px-2 py-1 text-sm"
+          :readonly="readonly"
+          @input="updateParam(key, Number(($event.target as HTMLInputElement).value))"
+        />
+
+        <select
+          v-else-if="schema.type === 'boolean' || schema.type === 'select'"
+          :value="String(modelValue.params?.[key] ?? '')"
+          class="w-full border rounded px-2 py-1 text-sm"
+          :disabled="readonly"
+          @change="updateParam(key, ($event.target as HTMLSelectElement).value)"
+        >
+          <option
+            v-for="opt in schema.type === 'boolean'
+              ? [{ label: 'True', value: 'true' }, { label: 'False', value: 'false' }]
+              : (schema.options ?? [])"
+            :key="opt.value"
+            :value="opt.value"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
+
+        <textarea
+          v-else-if="schema.type === 'json'"
+          :value="formatJson(modelValue.params?.[key])"
+          rows="4"
+          class="w-full border rounded px-2 py-1 text-sm font-mono"
+          :readonly="readonly"
+          @blur="updateParam(key, parseJson(($event.target as HTMLTextAreaElement).value))"
+        />
+      </div>
+
+      <div v-if="modelValue.action !== 'condition'">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Output key</label>
+        <input
+          :value="modelValue.outputKey ?? ''"
+          type="text"
+          class="w-full border rounded px-2 py-1 text-sm"
+          :readonly="readonly"
+          @input="update({ outputKey: ($event.target as HTMLInputElement).value })"
+        />
+      </div>
+    </template>
+  </div>
+</template>
