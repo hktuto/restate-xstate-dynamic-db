@@ -257,7 +257,7 @@ export interface WorkflowInstanceRecord {
 
 export interface WorkflowInstanceInput {
   workflowId: string
-  status: WorkflowInstanceStatus
+  status?: WorkflowInstanceStatus
   tableName: string
   recordId: string
   namespace: string
