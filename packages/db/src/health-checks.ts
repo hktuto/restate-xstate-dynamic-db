@@ -1,7 +1,7 @@
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
 
-export type HealthCheckService = 'surrealdb' | 'restate' | 'workflow-runtime' | 'web-api'
+export type HealthCheckService = string
 export type HealthCheckStatus = 'healthy' | 'unhealthy'
 
 export interface HealthCheckRecord {
@@ -23,13 +23,6 @@ export interface HealthCheckInput {
   details?: Record<string, unknown>
 }
 
-const ALL_SERVICES: HealthCheckService[] = [
-  'surrealdb',
-  'restate',
-  'workflow-runtime',
-  'web-api'
-]
-
 export async function createHealthCheck(input: HealthCheckInput): Promise<HealthCheckRecord> {
   const surreal = await getSurreal('platform', 'admin')
   try {
@@ -46,16 +39,16 @@ export async function createHealthCheck(input: HealthCheckInput): Promise<Health
 export async function listLatestHealthChecks(): Promise<HealthCheckRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    const results = await Promise.all(
-      ALL_SERVICES.map(async (service) => {
-        const [records] = await surreal.query<[HealthCheckRecord[]]>(
-          'SELECT * FROM health_checks WHERE service = $service ORDER BY checkedAt DESC LIMIT 1',
-          { service }
-        )
-        return records[0]
-      })
+    const [records] = await surreal.query<[HealthCheckRecord[]]>(
+      'SELECT * FROM health_checks ORDER BY checkedAt DESC'
     )
-    return normalizeIds(results.filter((record): record is HealthCheckRecord => record !== undefined))
+    const seen = new Set<string>()
+    const latest = records.filter((record) => {
+      if (seen.has(record.service)) return false
+      seen.add(record.service)
+      return true
+    })
+    return normalizeIds(latest)
   } finally {
     await closeSurreal(surreal)
   }
