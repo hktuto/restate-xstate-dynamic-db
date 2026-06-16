@@ -1,40 +1,38 @@
 {
   "name": "db",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./client": {
-      "types": "./dist/client.d.ts",
-      "default": "./dist/client.js"
+      "types": "./src/client.ts",
+      "default": "./src/client.ts"
     },
     "./platform": {
-      "types": "./dist/platform.d.ts",
-      "default": "./dist/platform.js"
+      "types": "./src/platform.ts",
+      "default": "./src/platform.ts"
     },
     "./provision": {
-      "types": "./dist/provision.d.ts",
-      "default": "./dist/provision.js"
+      "types": "./src/provision.ts",
+      "default": "./src/provision.ts"
     },
     "./seed": {
-      "types": "./dist/seed.d.ts",
-      "default": "./dist/seed.js"
+      "types": "./src/seed.ts",
+      "default": "./src/seed.ts"
     },
     "./tenant": {
-      "types": "./dist/tenant.d.ts",
-      "default": "./dist/tenant.js"
+      "types": "./src/tenant.ts",
+      "default": "./src/tenant.ts"
     },
     "./health-checks": {
-      "types": "./dist/health-checks.d.ts",
-      "default": "./dist/health-checks.js"
+      "types": "./src/health-checks.ts",
+      "default": "./src/health-checks.ts"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "seed": "tsx src/seed.ts",
     "seed:workflows": "tsx src/seed-workflows.ts"
   },
