@@ -65,6 +65,9 @@ function autoOutputKey(actionId: string, params?: Record<string, unknown>): stri
 }
 
 function onSelectAction(actionId: string) {
+  for (const key of Object.keys(jsonErrors)) {
+    delete jsonErrors[key]
+  }
   const action = props.actions.find((a) => a.id === actionId)
   const params: Record<string, unknown> = {}
   for (const [key, schema] of Object.entries(action?.paramsSchema ?? {})) {
