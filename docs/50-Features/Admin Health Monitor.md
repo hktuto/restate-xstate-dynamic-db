@@ -22,7 +22,7 @@ Superadmins can view the health of core platform services from the admin app. A 
 ## Monitored services
 
 - SurrealDB
-- Restate
+- Restate — also verifies that the `workflow` service is registered in Restate.
 - workflow-runtime
 - web API
 
@@ -30,9 +30,16 @@ Superadmins can view the health of core platform services from the admin app. A 
 
 `/health` shows:
 
-- Current status cards for each service.
-- Recent check history table.
-- A manual "Run checks now" button.
+- Service status cards with the latest status, last check datetime, and response time.
+- Clicking a card expands it inline to show the last 20 history entries (status, checked-at datetime, response time, and any error message).
+- The first service’s history loads automatically on page load; other services fetch history on demand when expanded.
+- A manual "Run checks now" button re-runs all checks and refreshes the histories of all expanded services.
+
+## API
+
+- `GET /api/health-checks` returns the latest result for each monitored service.
+- `GET /api/health-checks/history?service=<service>&limit=20` returns the recent history for a single service.
+- `POST /api/health-checks/run` triggers an immediate check for all services.
 
 ## Configuration
 

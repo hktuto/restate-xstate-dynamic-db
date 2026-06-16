@@ -73,6 +73,22 @@ export async function listHealthCheckHistory(limit: number): Promise<HealthCheck
   }
 }
 
+export async function listHealthCheckHistoryForService(
+  service: HealthCheckService,
+  limit: number
+): Promise<HealthCheckRecord[]> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    const [records] = await surreal.query<[HealthCheckRecord[]]>(
+      'SELECT * FROM health_checks WHERE service = $service ORDER BY checkedAt DESC LIMIT $limit',
+      { service, limit }
+    )
+    return records
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
 export async function pruneHealthChecks(service: HealthCheckService, keep: number): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {

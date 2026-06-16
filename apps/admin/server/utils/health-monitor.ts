@@ -56,8 +56,40 @@ async function checkHttpService(
   }
 }
 
-function checkRestate(): Promise<CheckResult> {
-  return checkHttpService('restate', 'RESTATE_META_URL', '/services')
+async function checkRestate(): Promise<CheckResult> {
+  const service: HealthCheckService = 'restate'
+  const url = process.env.RESTATE_META_URL
+  if (!url) {
+    return { service, status: 'unhealthy', responseTimeMs: 0, message: 'Missing RESTATE_META_URL' }
+  }
+
+  const start = Date.now()
+  try {
+    const res = await withTimeout(fetch(`${url}/services`), CHECK_TIMEOUT_MS)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+    const body = await res.json() as { services?: Array<{ name?: string }> }
+    const services = Array.isArray(body.services) ? body.services : []
+    const hasWorkflow = services.some((s) => s.name === 'workflow')
+
+    if (!hasWorkflow) {
+      return {
+        service,
+        status: 'unhealthy',
+        responseTimeMs: Date.now() - start,
+        message: 'Restate is reachable but the workflow service is not registered'
+      }
+    }
+
+    return { service, status: 'healthy', responseTimeMs: Date.now() - start }
+  } catch (err) {
+    return {
+      service,
+      status: 'unhealthy',
+      responseTimeMs: Date.now() - start,
+      message: err instanceof Error ? err.message : String(err)
+    }
+  }
 }
 
 function checkWorkflowRuntime(): Promise<CheckResult> {
