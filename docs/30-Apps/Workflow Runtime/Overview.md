@@ -4,7 +4,7 @@ type: app
 status: done
 area: runtime
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-16
 app:
   - runtime
 related:
@@ -31,6 +31,19 @@ The Restate service that executes workflow definitions durably.
 - Creates user tasks when a state is tagged `waiting`.
 - Supports blocking `waitFor` calls with conditions and optional timeouts.
 - Relies on Restate for persistence, retries, timers, and idempotency.
+
+## Runtime
+
+`apps/workflow-runtime` runs on [Bun](https://bun.sh/) for TypeScript-native execution. Local development uses `bun --watch src/index.ts`; type checking remains `tsc --noEmit` because Bun does not typecheck.
+
+For a one-command local stack, start the service with Docker Compose:
+
+```bash
+docker compose up -d
+pnpm restate:register
+```
+
+The container exposes port `9080` and reaches the host-based `web` API at `http://host.docker.internal:3000`.
 
 ## Handlers
 
