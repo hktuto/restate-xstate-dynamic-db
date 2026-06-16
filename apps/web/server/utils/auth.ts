@@ -1,3 +1,4 @@
+import { signObject, unsignObject } from 'shared'
 import type { H3Event } from 'h3'
 
 export interface TenantSession {
@@ -22,9 +23,8 @@ function getSessionSecret(): string {
   return secret
 }
 
-export async function setTenantSession(event: H3Event, session: TenantSession) {
-  const { signObject } = await import('shared')
-  setCookie(event, TENANT_SESSION_COOKIE, signObject(session as unknown as Record<string, unknown>, getSessionSecret()), {
+export function setTenantSession(event: H3Event, session: TenantSession) {
+  setCookie(event, TENANT_SESSION_COOKIE, signObject(session, getSessionSecret()), {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
@@ -32,15 +32,14 @@ export async function setTenantSession(event: H3Event, session: TenantSession) {
   })
 }
 
-export async function getTenantSession(event: H3Event): Promise<TenantSession | null> {
+export function getTenantSession(event: H3Event): TenantSession | null {
   const cookie = getCookie(event, TENANT_SESSION_COOKIE)
   if (!cookie) return null
-  const { unsignObject } = await import('shared')
-  return unsignObject(cookie, getSessionSecret()) as TenantSession | null
+  return unsignObject<TenantSession>(cookie, getSessionSecret())
 }
 
-export async function requireTenantSession(event: H3Event): Promise<TenantSession> {
-  const session = await getTenantSession(event)
+export function requireTenantSession(event: H3Event): TenantSession {
+  const session = getTenantSession(event)
   if (!session) {
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }

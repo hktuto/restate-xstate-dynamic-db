@@ -20,11 +20,11 @@ export function unsign(signedValue: string, secret: string): string | null {
   return timingSafeEqual(Buffer.from(signature), Buffer.from(expected)) ? value : null
 }
 
-export function signObject<T extends Record<string, unknown>>(obj: T, secret: string): string {
+export function signObject<T extends object>(obj: T, secret: string): string {
   return sign(JSON.stringify(obj), secret)
 }
 
-export function unsignObject<T extends Record<string, unknown>>(signedValue: string, secret: string): T | null {
+export function unsignObject<T extends object>(signedValue: string, secret: string): T | null {
   const value = unsign(signedValue, secret)
   if (!value) return null
   try {

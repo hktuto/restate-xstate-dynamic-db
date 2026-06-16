@@ -35,7 +35,6 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
     "seed": "tsx src/seed.ts",
     "seed:workflows": "tsx src/seed-workflows.ts"
   },
