@@ -109,7 +109,7 @@ export async function updateMember(
       updatedAt: new Date().toISOString()
     }
     const [updated] = await surreal.query<[MemberRecord[]]>(
-      'UPDATE $id MERGE $data',
+      'UPDATE type::record($id) MERGE $data',
       { id, data }
     )
     return normalizeId(updated[0])
@@ -121,7 +121,7 @@ export async function updateMember(
 export async function deleteMember(namespace: string, id: string): Promise<void> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -176,7 +176,7 @@ export async function getWorkflow(namespace: string, id: string): Promise<Workfl
 export async function updateWorkflow(namespace: string, id: string, input: Partial<WorkflowInput>): Promise<WorkflowRecord | undefined> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    const [updated] = await surreal.query<[WorkflowRecord[]]>('UPDATE $id MERGE $data', { id, data: input })
+    const [updated] = await surreal.query<[WorkflowRecord[]]>('UPDATE type::record($id) MERGE $data', { id, data: input })
     return normalizeId(updated[0])
   } finally {
     await closeSurreal(surreal)
@@ -186,7 +186,7 @@ export async function updateWorkflow(namespace: string, id: string, input: Parti
 export async function deleteWorkflow(namespace: string, id: string): Promise<void> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -234,7 +234,7 @@ export async function createTrigger(namespace: string, input: TriggerInput): Pro
 export async function deleteTrigger(namespace: string, id: string): Promise<void> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -257,11 +257,12 @@ export interface WorkflowInstanceRecord {
 
 export interface WorkflowInstanceInput {
   workflowId: string
+  status: WorkflowInstanceStatus
   tableName: string
   recordId: string
   namespace: string
   companyId?: string
-  status?: WorkflowInstanceStatus
+  context?: Record<string, unknown>
 }
 
 export async function listWorkflowInstances(namespace: string): Promise<WorkflowInstanceRecord[]> {
@@ -326,7 +327,7 @@ export async function createWorkflowInstance(namespace: string, input: WorkflowI
 export async function deleteWorkflowInstance(namespace: string, id: string): Promise<void> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -340,7 +341,7 @@ export async function updateWorkflowInstanceStatus(
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [updated] = await surreal.query<[WorkflowInstanceRecord[]]>(
-      'UPDATE $id MERGE $data',
+      'UPDATE type::record($id) MERGE $data',
       { id, data: { status, updatedAt: new Date().toISOString() } }
     )
     return normalizeId(updated[0])
@@ -371,6 +372,7 @@ export interface UserTaskInput {
   tableName: string
   recordId: string
   workflowId: string
+  status?: UserTaskStatus
 }
 
 export async function listUserTasks(namespace: string): Promise<UserTaskRecord[]> {
@@ -398,7 +400,7 @@ export async function createUserTask(namespace: string, input: UserTaskInput): P
   try {
     const data = {
       ...input,
-      status: 'pending',
+      status: input.status ?? 'pending',
       createdAt: new Date().toISOString()
     }
     const [created] = await surreal.query<[UserTaskRecord[]]>('CREATE user_tasks CONTENT $data', { data })
@@ -421,7 +423,7 @@ export async function updateUserTaskStatus(
       data.resolvedAt = new Date().toISOString()
     }
     const [updated] = await surreal.query<[UserTaskRecord[]]>(
-      'UPDATE $id MERGE $data',
+      'UPDATE type::record($id) MERGE $data',
       { id, data }
     )
     return normalizeId(updated[0])
@@ -433,7 +435,7 @@ export async function updateUserTaskStatus(
 export async function deleteUserTask(namespace: string, id: string): Promise<void> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    await surreal.query('DELETE $id', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
