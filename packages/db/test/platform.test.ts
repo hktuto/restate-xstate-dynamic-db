@@ -130,8 +130,8 @@ describe('platform', () => {
       const workflow = await createPlatformWorkflow(sampleWorkflow)
       const trigger = await createPlatformTrigger({
         workflowId: workflow.id,
-        type: 'webhook',
-        config: {},
+        tableName: 'orders',
+        event: 'created',
       })
       expect(trigger.id).toMatch(/^triggers:/)
 
@@ -149,8 +149,10 @@ describe('platform', () => {
       const workflow = await createPlatformWorkflow(sampleWorkflow)
       const instance = await createPlatformWorkflowInstance({
         workflowId: workflow.id,
+        tableName: 'orders',
+        recordId: 'orders:2',
+        namespace: 'test',
         status: 'running',
-        context: {},
       })
       expect(instance.id).toMatch(/^workflow_instances:/)
 
@@ -160,8 +162,8 @@ describe('platform', () => {
       const active = await findActivePlatformWorkflowInstance(workflow.id, 'orders', 'orders:1')
       expect(active).toBeUndefined()
 
-      const updated = await updatePlatformWorkflowInstanceStatus(instance.id, 'completed')
-      expect(updated?.status).toBe('completed')
+      const updated = await updatePlatformWorkflowInstanceStatus(instance.id, 'done')
+      expect(updated?.status).toBe('done')
 
       await deletePlatformWorkflowInstance(instance.id)
       const after = await listPlatformWorkflowInstances()
@@ -172,20 +174,27 @@ describe('platform', () => {
   describe('platform user tasks', () => {
     it('creates, gets, updates status and deletes a task', async () => {
       const workflow = await createPlatformWorkflow(sampleWorkflow)
-      const instance = await createPlatformWorkflowInstance({ workflowId: workflow.id, status: 'running', context: {} })
+      const instance = await createPlatformWorkflowInstance({
+        workflowId: workflow.id,
+        tableName: 'orders',
+        recordId: 'orders:2',
+        namespace: 'test',
+        status: 'running',
+      })
       const task = await createPlatformUserTask({
-        workflowInstanceId: instance.id,
-        assigneeProfileId: 'user_profiles:1',
-        title: 'Approve',
-        status: 'pending',
+        instanceId: instance.id,
+        type: 'approval',
+        tableName: 'orders',
+        recordId: 'orders:2',
+        workflowId: workflow.id,
       })
       expect(task.id).toMatch(/^user_tasks:/)
 
       const found = await getPlatformUserTaskById(task.id)
       expect(found?.id).toBe(task.id)
 
-      const updated = await updatePlatformUserTaskStatus(task.id, 'approved')
-      expect(updated?.status).toBe('approved')
+      const updated = await updatePlatformUserTaskStatus(task.id, 'completed')
+      expect(updated?.status).toBe('completed')
 
       await deletePlatformUserTask(task.id)
       const after = await listPlatformUserTasks()
