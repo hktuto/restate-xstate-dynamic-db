@@ -1,78 +1,120 @@
-import type { ActionExecutor, RuntimeAction } from '../types.js'
+import { getSurreal, closeSurreal } from 'db/client'
+import { normalizeId, normalizeIds } from 'db/normalize'
+import type { ActionExecutor, ActionExecutorContext, RuntimeAction } from '../types.js'
+import { buildSelectQuery } from './query-builder.js'
+import { evaluateExpression } from './expression.js'
 
-const NITRO_API_URL = process.env.NITRO_API_URL || 'http://localhost:3000'
-
-const log: ActionExecutor = ({ event }) => {
-  console.log('[workflow log]', event)
+function requireNamespace(ctx: ActionExecutorContext): string {
+  if (!ctx.namespace) throw new Error('namespace is required for CRUD actions')
+  return ctx.namespace
 }
 
-const setStatusActive: ActionExecutor = async ({ record, namespace }) => {
-  const userId = record?.id
-  if (typeof userId !== 'number' && typeof userId !== 'string') return
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-restate-skip-trigger': 'true'
-  }
-  if (namespace) headers['x-company-namespace'] = namespace
-
-  const res = await fetch(`${NITRO_API_URL}/api/users/${userId}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({ status: 'active' })
-  })
-  if (!res.ok) {
-    throw new Error(`Failed to update user status: ${res.status}`)
-  }
+function resolveTable(ctx: ActionExecutorContext): string {
+  return String(ctx.params?.table ?? ctx.tableName)
 }
 
-const sendWebhook: ActionExecutor = async ({ event, record, namespace, params }) => {
-  const webhookUrl = (params?.url as string) || process.env.WEBHOOK_URL || `${NITRO_API_URL}/api/webhook`
+function resolveRecordId(ctx: ActionExecutorContext): string {
+  return String(ctx.params?.id ?? ctx.record?.id ?? '')
+}
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (namespace) headers['x-company-namespace'] = namespace
+const getRecord: ActionExecutor = async (ctx) => {
+  const namespace = requireNamespace(ctx)
+  const table = resolveTable(ctx)
+  const filter = (ctx.params?.filter as Record<string, unknown>) ?? {}
+  const resultType = ((ctx.params?.result as { type?: string })?.type ?? 'first') as 'first' | 'list'
+  const { sql, params } = buildSelectQuery(table, filter, { resultType }, ctx.context)
 
-  const res = await fetch(webhookUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ userId: record?.id, email: record?.email, event: event?.type })
-  })
-  if (!res.ok) {
-    throw new Error(`Webhook call failed: ${res.status}`)
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [records] = await surreal.query<[{ id: string }[]]>(sql, params)
+    const normalized = normalizeIds(records)
+    return resultType === 'first' ? (normalized[0] ?? null) : normalized
+  } finally {
+    await closeSurreal(surreal)
   }
 }
 
-const provisionCompanyNamespace: ActionExecutor = async ({ record }) => {
-  const namespace = record?.namespace
-  if (typeof namespace !== 'string') {
-    throw new Error('Missing company namespace in workflow event')
+const createRecord: ActionExecutor = async (ctx) => {
+  const namespace = requireNamespace(ctx)
+  const table = resolveTable(ctx)
+  const fields = (ctx.params?.fields as Record<string, unknown>) ?? {}
+
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [created] = await surreal.query<[{ id: string }[]]>(
+      'CREATE type::table($table) CONTENT $data',
+      { table, data: fields }
+    )
+    return normalizeId(created[0])
+  } finally {
+    await closeSurreal(surreal)
   }
-  const { provisionCompanyNamespace } = await import('db/provision')
-  await provisionCompanyNamespace(namespace)
+}
+
+const updateRecord: ActionExecutor = async (ctx) => {
+  const namespace = requireNamespace(ctx)
+  const id = resolveRecordId(ctx)
+  if (!id) throw new Error('updateRecord requires an id or context.record.id')
+  const fields = (ctx.params?.fields as Record<string, unknown>) ?? {}
+
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [updated] = await surreal.query<[{ id: string }[]]>(
+      'UPDATE type::record($id) MERGE $data',
+      { id, data: fields }
+    )
+    return normalizeId(updated[0])
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+const deleteRecord: ActionExecutor = async (ctx) => {
+  const namespace = requireNamespace(ctx)
+  const id = resolveRecordId(ctx)
+  if (!id) throw new Error('deleteRecord requires an id or context.record.id')
+  const mode = String(ctx.params?.mode ?? 'soft')
+
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    if (mode === 'hard') {
+      await surreal.query('DELETE type::record($id)', { id })
+      return { id }
+    }
+    const [updated] = await surreal.query<[{ id: string }[]]>(
+      'UPDATE type::record($id) SET status = "deleted"',
+      { id }
+    )
+    return normalizeId(updated[0])
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+const condition: ActionExecutor = (ctx) => {
+  const expression = ctx.params?.expression
+  return evaluateExpression(expression, ctx.context)
 }
 
 export const runtimeActions: Record<string, RuntimeAction> = {
-  log: {
-    meta: { id: 'log', label: 'Log event', category: 'Debug' },
-    execute: log
+  getRecord: {
+    meta: { id: 'getRecord', label: 'Get record(s)', category: 'Database' },
+    execute: getRecord
   },
-  setStatusActive: {
-    meta: { id: 'setStatusActive', label: 'Set status active', category: 'Record' },
-    execute: setStatusActive
+  createRecord: {
+    meta: { id: 'createRecord', label: 'Create record', category: 'Database' },
+    execute: createRecord
   },
-  sendWebhook: {
-    meta: {
-      id: 'sendWebhook',
-      label: 'Send webhook',
-      category: 'Integrations',
-      paramsSchema: {
-        url: { type: 'string', label: 'Webhook URL', required: false }
-      }
-    },
-    execute: sendWebhook
+  updateRecord: {
+    meta: { id: 'updateRecord', label: 'Update record', category: 'Database' },
+    execute: updateRecord
   },
-  provisionCompanyNamespace: {
-    meta: { id: 'provisionCompanyNamespace', label: 'Provision company namespace', category: 'Platform' },
-    execute: provisionCompanyNamespace
+  deleteRecord: {
+    meta: { id: 'deleteRecord', label: 'Delete record', category: 'Database' },
+    execute: deleteRecord
+  },
+  condition: {
+    meta: { id: 'condition', label: 'Condition', category: 'Logic' },
+    execute: condition
   }
 }
