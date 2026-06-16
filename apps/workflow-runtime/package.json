@@ -3,9 +3,10 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "test": "vitest run"
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "test": "vitest run",
+    "test:bun": "bunx vitest run"
   },
   "dependencies": {
     "@restatedev/restate-sdk": "^1.14.5",
@@ -17,8 +18,7 @@
   "devDependencies": {
     "@restatedev/restate-sdk-clients": "^1.14.5",
     "@restatedev/restate-sdk-testcontainers": "^1.14.5",
-    "@types/node": "^22.15.17",
-    "tsx": "^4.22.4",
+    "bun-types": "^1.3.14",
     "typescript": "^5.8.3",
     "vitest": "^4.1.9"
   }
