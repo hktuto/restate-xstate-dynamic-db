@@ -28,7 +28,7 @@ related:
 | File | Responsibility |
 |------|----------------|
 | `packages/db/package.json` | Add `test` script and `vitest` dev dependency. |
-| `packages/db/vitest.config.ts` | Per-package Vitest config with `setupFiles`. |
+| `packages/db/vitest.config.ts` | Per-package Vitest config with `setupFiles` and `fileParallelism: false`. |
 | `packages/db/test/setup.ts` | Global setup: ensure SurrealDB is reachable and platform namespace exists. |
 | `packages/db/test/helpers.ts` | Shared helpers: `ensurePlatformNamespace`, `resetPlatformTables`, `createTenantNamespace`, `removeTenantNamespace`. |
 | `packages/db/test/client.test.ts` | Tests for `getSurreal` / `closeSurreal`. |
@@ -36,6 +36,7 @@ related:
 | `packages/db/test/platform.test.ts` | Tests for every exported function in `src/platform.ts`. |
 | `packages/db/test/tenant.test.ts` | Tests for every exported function in `src/tenant.ts`. |
 | `packages/db/test/health-checks.test.ts` | Tests for every exported function in `src/health-checks.ts`. |
+| `packages/db/test/normalize.test.ts` | Unit tests for the `normalizeId` / `normalizeIds` helper. |
 | `docs/60-Development/Testing.md` (or add section) | Document how to run DB tests and requirements. |
 
 ---
@@ -936,13 +937,7 @@ See [[Testing]] for how to run the DB test suite.
 node docs/scripts/apply-frontmatter.cjs
 ```
 
-- [ ] **Step 4: Run frontmatter script if needed**
-
-```bash
-node docs/scripts/apply-frontmatter.cjs
-```
-
-- [ ] **Step 5: Run typecheck and build**
+- [ ] **Step 4: Run typecheck and build**
 
 ```bash
 pnpm --filter db typecheck
@@ -951,7 +946,7 @@ pnpm -r build
 
 Expected: both pass with no new TypeScript errors.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 Create separate commits:
 
