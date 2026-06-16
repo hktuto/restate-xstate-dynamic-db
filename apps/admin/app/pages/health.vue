@@ -24,15 +24,7 @@ const historyError = ref<Partial<Record<HealthCheckService, string>>>({})
 
 const firstService = computed<HealthCheckService | null>(() => data.value?.latest[0]?.service ?? null)
 
-watch(
-  firstService,
-  (service) => {
-    if (service && !expanded.value.has(service)) {
-      expanded.value = new Set(expanded.value).add(service)
-    }
-  },
-  { immediate: true }
-)
+
 
 async function loadHistory(service: HealthCheckService, force = false) {
   if (!force && historyByService.value[service] !== undefined) return
