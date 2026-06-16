@@ -72,3 +72,20 @@ export function getTenantCompany(event: H3Event): TenantCompanyCookie | null {
 export function clearTenantCompany(event: H3Event) {
   deleteCookie(event, COMPANY_COOKIE, { path: '/' })
 }
+
+export function requireTenantMember(event: H3Event) {
+  requireTenantSession(event)
+  const member = event.context.member
+  if (!member) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+  return member
+}
+
+export function requireTenantRole(event: H3Event, roles: Array<'owner' | 'admin' | 'member'>) {
+  const member = requireTenantMember(event)
+  if (!roles.includes(member.role)) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+  return member
+}
