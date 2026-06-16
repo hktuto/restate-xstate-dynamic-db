@@ -392,6 +392,25 @@ export async function getCompanyByNamespace(namespace: string): Promise<CompanyR
   }
 }
 
+export async function listCompaniesForProfile(profileId: string): Promise<CompanyRecord[]> {
+  const companies = await listCompanies()
+  const memberships = await Promise.all(
+    companies.map(async (company) => {
+      const surreal = await getSurreal(company.namespace, 'main')
+      try {
+        const [members] = await surreal.query<[Array<{ id: string }>]>(
+          'SELECT id FROM members WHERE profileId = $profileId LIMIT 1',
+          { profileId }
+        )
+        return members.length > 0 ? company : null
+      } finally {
+        await closeSurreal(surreal)
+      }
+    })
+  )
+  return memberships.filter((c): c is CompanyRecord => c !== null)
+}
+
 
 export interface UserProfileRecord {
   id: string
