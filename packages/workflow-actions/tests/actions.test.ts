@@ -23,6 +23,38 @@ const baseCtx = {
   companyId: 'co-1'
 }
 
+describe('error handling', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('throws when namespace is missing', async () => {
+    await expect(
+      runtimeActions.getRecord.execute({ ...baseCtx, namespace: undefined as any })
+    ).rejects.toThrow('namespace is required for CRUD actions')
+  })
+
+  it('throws when updateRecord has no id and no context.record.id', async () => {
+    await expect(
+      runtimeActions.updateRecord.execute({
+        ...baseCtx,
+        context: {},
+        record: undefined as any,
+        params: { table: 'members', fields: { status: 'active' } }
+      })
+    ).rejects.toThrow('updateRecord requires an id or context.record.id')
+  })
+
+  it('throws when deleteRecord has no id and no context.record.id', async () => {
+    await expect(
+      runtimeActions.deleteRecord.execute({
+        ...baseCtx,
+        context: {},
+        record: undefined as any,
+        params: { table: 'members' }
+      })
+    ).rejects.toThrow('deleteRecord requires an id or context.record.id')
+  })
+})
+
 describe('getRecord', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -52,11 +84,17 @@ describe('createRecord', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('creates a record and returns it', async () => {
-    mockSurreal([[{ id: 'members:new' }]])
+    const query = mockSurreal([[{ id: 'members:new' }]])
     const result = await runtimeActions.createRecord.execute({
       ...baseCtx,
       params: { table: 'members', fields: { email: 'a@b.com' } }
     })
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
+    expect(query).toHaveBeenCalledWith(
+      'CREATE type::table($table) CONTENT $data',
+      { table: 'members', data: { email: 'a@b.com' } }
+    )
+    expect(closeSurreal).toHaveBeenCalled()
     expect(result).toEqual({ id: 'members:new' })
   })
 })
@@ -65,20 +103,32 @@ describe('updateRecord', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('updates by explicit id', async () => {
-    mockSurreal([[{ id: 'members:1', status: 'active' }]])
+    const query = mockSurreal([[{ id: 'members:1', status: 'active' }]])
     const result = await runtimeActions.updateRecord.execute({
       ...baseCtx,
       params: { table: 'members', id: 'members:1', fields: { status: 'active' } }
     })
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
+    expect(query).toHaveBeenCalledWith(
+      'UPDATE type::record($id) MERGE $data',
+      { id: 'members:1', data: { status: 'active' } }
+    )
+    expect(closeSurreal).toHaveBeenCalled()
     expect(result).toEqual({ id: 'members:1', status: 'active' })
   })
 
   it('falls back to context.record.id', async () => {
-    mockSurreal([[{ id: 'rec-1', status: 'active' }]])
+    const query = mockSurreal([[{ id: 'rec-1', status: 'active' }]])
     const result = await runtimeActions.updateRecord.execute({
       ...baseCtx,
       params: { table: 'members', fields: { status: 'active' } }
     })
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
+    expect(query).toHaveBeenCalledWith(
+      'UPDATE type::record($id) MERGE $data',
+      { id: 'rec-1', data: { status: 'active' } }
+    )
+    expect(closeSurreal).toHaveBeenCalled()
     expect(result).toEqual({ id: 'rec-1', status: 'active' })
   })
 })
@@ -87,21 +137,30 @@ describe('deleteRecord', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('soft-deletes by default', async () => {
-    mockSurreal([[{ id: 'rec-1', status: 'deleted' }]])
+    const query = mockSurreal([[{ id: 'rec-1', status: 'deleted' }]])
     const result = await runtimeActions.deleteRecord.execute({
       ...baseCtx,
       params: { table: 'members', id: 'rec-1' }
     })
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
+    expect(query).toHaveBeenCalledWith(
+      'UPDATE type::record($id) SET status = "deleted"',
+      { id: 'rec-1' }
+    )
+    expect(closeSurreal).toHaveBeenCalled()
     expect(result).toEqual({ id: 'rec-1', status: 'deleted' })
   })
 
   it('hard-deletes when mode is hard', async () => {
     const query = mockSurreal([])
-    await runtimeActions.deleteRecord.execute({
+    const result = await runtimeActions.deleteRecord.execute({
       ...baseCtx,
       params: { table: 'members', id: 'rec-1', mode: 'hard' }
     })
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
     expect(query).toHaveBeenCalledWith('DELETE type::record($id)', { id: 'rec-1' })
+    expect(closeSurreal).toHaveBeenCalled()
+    expect(result).toEqual({ id: 'rec-1' })
   })
 })
 

@@ -79,7 +79,7 @@ const deleteRecord: ActionExecutor = async (ctx) => {
   try {
     if (mode === 'hard') {
       await surreal.query('DELETE type::record($id)', { id })
-      return { id }
+      return normalizeId({ id })
     }
     const [updated] = await surreal.query<[{ id: string }[]]>(
       'UPDATE type::record($id) SET status = "deleted"',
