@@ -34,6 +34,10 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 pnpm --filter db typecheck
 ```
 
+## Testing
+
+See [[Testing]] for how to run the DB test suite.
+
 ## Key helpers
 
 ### Connection
