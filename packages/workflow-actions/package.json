@@ -1,25 +1,22 @@
 {
   "name": "workflow-actions",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./meta": {
-      "types": "./dist/meta.d.ts",
-      "default": "./dist/meta.js"
+      "types": "./src/meta.ts",
+      "default": "./src/meta.ts"
     },
     "./runtime": {
-      "types": "./dist/runtime/index.d.ts",
-      "default": "./dist/runtime/index.js"
+      "types": "./src/runtime/index.ts",
+      "default": "./src/runtime/index.ts"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@restatedev/restate-sdk": "^1.14.5",
