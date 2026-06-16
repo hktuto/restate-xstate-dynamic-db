@@ -17,7 +17,7 @@ related:
 
 ## Overview
 
-Superadmins can view the health of core platform services from the admin app. A background scheduler runs periodic checks and stores the results in SurrealDB.
+Superadmins can view the health of core platform services from the admin app. A background scheduler runs periodic checks and stores the results in SurrealDB. The same data also drives the web app's platform status, which can show a maintenance page or a degradation banner.
 
 ## Monitored services
 

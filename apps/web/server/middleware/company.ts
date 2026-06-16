@@ -16,7 +16,12 @@ export default defineEventHandler(async (event) => {
   // The index page lets the user pick a company, /api/companies is the
   // list used by the switcher, and /api/health is public — none need a
   // resolved company.
-  if (path === '/' || path.startsWith('/api/companies') || path === '/api/health') {
+  if (
+    path === '/' ||
+    path === '/maintenance' ||
+    path.startsWith('/api/companies') ||
+    path === '/api/health'
+  ) {
     return
   }
 

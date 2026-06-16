@@ -33,12 +33,25 @@ The tenant-facing Nuxt application. Each user belongs to a company and manages w
 | `/` | Company selection / landing. |
 | `/workflows` | List company workflows. |
 | `/workflows/[id]` | Edit a workflow in the visual editor. |
+| `/maintenance` | Maintenance page shown when critical services are unhealthy. |
 | `/api/companies` | List companies (public within session). |
 | `/api/health` | Public health check. |
+| `/api/platform-status` | Current platform mode derived from health checks. |
 
 ## Middleware
 
 - `company.ts` — resolves company context, skipping company-agnostic routes.
+- `platform-status.global.ts` — redirects client navigations to `/maintenance` when critical services are down.
+
+## Platform status
+
+The web app reads the latest health checks written by the admin health monitor and reacts to them:
+
+- `normal` — no UI impact.
+- `degraded` — a global banner warns that some features (e.g., workflows) are temporarily unavailable.
+- `maintenance` — non-API routes redirect to `/maintenance` and return HTTP 503.
+
+See [[50-Features/Admin Health Monitor]] for how checks are produced.
 
 ## Related
 
