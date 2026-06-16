@@ -16,6 +16,8 @@ node_modules
 # Logs
 logs
 *.log
+web-dev.err
+web-dev.pid
 
 # Misc
 .DS_Store
