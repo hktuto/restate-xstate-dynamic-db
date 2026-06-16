@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EditorNode, EditorEdge } from '../composables/useWorkflowGraph'
 import type { ActionMetadata, GuardMetadata } from 'shared'
+import ActionConfigPanel from './ActionConfigPanel.vue'
 
 const props = defineProps<{
   selectedNode?: EditorNode
@@ -83,22 +84,12 @@ const guardParamValue = computed({
       </div>
 
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Entry actions</label>
-        <ActionListEditor
-          :model-value="selectedNode.data.entry"
+        <label class="block text-xs font-medium text-gray-600 mb-1">Action</label>
+        <ActionConfigPanel
+          :model-value="selectedNode.data.meta ?? {}"
           :actions="actions"
           :readonly="readonly"
-          @update:model-value="emit('update:node', selectedNode.id, { entry: $event })"
-        />
-      </div>
-
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Exit actions</label>
-        <ActionListEditor
-          :model-value="selectedNode.data.exit"
-          :actions="actions"
-          :readonly="readonly"
-          @update:model-value="emit('update:node', selectedNode.id, { exit: $event })"
+          @update:model-value="emit('update:node', selectedNode.id, { meta: $event })"
         />
       </div>
     </template>
@@ -106,7 +97,28 @@ const guardParamValue = computed({
     <template v-if="selectedEdge">
       <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Event</label>
-        <input v-model="eventName" class="w-full border rounded px-2 py-1 text-sm" :readonly="readonly" />
+        <select
+          v-if="selectedEdge?.data?.sourceAction"
+          v-model="eventName"
+          class="w-full border rounded px-2 py-1 text-sm"
+          :disabled="readonly"
+        >
+          <option
+            v-for="opt in selectedEdge.data.sourceAction === 'condition'
+              ? [{ label: 'true', value: 'true' }, { label: 'false', value: 'false' }]
+              : [{ label: 'ok', value: 'ok' }, { label: 'error', value: 'error' }]"
+            :key="opt.value"
+            :value="opt.value"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
+        <input
+          v-else
+          v-model="eventName"
+          class="w-full border rounded px-2 py-1 text-sm"
+          :readonly="readonly"
+        />
       </div>
 
       <div>
@@ -128,13 +140,19 @@ const guardParamValue = computed({
           <option value="">No guard</option>
           <option v-for="guard in guards" :key="guard.id" :value="guard.id">{{ guard.label }}</option>
         </select>
-        <input
-          v-if="activeGuard"
-          v-model="guardParamValue"
-          class="w-full mt-2 border rounded px-2 py-1 text-sm"
-          :placeholder="activeGuard.paramsSchema?.[Object.keys(activeGuard.paramsSchema)[0]]?.label ?? 'Value'"
-          :readonly="readonly"
-        />
+        <template v-if="activeGuard">
+          <div class="mt-2">
+            <label class="block text-xs font-medium text-gray-600 mb-1">
+              {{ activeGuard.paramsSchema?.expression?.label ?? 'Value' }}
+            </label>
+            <textarea
+              v-model="guardParamValue"
+              rows="4"
+              class="w-full border rounded px-2 py-1 text-sm font-mono"
+              :readonly="readonly"
+            />
+          </div>
+        </template>
       </div>
     </template>
   </div>
