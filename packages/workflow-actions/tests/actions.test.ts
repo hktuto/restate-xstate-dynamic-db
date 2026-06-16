@@ -61,22 +61,44 @@ describe('getRecord', () => {
   })
 
   it('returns the first matching record', async () => {
-    mockSurreal([[{ id: 'members:1', status: 'active' }]])
+    const query = mockSurreal([[{ id: 'members:1', status: 'active' }]])
     const result = await runtimeActions.getRecord.execute({
       ...baseCtx,
       params: { table: 'members', filter: { status: { $eq: 'active' } }, result: { type: 'first' } }
     })
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('FROM type::table($table)'),
+      { table: 'members', p0: 'active' }
+    )
+    expect(closeSurreal).toHaveBeenCalled()
     expect(result).toEqual({ id: 'members:1', status: 'active' })
   })
 
   it('returns a list of records', async () => {
-    mockSurreal([[{ id: 'members:1' }, { id: 'members:2' }]])
+    const query = mockSurreal([[{ id: 'members:1' }, { id: 'members:2' }]])
     const result = await runtimeActions.getRecord.execute({
       ...baseCtx,
       params: { table: 'members', filter: {}, result: { type: 'list' } }
     })
-    expect(Array.isArray(result)).toBe(true)
-    expect((result as any[]).length).toBe(2)
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('FROM type::table($table)'),
+      { table: 'members' }
+    )
+    expect(closeSurreal).toHaveBeenCalled()
+    expect(result).toEqual([{ id: 'members:1' }, { id: 'members:2' }])
+  })
+
+  it('returns null when resultType is first and no matches exist', async () => {
+    mockSurreal([[]])
+    const result = await runtimeActions.getRecord.execute({
+      ...baseCtx,
+      params: { table: 'members', filter: { status: { $eq: 'missing' } }, result: { type: 'first' } }
+    })
+    expect(getSurreal).toHaveBeenCalledWith('ns-1', 'main')
+    expect(closeSurreal).toHaveBeenCalled()
+    expect(result).toBeNull()
   })
 })
 
@@ -130,6 +152,19 @@ describe('updateRecord', () => {
     )
     expect(closeSurreal).toHaveBeenCalled()
     expect(result).toEqual({ id: 'rec-1', status: 'active' })
+  })
+
+  it('still calls closeSurreal when query fails', async () => {
+    ;(getSurreal as any).mockResolvedValue({
+      query: vi.fn().mockRejectedValue(new Error('db down'))
+    })
+    await expect(
+      runtimeActions.updateRecord.execute({
+        ...baseCtx,
+        params: { table: 'members', id: 'members:1', fields: { status: 'active' } }
+      })
+    ).rejects.toThrow('db down')
+    expect(closeSurreal).toHaveBeenCalled()
   })
 })
 
