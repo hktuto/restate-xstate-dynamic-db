@@ -65,10 +65,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: 'Too many attempts' })
   }
 
-  recordAttempt(normalizedEmail)
-
   const existing = await getAccountByProviderKey('email', normalizedEmail)
   if (existing) {
+    recordAttempt(normalizedEmail)
     throw createError({ statusCode: 409, statusMessage: 'Account already exists' })
   }
 
