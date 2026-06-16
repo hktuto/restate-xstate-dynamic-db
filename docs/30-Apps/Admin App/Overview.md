@@ -4,13 +4,14 @@ type: app
 status: done
 area: admin
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-15
 app:
   - admin
 related:
   - [[Authentication & Authorization]]
   - [[30-Apps/Web App/Overview]]
   - [[Roadmap]]
+  - [[50-Features/Admin Health Monitor]]
 ---
 
 # Admin App Overview
@@ -35,6 +36,7 @@ The superadmin Nuxt application for platform-level management.
 | `/` | Dashboard with platform stats. |
 | `/companies` | Manage companies. |
 | `/workflows` | Manage platform workflow templates. |
+| `/health` | Service health monitor. |
 
 ## Middleware
 
