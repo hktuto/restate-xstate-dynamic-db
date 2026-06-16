@@ -55,7 +55,7 @@ export async function getMemberById(namespace: string, id: string): Promise<Memb
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [result] = await surreal.query<[MemberRecord[]]>(
-      'SELECT * FROM members WHERE id = $id LIMIT 1',
+      'SELECT * FROM type::record($id)',
       { id }
     )
     return result[0]
@@ -165,7 +165,7 @@ export async function createWorkflow(namespace: string, input: WorkflowInput): P
 export async function getWorkflow(namespace: string, id: string): Promise<WorkflowRecord | undefined> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    const [result] = await surreal.query<[WorkflowRecord[]]>('SELECT * FROM workflows WHERE id = $id LIMIT 1', { id })
+    const [result] = await surreal.query<[WorkflowRecord[]]>('SELECT * FROM type::record($id)', { id })
     return result[0]
   } finally {
     await closeSurreal(surreal)
@@ -276,7 +276,7 @@ export async function listWorkflowInstances(namespace: string): Promise<Workflow
 export async function getWorkflowInstance(namespace: string, id: string): Promise<WorkflowInstanceRecord | undefined> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    const [result] = await surreal.query<[WorkflowInstanceRecord[]]>('SELECT * FROM workflow_instances WHERE id = $id LIMIT 1', { id })
+    const [result] = await surreal.query<[WorkflowInstanceRecord[]]>('SELECT * FROM type::record($id)', { id })
     return result[0]
   } finally {
     await closeSurreal(surreal)
@@ -385,7 +385,7 @@ export async function listUserTasks(namespace: string): Promise<UserTaskRecord[]
 export async function getUserTaskById(namespace: string, id: string): Promise<UserTaskRecord | undefined> {
   const surreal = await getSurreal(namespace, 'main')
   try {
-    const [result] = await surreal.query<[UserTaskRecord[]]>('SELECT * FROM user_tasks WHERE id = $id LIMIT 1', { id })
+    const [result] = await surreal.query<[UserTaskRecord[]]>('SELECT * FROM type::record($id)', { id })
     return result[0]
   } finally {
     await closeSurreal(surreal)

@@ -52,7 +52,7 @@ export async function getPlatformWorkflow(id: string): Promise<PlatformWorkflowR
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformWorkflowRecord[]]>(
-      'SELECT * FROM workflows WHERE id = $id LIMIT 1',
+      'SELECT * FROM type::record($id)',
       { id }
     )
     return result[0]
@@ -167,7 +167,7 @@ export async function getPlatformWorkflowInstance(id: string): Promise<PlatformW
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
-      'SELECT * FROM workflow_instances WHERE id = $id LIMIT 1',
+      'SELECT * FROM type::record($id)',
       { id }
     )
     return result[0]
@@ -280,7 +280,7 @@ export async function getPlatformUserTaskById(id: string): Promise<PlatformUserT
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformUserTaskRecord[]]>(
-      'SELECT * FROM user_tasks WHERE id = $id LIMIT 1',
+      'SELECT * FROM type::record($id)',
       { id }
     )
     return result[0]
@@ -452,7 +452,7 @@ export async function getUserProfileById(id: string): Promise<UserProfileRecord 
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[UserProfileRecord[]]>(
-      'SELECT * FROM user_profiles WHERE id = $id LIMIT 1',
+      'SELECT * FROM type::record($id)',
       { id }
     )
     return result[0]
