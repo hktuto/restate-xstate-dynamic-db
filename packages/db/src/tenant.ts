@@ -25,11 +25,15 @@ export interface MemberInput {
   joinedAt?: string
 }
 
+function normalizeMember(record: MemberRecord): MemberRecord {
+  return { ...record, id: String(record.id) }
+}
+
 export async function listMembers(namespace: string): Promise<MemberRecord[]> {
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [members] = await surreal.query<[MemberRecord[]]>('SELECT * FROM members')
-    return members
+    return members.map(normalizeMember)
   } finally {
     await closeSurreal(surreal)
   }
@@ -45,7 +49,7 @@ export async function createMember(namespace: string, input: MemberInput): Promi
       updatedAt: new Date().toISOString()
     }
     const [created] = await surreal.query<[MemberRecord[]]>('CREATE members CONTENT $data', { data })
-    return created[0]
+    return normalizeMember(created[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -58,7 +62,7 @@ export async function getMemberById(namespace: string, id: string): Promise<Memb
       'SELECT * FROM type::record($id)',
       { id }
     )
-    return result[0]
+    return result[0] ? normalizeMember(result[0]) : undefined
   } finally {
     await closeSurreal(surreal)
   }
@@ -74,7 +78,7 @@ export async function getMemberByProfileId(
       'SELECT * FROM members WHERE profileId = $profileId LIMIT 1',
       { profileId }
     )
-    return result[0]
+    return result[0] ? normalizeMember(result[0]) : undefined
   } finally {
     await closeSurreal(surreal)
   }
@@ -90,7 +94,7 @@ export async function getMemberByInviteCode(
       'SELECT * FROM members WHERE inviteCode = $inviteCode LIMIT 1',
       { inviteCode }
     )
-    return result[0]
+    return result[0] ? normalizeMember(result[0]) : undefined
   } finally {
     await closeSurreal(surreal)
   }
@@ -111,7 +115,7 @@ export async function updateMember(
       'UPDATE $id MERGE $data',
       { id, data }
     )
-    return updated[0]
+    return updated[0] ? normalizeMember(updated[0]) : undefined
   } finally {
     await closeSurreal(surreal)
   }
