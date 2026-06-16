@@ -112,7 +112,7 @@ async function runTransition(
   objectCtx: restate.ObjectContext,
   state: PersistedState,
   event: { type: string; record?: Record<string, unknown> }
-): Promise<{ snapshot: AnyMachineSnapshot; machine: AnyStateMachine }> {
+): Promise<{ snapshot: AnyMachineSnapshot }> {
   const context: RuntimeContext = {
     ...state.context,
     ...(event.record ? { record: event.record } : {})
@@ -130,7 +130,7 @@ async function runTransition(
   await resolveMatchingSubscriptions(objectCtx, liveSnapshot)
   await updateInstanceStatus(objectCtx, liveSnapshot, context.namespace)
 
-  return { snapshot: persistedSnapshot, machine }
+  return { snapshot: persistedSnapshot }
 }
 
 async function updateInstanceStatus(
@@ -212,7 +212,10 @@ export const workflowObject = restate.object({
         ...state.context,
         ...(req.record ? { record: req.record } : {})
       }
-      const { snapshot: rawSnapshot } = await runTransition(objectCtx, state, { type: req.event, record: req.record })
+      const { snapshot: rawSnapshot } = await runTransition(objectCtx, state, {
+        type: req.event,
+        record: req.record
+      })
       const snapshot = snapshotWithContext(rawSnapshot, context)
 
       await saveState(objectCtx, { snapshot, context })

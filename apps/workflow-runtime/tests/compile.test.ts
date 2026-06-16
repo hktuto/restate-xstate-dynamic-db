@@ -8,6 +8,15 @@ function fakeCtx(): Pick<ObjectContext, 'run'> {
   return { run: vi.fn(async (_name: string, fn: () => Promise<unknown>) => fn()) as any }
 }
 
+function fakeCtxRejecting(actionId: string): Pick<ObjectContext, 'run'> {
+  return {
+    run: vi.fn(async (name: string, fn: () => Promise<unknown>) => {
+      if (name === actionId) throw new Error('action failed')
+      return fn()
+    }) as any
+  }
+}
+
 describe('compileWorkflow with meta actions', () => {
   it('runs a condition action and branches true', () => new Promise<void>((done) => {
     const definition: WorkflowDefinition = {
@@ -77,6 +86,42 @@ describe('compileWorkflow with meta actions', () => {
     const actor = createActor(machine)
     actor.subscribe((snapshot) => {
       if (snapshot.status === 'done' && (snapshot.value as any) === 'inactiveBranch') {
+        done()
+      }
+    })
+    actor.start()
+  }))
+
+  it('handles action errors via error event and assigns lastError', () => new Promise<void>((done) => {
+    const definition: WorkflowDefinition = {
+      id: 'test',
+      initial: 'run',
+      states: {
+        run: {
+          meta: {
+            action: 'getRecord',
+            params: { table: 'members' }
+          },
+          on: {
+            ok: { target: 'done' },
+            error: { target: 'failed' }
+          }
+        },
+        done: { type: 'final' },
+        failed: { type: 'final' }
+      }
+    }
+
+    const { machine } = compileWorkflow(definition, {
+      record: { id: '1' },
+      tableName: 'members',
+      namespace: 'ns-1'
+    }, fakeCtxRejecting('getRecord'))
+
+    const actor = createActor(machine)
+    actor.subscribe((snapshot) => {
+      if (snapshot.status === 'done' && (snapshot.value as any) === 'failed') {
+        expect((snapshot.context as any).lastError).toEqual({ message: 'action failed' })
         done()
       }
     })

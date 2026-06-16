@@ -43,10 +43,8 @@ export function createActionActors(
         params: input.params
       }
 
-      const runPromise = objectCtx.run(actionId, async () => {
-        return runtimeAction.execute(executorCtx)
-      })
-      promises.push(runPromise)
+      const runPromise = objectCtx.run(actionId, async () => runtimeAction.execute(executorCtx))
+      promises.push(runPromise.catch(() => {}))
 
       const result = await runPromise
 
