@@ -251,6 +251,7 @@ const STATUS_OVERRIDES = {
   '60-Development/Environment Setup.md': 'done',
   '60-Development/Running locally.md': 'done',
   '60-Development/Scripts & Commands.md': 'done',
+  '60-Development/Testing.md': 'done',
   '70-Operations/Docker Compose.md': 'done',
   '70-Operations/SurrealDB Maintenance.md': 'planned',
   '70-Operations/Restate Operations.md': 'planned',
@@ -259,6 +260,7 @@ const STATUS_OVERRIDES = {
   '90-Templates/Feature Note Template.md': 'done',
   '90-Templates/Runbook Template.md': 'done',
   '90-Templates/Bug Report Template.md': 'done',
+  'superpowers/plans/2026-06-16-test-db-package.md': 'done',
 }
 
 function inferStatus(tags, defaults, relPath) {

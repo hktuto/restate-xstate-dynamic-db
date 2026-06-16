@@ -2,7 +2,7 @@
 title: Testing
 type: runbook
 status: done
-area: testing
+area: docs
 created: 2026-06-16
 updated: 2026-06-16
 related:

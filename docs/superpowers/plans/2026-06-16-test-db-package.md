@@ -545,6 +545,12 @@ git add packages/db/test/platform.test.ts
 git commit -m "test(db): add platform query tests"
 ```
 
+**Implementation notes:**
+- Added `members` table to the platform test schema so company-membership assertions work.
+- Fixed parameterized record IDs in platform queries.
+- Normalized SurrealDB `RecordId` objects to strings across all helpers for stable assertions.
+- Aligned platform test inputs with the real TypeScript interfaces.
+
 ---
 
 ### Task 6: Test `src/tenant.ts`
@@ -731,6 +737,10 @@ git add packages/db/test/tenant.test.ts
 git commit -m "test(db): add tenant query tests"
 ```
 
+**Implementation notes:**
+- Restored strict tenant input types and status unions in `src/tenant.ts`.
+- Aligned tenant test inputs with the real input shapes.
+
 ---
 
 ### Task 7: Test `src/health-checks.ts`
@@ -811,6 +821,14 @@ git add packages/db/test/health-checks.test.ts
 git commit -m "test(db): add health-check query tests"
 ```
 
+**Implementation notes:**
+- Made `WorkflowInstanceInput.status` optional.
+- Allowed arbitrary health-check service names and dynamic "latest" lookup.
+- Strengthened health-check assertions and edge cases.
+- Added `packages/db/test/normalize.test.ts` for the RecordId-to-string normalize helper.
+- Made health-check timestamps deterministic to avoid flaky ordering assertions.
+- Added a `checkedAt` index on the `health_checks` table.
+
 ---
 
 ### Task 8: Run the full DB test suite and fix issues
@@ -822,6 +840,10 @@ pnpm --filter db test
 ```
 
 > Note: `fileParallelism: false` was added to `packages/db/vitest.config.ts` so the shared SurrealDB instance is not accessed concurrently.
+
+**Implementation notes:**
+- Set `fileParallelism: false` in `packages/db/vitest.config.ts`.
+- Fixed SQL/query issues discovered while running platform, tenant, and health-check tests (see implementation notes in Tasks 5–7).
 
 - [ ] **Step 2: Fix any failures**
 
@@ -855,7 +877,7 @@ If `docs/60-Development/Testing.md` does not exist, create it with frontmatter:
 title: Testing
 type: runbook
 status: done
-area: testing
+area: docs
 created: 2026-06-16
 updated: 2026-06-16
 related:
