@@ -1,10 +1,12 @@
 ---
 title: Admin Health Monitor
 type: feature
-status: planned
-area: workflow
+status: done
+area: admin
+app:
+  - admin
 created: 2026-06-15
-updated: 2026-06-16
+updated: 2026-06-15
 related:
   - [[30-Apps/Admin App/Overview]]
   - [[Workflow Runtime]]
