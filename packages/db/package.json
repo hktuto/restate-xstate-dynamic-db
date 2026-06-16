@@ -29,6 +29,10 @@
     "./health-checks": {
       "types": "./src/health-checks.ts",
       "default": "./src/health-checks.ts"
+    },
+    "./normalize": {
+      "types": "./src/normalize.ts",
+      "default": "./src/normalize.ts"
     }
   },
   "scripts": {
