@@ -15,7 +15,7 @@ related:
 
 # Admin Health Monitor Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a service health monitor in the admin app that periodically checks SurrealDB, Restate, workflow-runtime, and the web API, stores results in SurrealDB, and displays them on a new admin page.
 
@@ -32,7 +32,7 @@ related:
 - Modify: `packages/db/package.json`
 - Test: `pnpm --filter db build`
 
-- [ ] **Step 1: Create `packages/db/src/health-checks.ts`**
+- [x] **Step 1: Create `packages/db/src/health-checks.ts`**
 
 ```ts
 import { getSurreal, closeSurreal } from './client.js'
@@ -118,7 +118,7 @@ export async function pruneHealthChecks(service: HealthCheckService, keep: numbe
 }
 ```
 
-- [ ] **Step 2: Export from db package**
+- [x] **Step 2: Export from db package**
 
 Add to `packages/db/package.json` under `exports`:
 
@@ -129,7 +129,7 @@ Add to `packages/db/package.json` under `exports`:
 }
 ```
 
-- [ ] **Step 3: Build the db package**
+- [x] **Step 3: Build the db package**
 
 Run:
 ```bash
@@ -138,7 +138,7 @@ pnpm --filter db build
 
 Expected: TypeScript compiles with no errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/db/src/health-checks.ts packages/db/package.json
@@ -153,7 +153,7 @@ git commit -m "feat(db): add health_checks CRUD"
 - Modify: `apps/workflow-runtime/src/index.ts`
 - Test: `pnpm --filter workflow-runtime build`
 
-- [ ] **Step 1: Replace `apps/workflow-runtime/src/index.ts`**
+- [x] **Step 1: Replace `apps/workflow-runtime/src/index.ts`**
 
 ```ts
 import * as restate from '@restatedev/restate-sdk'
@@ -176,7 +176,7 @@ server.listen(9080, () => {
 })
 ```
 
-- [ ] **Step 2: Build the workflow-runtime package**
+- [x] **Step 2: Build the workflow-runtime package**
 
 Run:
 ```bash
@@ -185,7 +185,7 @@ pnpm --filter workflow-runtime build
 
 Expected: TypeScript compiles with no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/workflow-runtime/src/index.ts
@@ -200,7 +200,7 @@ git commit -m "feat(workflow-runtime): add /health endpoint alongside Restate ha
 - Create: `apps/web/server/api/health.get.ts`
 - Test: `pnpm --filter web build`
 
-- [ ] **Step 1: Create `apps/web/server/api/health.get.ts`**
+- [x] **Step 1: Create `apps/web/server/api/health.get.ts`**
 
 ```ts
 export default defineEventHandler(() => {
@@ -208,7 +208,7 @@ export default defineEventHandler(() => {
 })
 ```
 
-- [ ] **Step 2: Build the web app**
+- [x] **Step 2: Build the web app**
 
 Run:
 ```bash
@@ -217,7 +217,7 @@ pnpm --filter web build
 
 Expected: Nuxt build completes successfully.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/web/server/api/health.get.ts
@@ -232,7 +232,7 @@ git commit -m "feat(web): add public /api/health endpoint"
 - Create: `apps/admin/server/utils/health-monitor.ts`
 - Test: `pnpm --filter admin build`
 
-- [ ] **Step 1: Create `apps/admin/server/utils/health-monitor.ts`**
+- [x] **Step 1: Create `apps/admin/server/utils/health-monitor.ts`**
 
 ```ts
 import { getSurreal, closeSurreal } from 'db/client'
@@ -339,7 +339,7 @@ export async function runHealthChecks(): Promise<CheckResult[]> {
 }
 ```
 
-- [ ] **Step 2: Build the admin app**
+- [x] **Step 2: Build the admin app**
 
 Run:
 ```bash
@@ -348,7 +348,7 @@ pnpm --filter admin build
 
 Expected: TypeScript compiles with no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/admin/server/utils/health-monitor.ts
@@ -363,7 +363,7 @@ git commit -m "feat(admin): add health check runner utility"
 - Create: `apps/admin/server/plugins/health-monitor-scheduler.ts`
 - Test: `pnpm --filter admin build`
 
-- [ ] **Step 1: Create `apps/admin/server/plugins/health-monitor-scheduler.ts`**
+- [x] **Step 1: Create `apps/admin/server/plugins/health-monitor-scheduler.ts`**
 
 ```ts
 import { runHealthChecks } from '#server/utils/health-monitor'
@@ -397,7 +397,7 @@ export default defineNitroPlugin(() => {
 })
 ```
 
-- [ ] **Step 2: Build the admin app**
+- [x] **Step 2: Build the admin app**
 
 Run:
 ```bash
@@ -406,7 +406,7 @@ pnpm --filter admin build
 
 Expected: TypeScript compiles with no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/admin/server/plugins/health-monitor-scheduler.ts
@@ -422,7 +422,7 @@ git commit -m "feat(admin): add health monitor scheduler plugin"
 - Create: `apps/admin/server/api/health-checks/run.post.ts`
 - Test: `pnpm --filter admin build`
 
-- [ ] **Step 1: Create `apps/admin/server/api/health-checks/index.get.ts`**
+- [x] **Step 1: Create `apps/admin/server/api/health-checks/index.get.ts`**
 
 ```ts
 import { listHealthCheckHistory, listLatestHealthChecks } from 'db/health-checks'
@@ -440,7 +440,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Create `apps/admin/server/api/health-checks/run.post.ts`**
+- [x] **Step 2: Create `apps/admin/server/api/health-checks/run.post.ts`**
 
 ```ts
 import { runHealthChecks } from '#server/utils/health-monitor'
@@ -470,7 +470,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 3: Build the admin app**
+- [x] **Step 3: Build the admin app**
 
 Run:
 ```bash
@@ -479,7 +479,7 @@ pnpm --filter admin build
 
 Expected: TypeScript compiles with no errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/admin/server/api/health-checks
@@ -495,7 +495,7 @@ git commit -m "feat(admin): add health-checks API routes"
 - Modify: `apps/admin/app/layouts/default.vue`
 - Test: `pnpm --filter admin build`
 
-- [ ] **Step 1: Create `apps/admin/app/pages/health.vue`**
+- [x] **Step 1: Create `apps/admin/app/pages/health.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -586,7 +586,7 @@ async function runNow() {
 </template>
 ```
 
-- [ ] **Step 2: Modify `apps/admin/app/layouts/default.vue`**
+- [x] **Step 2: Modify `apps/admin/app/layouts/default.vue`**
 
 Add the Health nav link next to Triggers:
 
@@ -594,7 +594,7 @@ Add the Health nav link next to Triggers:
 <NuxtLink to="/health" class="text-sm text-gray-600 hover:text-gray-900">Health</NuxtLink>
 ```
 
-- [ ] **Step 3: Build the admin app**
+- [x] **Step 3: Build the admin app**
 
 Run:
 ```bash
@@ -603,7 +603,7 @@ pnpm --filter admin build
 
 Expected: TypeScript compiles with no errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/admin/app/pages/health.vue apps/admin/app/layouts/default.vue
@@ -617,7 +617,7 @@ git commit -m "feat(admin): add health monitor page and navigation"
 **Files:**
 - Modify: `.env.example`
 
-- [ ] **Step 1: Add new variables to `.env.example`**
+- [x] **Step 1: Add new variables to `.env.example`**
 
 Append after the existing content:
 
@@ -630,7 +630,7 @@ HEALTH_CHECK_INTERVAL_MS=60000
 HEALTH_CHECK_HISTORY_LIMIT=100
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add .env.example
@@ -641,7 +641,7 @@ git commit -m "chore: add health monitor env vars to example"
 
 ### Task 9: Full build verification
 
-- [ ] **Step 1: Run the full monorepo build**
+- [x] **Step 1: Run the full monorepo build**
 
 ```bash
 pnpm -r build
@@ -649,7 +649,7 @@ pnpm -r build
 
 Expected: all packages and apps build successfully.
 
-- [ ] **Step 2: Commit if any lockfile or generated changes appeared**
+- [x] **Step 2: Commit if any lockfile or generated changes appeared**
 
 ```bash
 git diff --stat
@@ -663,21 +663,21 @@ git commit -m "chore: update lockfile after health monitor deps"
 
 Prerequisites: Docker running with `docker compose up -d`, services registered with Restate.
 
-- [ ] **Step 1: Start the admin app**
+- [x] **Step 1: Start the admin app**
 
 ```bash
 pnpm --filter admin dev
 ```
 
-- [ ] **Step 2: Open the health page**
+- [x] **Step 2: Open the health page**
 
 Navigate to `http://localhost:3001/health` and log in with the seeded admin credentials.
 
-- [ ] **Step 3: Verify initial data**
+- [x] **Step 3: Verify initial data**
 
 The page should show status cards for SurrealDB, Restate, workflow-runtime, and web-api. Because the scheduler runs on startup, latest results should appear within `HEALTH_CHECK_INTERVAL_MS` (default 60s), or immediately after clicking **Run checks now**.
 
-- [ ] **Step 4: Test failure scenario**
+- [x] **Step 4: Test failure scenario**
 
 Stop one service, e.g.:
 
@@ -707,7 +707,7 @@ curl -X POST http://localhost:9070/endpoints -H 'content-type: application/json'
 - Create: `docs/50-Features/Admin Health Monitor.md`
 - Modify: `docs/30-Apps/Admin App/Overview.md`
 
-- [ ] **Step 1: Create `docs/50-Features/Admin Health Monitor.md`**
+- [x] **Step 1: Create `docs/50-Features/Admin Health Monitor.md`**
 
 ```markdown
 ---
@@ -767,7 +767,7 @@ The check runner is isolated from the scheduler. To scale the admin app behind a
 - [[40-Packages/db|db package]]
 ```
 
-- [ ] **Step 2: Update `docs/30-Apps/Admin App/Overview.md`**
+- [x] **Step 2: Update `docs/30-Apps/Admin App/Overview.md`**
 
 Add to the routes table:
 
@@ -779,13 +779,13 @@ Add to the routes table:
 
 Update the `updated:` frontmatter date to `2026-06-15`.
 
-- [ ] **Step 3: Run frontmatter normalization**
+- [x] **Step 3: Run frontmatter normalization**
 
 ```bash
 node docs/scripts/apply-frontmatter.cjs --force
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/50-Features/Admin Health Monitor.md "docs/30-Apps/Admin App/Overview.md"
@@ -796,6 +796,6 @@ git commit -m "docs: add admin health monitor feature note"
 
 ## Self-review
 
-- [ ] Spec coverage: every requirement in `docs/superpowers/specs/2026-06-15-admin-health-monitor-design.md` maps to a task above.
-- [ ] Placeholder scan: no TBD/TODO/"implement later" items.
-- [ ] Type consistency: `HealthCheckService`, `HealthCheckStatus`, `HealthCheckRecord`, `HealthCheckInput` are used consistently across db, admin utility, scheduler, API, and UI.
+- [x] Spec coverage: every requirement in `docs/superpowers/specs/2026-06-15-admin-health-monitor-design.md` maps to a task above.
+- [x] Placeholder scan: no TBD/TODO/"implement later" items.
+- [x] Type consistency: `HealthCheckService`, `HealthCheckStatus`, `HealthCheckRecord`, `HealthCheckInput` are used consistently across db, admin utility, scheduler, API, and UI.
