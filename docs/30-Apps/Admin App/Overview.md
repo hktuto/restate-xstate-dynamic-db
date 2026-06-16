@@ -4,7 +4,7 @@ type: app
 status: done
 area: admin
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-16
 app:
   - admin
 related:
@@ -25,6 +25,7 @@ The superadmin Nuxt application for platform-level management.
 - Global auth middleware redirects unauthenticated users to `/login`.
 - Uses a dedicated `auth.vue` layout for the login page.
 - Dashboard shows aggregate stats: companies, workflows, users.
+- Server util `health-monitor.ts` runs concurrent health checks for SurrealDB, Restate, workflow-runtime, and web-api.
 
 ## Routes
 

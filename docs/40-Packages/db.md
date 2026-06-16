@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-16
 package: db
 related:
   - [[Data Model]]
@@ -27,6 +27,19 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 - `src/seed.ts` — seeds `platform/admin` namespace with default admin user.
 
 ## Key helpers
+
+### Connection
+
+- `src/client.ts`
+  - `getSurreal(namespace?, database?)` — create and sign in to a SurrealDB connection.
+  - `closeSurreal(surreal)` — close a connection.
+  - Exported via `db/client`.
+
+### Health checks
+
+- `src/health-checks.ts` — types and persistence helpers for service health checks.
+  - `HealthCheckService`, `HealthCheckStatus`
+  - `createHealthCheck(...)`, `listLatestHealthChecks()`, `listHealthCheckHistory(limit)`, `pruneHealthChecks(service, keep)`
 
 ### Companies
 
