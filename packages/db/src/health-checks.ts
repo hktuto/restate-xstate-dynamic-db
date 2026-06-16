@@ -78,7 +78,7 @@ export async function pruneHealthChecks(service: HealthCheckService, keep: numbe
   try {
     await surreal.query(
       `DELETE health_checks WHERE id NOT IN (
-        SELECT id FROM health_checks WHERE service = $service ORDER BY checkedAt DESC LIMIT $keep
+        SELECT VALUE id FROM health_checks WHERE service = $service ORDER BY checkedAt DESC LIMIT $keep
       ) AND service = $service`,
       { service, keep }
     )
