@@ -24,6 +24,7 @@ export async function ensurePlatformNamespace() {
       DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS health_checks SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS members SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_companies_slug ON companies FIELDS slug UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_accounts_provider_key ON accounts FIELDS provider, providerKey UNIQUE;
     `)
@@ -45,6 +46,7 @@ export async function resetPlatformTables() {
       DELETE workflow_instances;
       DELETE user_tasks;
       DELETE health_checks;
+      DELETE members;
     `)
   } finally {
     await closeSurreal(surreal)
