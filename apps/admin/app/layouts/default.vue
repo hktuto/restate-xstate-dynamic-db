@@ -16,7 +16,6 @@ async function logout() {
         <NuxtLink to="/" class="font-semibold text-lg">SuperAdmin</NuxtLink>
         <div class="flex items-center gap-4">
           <NuxtLink to="/" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</NuxtLink>
-          <NuxtLink to="/companies" class="text-sm text-gray-600 hover:text-gray-900">Companies</NuxtLink>
           <NuxtLink to="/workflows" class="text-sm text-gray-600 hover:text-gray-900">Workflows</NuxtLink>
           <NuxtLink to="/triggers" class="text-sm text-gray-600 hover:text-gray-900">Triggers</NuxtLink>
           <NuxtLink to="/health" class="text-sm text-gray-600 hover:text-gray-900">Health</NuxtLink>
