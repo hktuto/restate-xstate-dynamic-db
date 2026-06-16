@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 package: workflow-editor-layer
 related:
   - [[50-Features/Workflow Designer]]

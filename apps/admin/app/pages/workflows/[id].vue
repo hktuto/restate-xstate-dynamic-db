@@ -32,13 +32,14 @@ async function save() {
   <div>
     <h1 class="text-2xl font-bold mb-4">Edit platform workflow</h1>
 
-    <div class="mb-4">
-      <label class="block text-sm font-medium">Workflow name</label>
-      <input v-model="name" class="border rounded px-3 py-2 w-full" placeholder="e.g. provisionCompany" />
-    </div>
-
     <ClientOnly>
-      <WorkflowEditor v-if="config" v-model="config" @save="save" />
+      <WorkflowEditor
+        v-if="config"
+        v-model="config"
+        :name="name"
+        @update:name="name = $event"
+        @save="save"
+      />
     </ClientOnly>
   </div>
 </template>

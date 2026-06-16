@@ -38,10 +38,12 @@ export interface WorkflowTransition {
     type: string
     params?: Record<string, unknown>
   }
+  actions?: (string | { id: string; params?: Record<string, unknown> })[]
 }
 
 export interface WorkflowState {
   entry?: (string | { id: string; params?: Record<string, unknown> })[]
+  exit?: (string | { id: string; params?: Record<string, unknown> })[]
   on?: Record<string, WorkflowTransition | WorkflowTransition[]>
   tags?: string[]
   type?: 'final'
@@ -52,6 +54,8 @@ export interface WorkflowDefinition {
   id: string
   initial: string
   states: Record<string, WorkflowState>
+  context?: Record<string, unknown>
+  meta?: Record<string, unknown>
 }
 
 export interface CreateWorkflowRequest {

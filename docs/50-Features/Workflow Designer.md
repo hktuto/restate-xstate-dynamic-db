@@ -1,10 +1,10 @@
 ---
 title: Workflow Designer
 type: feature
-status: planned
+status: done
 area: workflow
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 app:
   - web
   - admin

@@ -123,6 +123,7 @@ function inferStatus(tags, defaults, relPath, existingStatus) {
 
 const AREA_OVERRIDES = {
   '00-Atlas/Tags.md': 'docs',
+  '30-Apps/Health Monitor/Overview.md': 'ops',
   '50-Features/User Management.md': 'admin',
   '50-Features/Company Management.md': 'admin',
   '50-Features/Tenant Authentication & Authorization.md': 'web',
@@ -167,6 +168,7 @@ function inferApp(relPath, type, title) {
     if (relPath.includes('30-Apps/Web')) return ['web']
     if (relPath.includes('30-Apps/Admin')) return ['admin']
     if (relPath.includes('30-Apps/Workflow Runtime')) return ['runtime']
+    if (relPath.includes('30-Apps/Health Monitor')) return ['health-monitor']
   }
   if (type === 'feature') {
     const t = title.toLowerCase()
@@ -232,6 +234,7 @@ const STATUS_OVERRIDES = {
   '30-Apps/Web App/Overview.md': 'done',
   '30-Apps/Admin App/Overview.md': 'done',
   '30-Apps/Workflow Runtime/Overview.md': 'done',
+  '30-Apps/Health Monitor/Overview.md': 'done',
   '40-Packages/db.md': 'done',
   '40-Packages/shared.md': 'done',
   '40-Packages/workflow-actions.md': 'done',

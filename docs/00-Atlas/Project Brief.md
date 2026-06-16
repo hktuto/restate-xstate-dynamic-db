@@ -15,6 +15,7 @@ related:
   - [[50-Features/Tenant Authentication & Authorization]]
   - [[50-Features/Workflow Engine]]
   - [[50-Features/User Tasks]]
+  - [[50-Features/Admin Health Monitor]]
   - [[Documentation Conventions]]
   - [[20-Architecture/Decision Log/ADR-001 SurrealDB as primary database]]
   - [[20-Architecture/Decision Log/ADR-002 Restate for workflow runtime]]
@@ -88,6 +89,7 @@ apps/
   web/                    # Tenant Nuxt app (port 3000)
   admin/                  # Superadmin Nuxt app (port 3001)
   workflow-runtime/       # Restate service (port 9080)
+  health-monitor/         # Standalone health-check service (Bun)
 layers/
   workflow-editor/        # Shared editor Nuxt layer
 packages/
@@ -104,6 +106,10 @@ pnpm install
 pnpm -r build
 docker compose up -d
 pnpm --filter db seed
+# Infrastructure + health monitor
+docker compose up -d
+
+# Apps
 pnpm --filter admin dev
 pnpm --filter web dev
 pnpm --filter workflow-runtime dev

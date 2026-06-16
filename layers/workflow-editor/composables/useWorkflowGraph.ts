@@ -2,9 +2,13 @@ import type { WorkflowDefinition, WorkflowState, WorkflowTransition } from 'shar
 
 export interface EditorNode {
   id: string
-  type?: string
+  type: 'state'
   position: { x: number; y: number }
-  data: { label: string; actions: (string | { id: string; params?: Record<string, unknown> })[] }
+  data: {
+    label: string
+    entry: (string | { id: string; params?: Record<string, unknown> })[]
+    exit: (string | { id: string; params?: Record<string, unknown> })[]
+  }
 }
 
 export interface EditorEdge {
@@ -13,17 +17,35 @@ export interface EditorEdge {
   target: string
   label: string
   animated?: boolean
-  data?: { guardType?: string; guardParams?: Record<string, unknown> }
+  data?: {
+    guard?: { type: string; params?: Record<string, unknown> }
+    actions?: (string | { id: string; params?: Record<string, unknown> })[]
+  }
+}
+
+function getPositions(definition: WorkflowDefinition): Record<string, { x: number; y: number }> {
+  const meta = definition.meta ?? {}
+  const positions = (meta.editorPositions ?? {}) as Record<string, { x: number; y: number }>
+  return positions
 }
 
 export function useWorkflowGraph() {
   function definitionToGraph(definition: WorkflowDefinition): { nodes: EditorNode[]; edges: EditorEdge[] } {
+    const positions = getPositions(definition)
     const stateEntries = Object.entries(definition.states)
-    const nodes: EditorNode[] = stateEntries.map(([stateId, stateDef], idx) => ({
-      id: stateId,
-      position: { x: 100 + idx * 220, y: 100 + (idx % 2) * 120 },
-      data: { label: stateId, actions: normalizeActions(stateDef.entry) }
-    }))
+    const nodes: EditorNode[] = stateEntries.map(([stateId, stateDef], idx) => {
+      const persisted = positions[stateId]
+      return {
+        id: stateId,
+        type: 'state',
+        position: persisted ?? { x: 100 + idx * 220, y: 100 + (idx % 2) * 120 },
+        data: {
+          label: stateId,
+          entry: normalizeActions(stateDef.entry),
+          exit: normalizeActions(stateDef.exit)
+        }
+      }
+    })
 
     const edges: EditorEdge[] = []
     for (const [sourceId, stateDef] of stateEntries) {
@@ -33,15 +55,20 @@ export function useWorkflowGraph() {
           const guardKey = targetDef.guard
             ? `${targetDef.guard.type}-${JSON.stringify(targetDef.guard.params ?? {})}`
             : 'no-guard'
+          const actionKey = targetDef.actions?.length
+            ? `-${JSON.stringify(targetDef.actions)}`
+            : ''
+          const id = `${sourceId}-${event}-${targetDef.target}-${guardKey}${actionKey}`
           edges.push({
-            id: `${sourceId}-${event}-${targetDef.target}-${guardKey}`,
+            id,
             source: sourceId,
             target: targetDef.target,
             label: event,
             animated: true,
-            data: targetDef.guard
-              ? { guardType: targetDef.guard.type, guardParams: targetDef.guard.params }
-              : undefined
+            data: {
+              guard: targetDef.guard,
+              actions: targetDef.actions
+            }
           })
         }
       }
@@ -50,13 +77,27 @@ export function useWorkflowGraph() {
     return { nodes, edges }
   }
 
-  function graphToDefinition(nodes: EditorNode[], edges: EditorEdge[], initial: string, id: string): WorkflowDefinition {
+  function graphToDefinition(
+    nodes: EditorNode[],
+    edges: EditorEdge[],
+    initial: string,
+    id: string,
+    context?: Record<string, unknown>,
+    existingMeta?: Record<string, unknown>,
+    originalStates?: Record<string, WorkflowState>
+  ): WorkflowDefinition {
     const states: WorkflowDefinition['states'] = {}
 
+    const positions: Record<string, { x: number; y: number }> = {}
     for (const node of nodes) {
-      states[node.id] = {}
-      if (node.data.actions.length) {
-        states[node.id].entry = node.data.actions
+      positions[node.id] = node.position
+      const original = originalStates?.[node.id] ?? {}
+      states[node.id] = { ...original }
+      if (node.data.entry.length) {
+        states[node.id].entry = node.data.entry
+      }
+      if (node.data.exit.length) {
+        states[node.id].exit = node.data.exit
       }
     }
 
@@ -73,11 +114,11 @@ export function useWorkflowGraph() {
 
       const transitions: WorkflowTransition[] = groupEdges.map(edge => {
         const t: WorkflowTransition = { target: edge.target }
-        if (edge.data?.guardType) {
-          t.guard = {
-            type: edge.data.guardType,
-            params: edge.data.guardParams
-          }
+        if (edge.data?.guard) {
+          t.guard = edge.data.guard
+        }
+        if (edge.data?.actions?.length) {
+          t.actions = edge.data.actions
         }
         return t
       })
@@ -85,7 +126,13 @@ export function useWorkflowGraph() {
       states[sourceId].on![event] = transitions.length === 1 ? transitions[0] : transitions
     }
 
-    return { id, initial, states }
+    return {
+      id,
+      initial,
+      states,
+      context,
+      meta: { ...existingMeta, editorPositions: positions }
+    }
   }
 
   function normalizeActions(entry?: WorkflowState['entry']): (string | { id: string; params?: Record<string, unknown> })[] {
