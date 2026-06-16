@@ -3,21 +3,27 @@ interface Company {
   id: string
   name: string
   slug: string
+  namespace: string
 }
 
 const { data: companies } = await useFetch<Company[]>('/api/companies')
-const companySlug = useCookie('company_slug')
+const companyCookie = useCookie('company')
 
 function onChange(event: Event) {
   const target = event.target as HTMLSelectElement
-  companySlug.value = target.value
+  const selected = companies.value?.find(c => c.slug === target.value)
+  if (selected) {
+    companyCookie.value = JSON.stringify({ id: selected.id, slug: selected.slug, namespace: selected.namespace })
+  } else {
+    companyCookie.value = null
+  }
   window.location.reload()
 }
 </script>
 
 <template>
   <select
-    :value="companySlug"
+    :value="companyCookie ? JSON.parse(companyCookie).slug : ''"
     @change="onChange"
     class="border rounded px-3 py-2 text-sm bg-white"
   >
