@@ -4,7 +4,7 @@ type: app
 status: done
 area: admin
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-15
 app:
   - admin
 related:
@@ -28,7 +28,6 @@ The superadmin Nuxt application for platform-level management.
 - Uses a dedicated `auth.vue` layout for the login page.
 - Dashboard shows aggregate stats: companies, workflows, users.
 - The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
-- Record IDs in page links and `$fetch` calls are wrapped with `encodeURIComponent`; server `[id]` routes decode them with `getRouterParam(event, 'id', { decode: true })`.
 
 ## Routes
 

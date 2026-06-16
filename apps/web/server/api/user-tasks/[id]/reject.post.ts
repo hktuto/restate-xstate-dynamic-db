@@ -6,7 +6,7 @@ const RESTATE_INGRESS = process.env.RESTATE_INGRESS || 'http://localhost:8080'
 export default defineEventHandler(async (event) => {
   requireTenantSession(event)
 
-  const id = getRouterParam(event, 'id', { decode: true })
+  const id = getRouterParam(event, 'id')
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'ID required' })
   }

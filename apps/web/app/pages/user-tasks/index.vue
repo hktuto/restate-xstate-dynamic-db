@@ -14,12 +14,12 @@ interface UserTask {
 const { data: tasks, refresh } = await useFetch<UserTask[]>('/api/user-tasks')
 
 async function approve(id: string) {
-  await $fetch(`/api/user-tasks/${encodeURIComponent(id)}/approve`, { method: 'POST' })
+  await $fetch(`/api/user-tasks/${id}/approve`, { method: 'POST' })
   await refresh()
 }
 
 async function reject(id: string) {
-  await $fetch(`/api/user-tasks/${encodeURIComponent(id)}/reject`, { method: 'POST' })
+  await $fetch(`/api/user-tasks/${id}/reject`, { method: 'POST' })
   await refresh()
 }
 </script>

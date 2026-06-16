@@ -36,7 +36,7 @@ async function createTrigger() {
 }
 
 async function deleteTrigger(id: string) {
-  await $fetch(`/api/triggers/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  await $fetch(`/api/triggers/${id}`, { method: 'DELETE' })
   await refresh()
 }
 </script>

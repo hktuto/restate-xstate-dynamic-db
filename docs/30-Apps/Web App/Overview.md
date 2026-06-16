@@ -25,7 +25,6 @@ The tenant-facing Nuxt application. Each user belongs to a company and manages w
 - `/` is company-agnostic and lets users select or switch companies.
 - All other pages require a resolved company; missing context redirects to `/`.
 - Extends `layers/workflow-editor` for the workflow designer.
-- Record IDs in page links and `$fetch` calls are wrapped with `encodeURIComponent`; server `[id]` routes decode them with `getRouterParam(event, 'id', { decode: true })`.
 
 ## Routes
 

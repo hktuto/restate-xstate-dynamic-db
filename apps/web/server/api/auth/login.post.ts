@@ -7,7 +7,6 @@ const DUMMY_HASH = '$2b$12$8V7kAT3IavmTSYAx187I3.xTeRR6Ujz2G1MZACVrUBbN..wVwSICK
 const loginAttempts = new Map<string, number[]>()
 const MAX_ATTEMPTS = 5
 const WINDOW_MS = 15 * 60 * 1000
-const MAX_RATE_LIMIT_KEYS = 10000
 
 function isRateLimited(key: string): boolean {
   const now = Date.now()
@@ -22,12 +21,6 @@ function isRateLimited(key: string): boolean {
 }
 
 function recordAttempt(key: string) {
-  if (loginAttempts.size >= MAX_RATE_LIMIT_KEYS) {
-    const firstKey = loginAttempts.keys().next().value
-    if (firstKey !== undefined) {
-      loginAttempts.delete(firstKey)
-    }
-  }
   const attempts = loginAttempts.get(key) ?? []
   attempts.push(Date.now())
   loginAttempts.set(key, attempts)
@@ -36,16 +29,11 @@ function recordAttempt(key: string) {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { email, password } = body || {}
+  const normalizedEmail = email?.trim().toLowerCase()
 
-  if (!email || !password) {
+  if (!normalizedEmail || !password) {
     throw createError({ statusCode: 400, statusMessage: 'Email and password required' })
   }
-
-  if (typeof email !== 'string' || typeof password !== 'string') {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid field types' })
-  }
-
-  const normalizedEmail = email.trim().toLowerCase()
 
   if (isRateLimited(normalizedEmail)) {
     throw createError({ statusCode: 429, statusMessage: 'Too many attempts' })
