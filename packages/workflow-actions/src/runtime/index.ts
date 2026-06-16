@@ -29,6 +29,12 @@ export function createActionRegistry(
         ctx.run(actionId, async () => {
           await runtimeAction.execute({
             event,
+            context: {
+              record: req.record,
+              tableName: req.tableName,
+              companyId: req.companyId,
+              namespace: req.namespace
+            },
             record: req.record,
             tableName: req.tableName,
             companyId: req.companyId,
@@ -61,6 +67,12 @@ export function createGuardRegistry(req: CreateWorkflowRequest): GuardRegistry {
     guards[guardId] = ({ event }) => {
       return runtimeGuard.evaluate({
         event,
+        context: {
+          record: req.record,
+          tableName: req.tableName,
+          companyId: req.companyId,
+          namespace: req.namespace
+        },
         record: req.record,
         params: ref?.params
       })
