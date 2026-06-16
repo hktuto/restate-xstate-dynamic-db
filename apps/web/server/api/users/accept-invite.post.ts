@@ -1,7 +1,7 @@
 import { getMemberByInviteCode, updateMember } from 'db/tenant'
-import { getAccountByProviderKey, createAccount, createUserProfile } from 'db/platform'
+import { getAccountByProviderKey, createAccount, createUserProfile, getCompanyBySlug } from 'db/platform'
 import { hashPassword, comparePassword } from 'shared'
-import { setTenantSession } from '#server/utils/auth'
+import { setTenantSession, setTenantCompany } from '#server/utils/auth'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_PASSWORD_LENGTH = 8
@@ -9,6 +9,7 @@ const MIN_PASSWORD_LENGTH = 8
 const inviteAttempts = new Map<string, number[]>()
 const MAX_ATTEMPTS = 5
 const WINDOW_MS = 15 * 60 * 1000
+const MAX_RATE_LIMIT_KEYS = 10000
 
 function isRateLimited(key: string): boolean {
   const now = Date.now()
@@ -23,6 +24,12 @@ function isRateLimited(key: string): boolean {
 }
 
 function recordAttempt(key: string) {
+  if (inviteAttempts.size >= MAX_RATE_LIMIT_KEYS) {
+    const firstKey = inviteAttempts.keys().next().value
+    if (firstKey !== undefined) {
+      inviteAttempts.delete(firstKey)
+    }
+  }
   const attempts = inviteAttempts.get(key) ?? []
   attempts.push(Date.now())
   inviteAttempts.set(key, attempts)
@@ -30,9 +37,9 @@ function recordAttempt(key: string) {
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { inviteCode, email, password, name } = body || {}
+  const { inviteCode, companySlug, email, password, name } = body || {}
 
-  if (!inviteCode || !email || !password || !name) {
+  if (!inviteCode || !companySlug || !email || !password || !name) {
     throw createError({ statusCode: 400, statusMessage: 'Missing fields' })
   }
 
@@ -59,9 +66,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: 'Too many attempts' })
   }
 
-  const company = event.context.company
+  const company = await getCompanyBySlug(companySlug)
   if (!company) {
-    throw createError({ statusCode: 400, statusMessage: 'Company not resolved' })
+    throw createError({ statusCode: 400, statusMessage: 'Company not found' })
   }
 
   const member = await getMemberByInviteCode(company.namespace, inviteCode)
@@ -97,13 +104,8 @@ export default defineEventHandler(async (event) => {
     joinedAt: new Date().toISOString()
   })
 
-  setTenantSession(event, {
-    accountId: account.id,
-    profileId,
-    companyId: company.id,
-    memberId: member.id,
-    role: member.role
-  })
+  setTenantSession(event, { accountId: account.id, profileId })
+  setTenantCompany(event, { id: company.id, slug: company.slug, namespace: company.namespace })
 
   return { ok: true, member: updated }
 })

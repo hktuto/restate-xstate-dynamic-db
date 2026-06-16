@@ -1,10 +1,15 @@
 import { listUserTasks, getMemberById } from 'db/tenant'
-import { requireTenantSession } from '#server/utils/auth'
+import { requireTenantMember } from '#server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  requireTenantSession(event)
+  requireTenantMember(event)
 
-  const namespace = event.context.company.namespace
+  const company = event.context.company
+  if (!company) {
+    throw createError({ statusCode: 500, statusMessage: 'Company context missing' })
+  }
+
+  const namespace = company.namespace
   const tasks = await listUserTasks(namespace)
   return await Promise.all(
     tasks.map(async (t) => {

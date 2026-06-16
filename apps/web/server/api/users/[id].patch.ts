@@ -1,21 +1,17 @@
 import { updateMember, getMemberById } from 'db/tenant'
 import { updateUserProfile } from 'db/platform'
-import { requireTenantSession } from '#server/utils/auth'
+import { requireTenantRole } from '#server/utils/auth'
 import { dispatchTrigger } from '#server/utils/dispatch'
 
 const VALID_ROLES = new Set(['owner', 'admin', 'member'])
 const VALID_STATUSES = new Set(['active', 'inactive', 'pending'])
 
 export default defineEventHandler(async (event) => {
-  requireTenantSession(event)
+  const currentMember = requireTenantRole(event, ['owner', 'admin'])
 
-  const currentMember = event.context.member
-  if (!currentMember) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
-  }
-
-  if (!['owner', 'admin'].includes(currentMember.role)) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  const company = event.context.company
+  if (!company) {
+    throw createError({ statusCode: 500, statusMessage: 'Company context missing' })
   }
 
   const id = getRouterParam(event, 'id')
@@ -24,7 +20,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const namespace = event.context.company.namespace
+  const namespace = company.namespace
 
   const target = await getMemberById(namespace, id)
   if (!target) {

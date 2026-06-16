@@ -1,10 +1,18 @@
 import { listTriggers, getWorkflow } from 'db/tenant'
+import { requireTenantMember } from '#server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const triggers = await listTriggers(event.context.company.namespace)
+  requireTenantMember(event)
+
+  const company = event.context.company
+  if (!company) {
+    throw createError({ statusCode: 500, statusMessage: 'Company context missing' })
+  }
+
+  const triggers = await listTriggers(company.namespace)
   return await Promise.all(
     triggers.map(async (t) => {
-      const workflow = await getWorkflow(event.context.company.namespace, t.workflowId)
+      const workflow = await getWorkflow(company.namespace, t.workflowId)
       return { ...t, workflowName: workflow?.name ?? 'Unknown' }
     })
   )

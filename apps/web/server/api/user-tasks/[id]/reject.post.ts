@@ -1,16 +1,21 @@
 import { getUserTaskById, updateUserTaskStatus } from 'db/tenant'
-import { requireTenantSession } from '#server/utils/auth'
+import { requireTenantMember } from '#server/utils/auth'
 
 const RESTATE_INGRESS = process.env.RESTATE_INGRESS || 'http://localhost:8080'
 
 export default defineEventHandler(async (event) => {
-  requireTenantSession(event)
+  requireTenantMember(event)
+
+  const company = event.context.company
+  if (!company) {
+    throw createError({ statusCode: 500, statusMessage: 'Company context missing' })
+  }
 
   const id = getRouterParam(event, 'id')
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'ID required' })
   }
-  const namespace = event.context.company.namespace
+  const namespace = company.namespace
 
   const task = await getUserTaskById(namespace, id)
   if (!task) throw createError({ statusCode: 404, statusMessage: 'Task not found' })
