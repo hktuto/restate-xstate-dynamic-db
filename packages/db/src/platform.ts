@@ -402,7 +402,7 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
           'SELECT id FROM members WHERE profileId = $profileId LIMIT 1',
           { profileId }
         )
-        return members.length > 0 ? company : null
+        return Array.isArray(members) && members.length > 0 ? company : null
       } finally {
         await closeSurreal(surreal)
       }
