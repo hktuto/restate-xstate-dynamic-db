@@ -52,9 +52,10 @@ export async function getPlatformWorkflow(id: string): Promise<PlatformWorkflowR
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformWorkflowRecord[]]>(
-      'SELECT * FROM workflows WHERE id = $id LIMIT 1',
+      'SELECT * FROM $id',
       { id }
     )
+    console.log("result", result)
     return result[0]
   } finally {
     await closeSurreal(surreal)
@@ -402,7 +403,7 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
           'SELECT id FROM members WHERE profileId = $profileId LIMIT 1',
           { profileId }
         )
-        return members.length > 0 ? company : null
+        return Array.isArray(members) && members.length > 0 ? company : null
       } finally {
         await closeSurreal(surreal)
       }

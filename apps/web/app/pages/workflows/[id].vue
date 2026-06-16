@@ -4,7 +4,7 @@ import type { WorkflowDefinition } from 'shared'
 const route = useRoute()
 const id = route.params.id as string
 
-const { data: workflow } = await useFetch(`/api/workflows/${id}`)
+const { data: workflow } = await useFetch(`/api/workflows/${encodeURIComponent(id)}`)
 
 const name = ref('')
 const config = ref<WorkflowDefinition>({
@@ -21,7 +21,7 @@ watchEffect(() => {
 })
 
 async function save() {
-  await $fetch(`/api/workflows/${id}`, {
+  await $fetch(`/api/workflows/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: { name: name.value, xstateConfig: config.value }
   })

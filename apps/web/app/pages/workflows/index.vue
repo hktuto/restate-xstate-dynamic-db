@@ -7,7 +7,7 @@ interface Workflow {
 const { data: workflows, refresh } = await useFetch<Workflow[]>('/api/workflows')
 
 async function deleteWorkflow(id: string) {
-  await $fetch(`/api/workflows/${id}`, { method: 'DELETE' })
+  await $fetch(`/api/workflows/${encodeURIComponent(id)}`, { method: 'DELETE' })
   await refresh()
 }
 </script>
@@ -21,7 +21,7 @@ async function deleteWorkflow(id: string) {
 
     <ul class="bg-white rounded shadow divide-y">
       <li v-for="wf in workflows" :key="wf.id" class="p-4 flex items-center justify-between">
-        <NuxtLink :to="`/workflows/${wf.id}`" class="font-medium hover:text-blue-600">{{ wf.name }}</NuxtLink>
+        <NuxtLink :to="`/workflows/${encodeURIComponent(wf.id)}`" class="font-medium hover:text-blue-600">{{ wf.name }}</NuxtLink>
         <button class="text-red-600 hover:underline" @click="deleteWorkflow(wf.id)">Delete</button>
       </li>
     </ul>
