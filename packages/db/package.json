@@ -23,6 +23,10 @@
     "./tenant": {
       "types": "./dist/tenant.d.ts",
       "default": "./dist/tenant.js"
+    },
+    "./health-checks": {
+      "types": "./dist/health-checks.d.ts",
+      "default": "./dist/health-checks.js"
     }
   },
   "scripts": {
