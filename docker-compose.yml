@@ -26,7 +26,24 @@ services:
       - "9080:9080"
     depends_on:
       - restate
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     restart: unless-stopped
+
+  restate-register:
+    image: docker.io/restatedev/restate:latest
+    depends_on:
+      workflow-runtime:
+        condition: service_healthy
+    environment:
+      - RESTATE_ADMIN_URL=http://restate:9070
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["restate dp add http://workflow-runtime:9080 --yes --use-http1.1"]
+    restart: "no"
 
   health-monitor:
     build:
