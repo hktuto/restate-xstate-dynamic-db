@@ -34,23 +34,15 @@ The Restate service that executes workflow definitions durably.
 
 ## Runtime
 
-`apps/workflow-runtime` runs on [Bun](https://bun.sh/) for TypeScript-native execution. Local development uses `bun --watch src/index.ts`; type checking remains `tsc --noEmit` because Bun does not typecheck.
+`apps/workflow-runtime` runs on [Bun](https://bun.sh/) for TypeScript-native execution inside Docker. Type checking remains `tsc --noEmit` because Bun does not typecheck.
 
 For a one-command local stack, start the service with Docker Compose:
 
 ```bash
 docker compose up -d
-pnpm restate:register
 ```
 
-The container exposes port `9080` and reaches the host-based `web` API at `http://host.docker.internal:3000`.
-
-To run the runtime on the host instead (e.g. for faster iteration), start Restate and then run:
-
-```bash
-pnpm --filter workflow-runtime dev
-pnpm restate:register:host
-```
+The `restate-register` service automatically registers the workflow runtime with Restate. The container exposes port `9080` and reaches the host-based `web` API at `http://host.docker.internal:3000`.
 
 ## Handlers
 

@@ -2,8 +2,6 @@
   "name": "health-monitor",
   "type": "module",
   "scripts": {
-    "dev": "bun src/index.ts",
-    "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

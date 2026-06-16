@@ -9,9 +9,7 @@
     "build": "pnpm -r build",
     "db:seed": "pnpm -F db seed",
     "db:seed:workflows": "pnpm -F db seed:workflows",
-    "restate:up": "docker compose up -d",
-    "restate:register": "docker compose exec restate restate dp add http://workflow-runtime:9080 --yes --use-http1.1",
-    "restate:register:host": "docker compose exec restate restate dp add http://host.docker.internal:9080 --yes --use-http1.1"
+    "restate:up": "docker compose up -d"
   },
   "devDependencies": {
     "tsx": "^4.22.4"

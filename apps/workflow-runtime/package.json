@@ -3,8 +3,6 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts",
     "test": "vitest run",
     "test:bun": "bunx vitest run"
   },
