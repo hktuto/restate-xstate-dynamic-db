@@ -1,4 +1,5 @@
 import { getSurreal, closeSurreal } from './client.js'
+import { normalizeId, normalizeIds } from './normalize.js'
 import type { WorkflowDefinition } from 'shared'
 
 export interface MemberRecord {
@@ -25,15 +26,11 @@ export interface MemberInput {
   joinedAt?: string
 }
 
-function normalizeMember(record: MemberRecord): MemberRecord {
-  return { ...record, id: String(record.id) }
-}
-
 export async function listMembers(namespace: string): Promise<MemberRecord[]> {
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [members] = await surreal.query<[MemberRecord[]]>('SELECT * FROM members')
-    return members.map(normalizeMember)
+    return normalizeIds(members)
   } finally {
     await closeSurreal(surreal)
   }
@@ -49,7 +46,7 @@ export async function createMember(namespace: string, input: MemberInput): Promi
       updatedAt: new Date().toISOString()
     }
     const [created] = await surreal.query<[MemberRecord[]]>('CREATE members CONTENT $data', { data })
-    return normalizeMember(created[0])
+    return normalizeId(created[0])!
   } finally {
     await closeSurreal(surreal)
   }
@@ -62,7 +59,7 @@ export async function getMemberById(namespace: string, id: string): Promise<Memb
       'SELECT * FROM type::record($id)',
       { id }
     )
-    return result[0] ? normalizeMember(result[0]) : undefined
+    return normalizeId(result[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -78,7 +75,7 @@ export async function getMemberByProfileId(
       'SELECT * FROM members WHERE profileId = $profileId LIMIT 1',
       { profileId }
     )
-    return result[0] ? normalizeMember(result[0]) : undefined
+    return normalizeId(result[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -94,7 +91,7 @@ export async function getMemberByInviteCode(
       'SELECT * FROM members WHERE inviteCode = $inviteCode LIMIT 1',
       { inviteCode }
     )
-    return result[0] ? normalizeMember(result[0]) : undefined
+    return normalizeId(result[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -115,7 +112,7 @@ export async function updateMember(
       'UPDATE $id MERGE $data',
       { id, data }
     )
-    return updated[0] ? normalizeMember(updated[0]) : undefined
+    return normalizeId(updated[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -146,7 +143,7 @@ export async function listWorkflows(namespace: string): Promise<WorkflowRecord[]
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [workflows] = await surreal.query<[WorkflowRecord[]]>('SELECT * FROM workflows')
-    return workflows
+    return normalizeIds(workflows)
   } finally {
     await closeSurreal(surreal)
   }
@@ -160,7 +157,7 @@ export async function createWorkflow(namespace: string, input: WorkflowInput): P
       xstateConfig: input.xstateConfig
     }
     const [created] = await surreal.query<[WorkflowRecord[]]>('CREATE workflows CONTENT $data', { data })
-    return created[0]
+    return normalizeId(created[0])!
   } finally {
     await closeSurreal(surreal)
   }
@@ -170,7 +167,7 @@ export async function getWorkflow(namespace: string, id: string): Promise<Workfl
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [result] = await surreal.query<[WorkflowRecord[]]>('SELECT * FROM type::record($id)', { id })
-    return result[0]
+    return normalizeId(result[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -180,7 +177,7 @@ export async function updateWorkflow(namespace: string, id: string, input: Parti
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [updated] = await surreal.query<[WorkflowRecord[]]>('UPDATE $id MERGE $data', { id, data: input })
-    return updated[0]
+    return normalizeId(updated[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -213,7 +210,7 @@ export async function listTriggers(namespace: string): Promise<TriggerRecord[]> 
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [triggers] = await surreal.query<[TriggerRecord[]]>('SELECT * FROM triggers')
-    return triggers
+    return normalizeIds(triggers)
   } finally {
     await closeSurreal(surreal)
   }
@@ -228,7 +225,7 @@ export async function createTrigger(namespace: string, input: TriggerInput): Pro
       workflowId: input.workflowId
     }
     const [created] = await surreal.query<[TriggerRecord[]]>('CREATE triggers CONTENT $data', { data })
-    return created[0]
+    return normalizeId(created[0])!
   } finally {
     await closeSurreal(surreal)
   }
@@ -271,7 +268,7 @@ export async function listWorkflowInstances(namespace: string): Promise<Workflow
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [instances] = await surreal.query<[WorkflowInstanceRecord[]]>('SELECT * FROM workflow_instances ORDER BY createdAt DESC')
-    return instances
+    return normalizeIds(instances)
   } finally {
     await closeSurreal(surreal)
   }
@@ -281,7 +278,7 @@ export async function getWorkflowInstance(namespace: string, id: string): Promis
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [result] = await surreal.query<[WorkflowInstanceRecord[]]>('SELECT * FROM type::record($id)', { id })
-    return result[0]
+    return normalizeId(result[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -303,7 +300,7 @@ export async function findActiveWorkflowInstance(
        LIMIT 1`,
       { workflowId, tableName, recordId }
     )
-    return result[0]
+    return normalizeId(result[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -320,7 +317,7 @@ export async function createWorkflowInstance(namespace: string, input: WorkflowI
       updatedAt: now
     }
     const [created] = await surreal.query<[WorkflowInstanceRecord[]]>('CREATE workflow_instances CONTENT $data', { data })
-    return created[0]
+    return normalizeId(created[0])!
   } finally {
     await closeSurreal(surreal)
   }
@@ -346,7 +343,7 @@ export async function updateWorkflowInstanceStatus(
       'UPDATE $id MERGE $data',
       { id, data: { status, updatedAt: new Date().toISOString() } }
     )
-    return updated[0]
+    return normalizeId(updated[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -380,7 +377,7 @@ export async function listUserTasks(namespace: string): Promise<UserTaskRecord[]
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [tasks] = await surreal.query<[UserTaskRecord[]]>('SELECT * FROM user_tasks ORDER BY createdAt DESC')
-    return tasks
+    return normalizeIds(tasks)
   } finally {
     await closeSurreal(surreal)
   }
@@ -390,7 +387,7 @@ export async function getUserTaskById(namespace: string, id: string): Promise<Us
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [result] = await surreal.query<[UserTaskRecord[]]>('SELECT * FROM type::record($id)', { id })
-    return result[0]
+    return normalizeId(result[0])
   } finally {
     await closeSurreal(surreal)
   }
@@ -405,7 +402,7 @@ export async function createUserTask(namespace: string, input: UserTaskInput): P
       createdAt: new Date().toISOString()
     }
     const [created] = await surreal.query<[UserTaskRecord[]]>('CREATE user_tasks CONTENT $data', { data })
-    return created[0]
+    return normalizeId(created[0])!
   } finally {
     await closeSurreal(surreal)
   }
@@ -427,7 +424,7 @@ export async function updateUserTaskStatus(
       'UPDATE $id MERGE $data',
       { id, data }
     )
-    return updated[0]
+    return normalizeId(updated[0])
   } finally {
     await closeSurreal(surreal)
   }

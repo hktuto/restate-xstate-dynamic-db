@@ -1,4 +1,5 @@
 import { getSurreal, closeSurreal } from './client.js'
+import { normalizeId, normalizeIds } from './normalize.js'
 
 export type HealthCheckService = 'surrealdb' | 'restate' | 'workflow-runtime' | 'web-api'
 export type HealthCheckStatus = 'healthy' | 'unhealthy'
@@ -36,7 +37,7 @@ export async function createHealthCheck(input: HealthCheckInput): Promise<Health
       'CREATE health_checks CONTENT $data',
       { data: input }
     )
-    return created[0]
+    return normalizeId(created[0])!
   } finally {
     await closeSurreal(surreal)
   }
@@ -54,7 +55,7 @@ export async function listLatestHealthChecks(): Promise<HealthCheckRecord[]> {
         return records[0]
       })
     )
-    return results.filter((record): record is HealthCheckRecord => record !== undefined)
+    return normalizeIds(results.filter((record): record is HealthCheckRecord => record !== undefined))
   } finally {
     await closeSurreal(surreal)
   }
@@ -67,7 +68,7 @@ export async function listHealthCheckHistory(limit: number): Promise<HealthCheck
       'SELECT * FROM health_checks ORDER BY checkedAt DESC LIMIT $limit',
       { limit }
     )
-    return records
+    return normalizeIds(records)
   } finally {
     await closeSurreal(surreal)
   }
@@ -83,7 +84,7 @@ export async function listHealthCheckHistoryForService(
       'SELECT * FROM health_checks WHERE service = $service ORDER BY checkedAt DESC LIMIT $limit',
       { service, limit }
     )
-    return records
+    return normalizeIds(records)
   } finally {
     await closeSurreal(surreal)
   }
