@@ -19,6 +19,7 @@ async function logout() {
           <NuxtLink to="/companies" class="text-sm text-gray-600 hover:text-gray-900">Companies</NuxtLink>
           <NuxtLink to="/workflows" class="text-sm text-gray-600 hover:text-gray-900">Workflows</NuxtLink>
           <NuxtLink to="/triggers" class="text-sm text-gray-600 hover:text-gray-900">Triggers</NuxtLink>
+          <NuxtLink to="/health" class="text-sm text-gray-600 hover:text-gray-900">Health</NuxtLink>
           <button
             class="text-sm text-gray-600 hover:text-red-600"
             @click="logout"
