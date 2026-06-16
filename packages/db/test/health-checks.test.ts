@@ -20,8 +20,14 @@ describe('health-checks', () => {
   })
 
   it('lists history and history for a service', async () => {
+    const now = Date.now()
     for (let i = 0; i < 5; i++) {
-      await createHealthCheck({ service: 'api', status: 'healthy', responseTimeMs: i, checkedAt: new Date().toISOString() })
+      await createHealthCheck({
+        service: 'api',
+        status: 'healthy',
+        responseTimeMs: i,
+        checkedAt: new Date(now - (5 - i) * 1000).toISOString(),
+      })
     }
     const history = await listHealthCheckHistory(10)
     expect(history.length).toBe(5)
@@ -69,8 +75,14 @@ describe('health-checks', () => {
   })
 
   it('prunes by count', async () => {
+    const now = Date.now()
     for (let i = 0; i < 5; i++) {
-      await createHealthCheck({ service: 'api', status: 'healthy', responseTimeMs: i, checkedAt: new Date().toISOString() })
+      await createHealthCheck({
+        service: 'api',
+        status: 'healthy',
+        responseTimeMs: i,
+        checkedAt: new Date(now - (5 - i) * 1000).toISOString(),
+      })
     }
     await pruneHealthChecks('api', 2)
     const history = await listHealthCheckHistoryForService('api', 10)
