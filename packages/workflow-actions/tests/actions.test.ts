@@ -104,3 +104,21 @@ describe('deleteRecord', () => {
     expect(query).toHaveBeenCalledWith('DELETE type::record($id)', { id: 'rec-1' })
   })
 })
+
+describe('condition', () => {
+  it('returns true when expression matches context', () => {
+    const result = runtimeActions.condition.execute({
+      ...baseCtx,
+      params: { expression: { $eq: ['$context.record.id', 'rec-1'] } }
+    })
+    expect(result).toBe(true)
+  })
+
+  it('returns false when expression does not match', () => {
+    const result = runtimeActions.condition.execute({
+      ...baseCtx,
+      params: { expression: { $eq: ['$context.record.id', 'other'] } }
+    })
+    expect(result).toBe(false)
+  })
+})
