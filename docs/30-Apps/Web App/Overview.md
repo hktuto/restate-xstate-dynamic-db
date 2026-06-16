@@ -4,7 +4,7 @@ type: app
 status: done
 area: web
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-16
 app:
   - web
 related:
@@ -34,10 +34,11 @@ The tenant-facing Nuxt application. Each user belongs to a company and manages w
 | `/workflows` | List company workflows. |
 | `/workflows/[id]` | Edit a workflow in the visual editor. |
 | `/api/companies` | List companies (public within session). |
+| `/api/health` | Public health check. |
 
 ## Middleware
 
-- `company.global.ts` — resolves company context.
+- `company.ts` — resolves company context, skipping company-agnostic routes.
 
 ## Related
 

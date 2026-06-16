@@ -13,9 +13,10 @@ declare module 'h3' {
 export default defineEventHandler(async (event) => {
   const path = getRequestPath(event)
 
-  // The index page lets the user pick a company, and /api/companies is the
-  // list used by the switcher — neither needs a resolved company.
-  if (path === '/' || path.startsWith('/api/companies')) {
+  // The index page lets the user pick a company, /api/companies is the
+  // list used by the switcher, and /api/health is public — none need a
+  // resolved company.
+  if (path === '/' || path.startsWith('/api/companies') || path === '/api/health') {
     return
   }
 
