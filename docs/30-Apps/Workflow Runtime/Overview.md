@@ -45,6 +45,13 @@ pnpm restate:register
 
 The container exposes port `9080` and reaches the host-based `web` API at `http://host.docker.internal:3000`.
 
+To run the runtime on the host instead (e.g. for faster iteration), start Restate and then run:
+
+```bash
+pnpm --filter workflow-runtime dev
+pnpm restate:register:host
+```
+
 ## Handlers
 
 | Handler | Kind | Purpose |
