@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, reactive, watch } from 'vue'
 import type { ActionMetadata, ParamSchema } from 'shared'
 
 export interface ActionConfig {
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const activeAction = computed(() => props.actions.find((a) => a.id === props.modelValue.action))
+const jsonErrors = reactive<Record<string, string>>({})
 
 function update(patch: Partial<ActionConfig>) {
   emit('update:modelValue', { ...props.modelValue, ...patch })
@@ -26,14 +28,6 @@ function update(patch: Partial<ActionConfig>) {
 function updateParam(key: string, value: unknown) {
   const next = { ...(props.modelValue.params ?? {}), [key]: value }
   emit('update:modelValue', { ...props.modelValue, params: next })
-}
-
-function parseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
 }
 
 function formatJson(value: unknown): string {
@@ -46,6 +40,15 @@ function defaultValue(schema: ParamSchema): unknown {
   if (schema.type === 'boolean') return false
   if (schema.type === 'number') return 0
   return ''
+}
+
+function coerceValue(schema: ParamSchema, raw: string): unknown {
+  if (schema.type === 'boolean') return raw === 'true'
+  if (schema.type === 'number') {
+    const n = Number(raw)
+    return Number.isNaN(n) ? undefined : n
+  }
+  return raw
 }
 
 function autoOutputKey(actionId: string, params?: Record<string, unknown>): string {
@@ -74,10 +77,29 @@ function onSelectAction(actionId: string) {
   })
 }
 
-function onUpdateTable() {
-  if (!props.modelValue.action || props.modelValue.action === 'condition') return
-  update({ outputKey: autoOutputKey(props.modelValue.action, props.modelValue.params) })
+function onJsonBlur(key: string, raw: string) {
+  try {
+    const parsed = JSON.parse(raw)
+    delete jsonErrors[key]
+    updateParam(key, parsed)
+  } catch {
+    jsonErrors[key] = 'Invalid JSON'
+  }
 }
+
+watch(
+  () => props.modelValue.params,
+  (newParams, oldParams) => {
+    if (!props.modelValue.action || props.modelValue.action === 'condition') return
+    const newAuto = autoOutputKey(props.modelValue.action, newParams)
+    const oldAuto = autoOutputKey(props.modelValue.action, oldParams)
+    const current = props.modelValue.outputKey
+    if (!current || current === oldAuto) {
+      update({ outputKey: newAuto })
+    }
+  },
+  { deep: true }
+)
 </script>
 
 <template>
@@ -106,7 +128,6 @@ function onUpdateTable() {
           class="w-full border rounded px-2 py-1 text-sm"
           :readonly="readonly"
           @input="updateParam(key, ($event.target as HTMLInputElement).value)"
-          @change="key === 'table' ? onUpdateTable() : undefined"
         />
 
         <input
@@ -115,7 +136,7 @@ function onUpdateTable() {
           type="number"
           class="w-full border rounded px-2 py-1 text-sm"
           :readonly="readonly"
-          @input="updateParam(key, Number(($event.target as HTMLInputElement).value))"
+          @change="updateParam(key, coerceValue(schema, ($event.target as HTMLInputElement).value))"
         />
 
         <select
@@ -123,7 +144,7 @@ function onUpdateTable() {
           :value="String(modelValue.params?.[key] ?? '')"
           class="w-full border rounded px-2 py-1 text-sm"
           :disabled="readonly"
-          @change="updateParam(key, ($event.target as HTMLSelectElement).value)"
+          @change="updateParam(key, coerceValue(schema, ($event.target as HTMLSelectElement).value))"
         >
           <option
             v-for="opt in schema.type === 'boolean'
@@ -136,14 +157,17 @@ function onUpdateTable() {
           </option>
         </select>
 
-        <textarea
-          v-else-if="schema.type === 'json'"
-          :value="formatJson(modelValue.params?.[key])"
-          rows="4"
-          class="w-full border rounded px-2 py-1 text-sm font-mono"
-          :readonly="readonly"
-          @blur="updateParam(key, parseJson(($event.target as HTMLTextAreaElement).value))"
-        />
+        <template v-else-if="schema.type === 'json'">
+          <textarea
+            :value="formatJson(modelValue.params?.[key])"
+            rows="4"
+            class="w-full border rounded px-2 py-1 text-sm font-mono"
+            :class="{ 'border-red-500': jsonErrors[key] }"
+            :readonly="readonly"
+            @blur="onJsonBlur(key, ($event.target as HTMLTextAreaElement).value)"
+          />
+          <p v-if="jsonErrors[key]" class="text-xs text-red-600 mt-1">{{ jsonErrors[key] }}</p>
+        </template>
       </div>
 
       <div v-if="modelValue.action !== 'condition'">
