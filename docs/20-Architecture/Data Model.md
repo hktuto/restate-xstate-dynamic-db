@@ -19,7 +19,7 @@ related:
 |--------|---------|
 | `platform_users` | Superadmin accounts. |
 | `companies` | Tenant companies with slug and namespace. |
-| `platform_workflows` | Workflow templates available to all tenants. |
+| `workflows` | Workflow templates available to all tenants. |
 | `workflow_instances` | Running and historical platform workflow instances. |
 | `user_tasks` | Manual tasks created by platform workflow instances. |
 | `health_checks` | Service health check records. |
