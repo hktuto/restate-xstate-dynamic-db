@@ -1,58 +1,57 @@
 import { getSurreal, closeSurreal } from 'db/client'
-import type { HealthCheckService, HealthCheckStatus } from 'db/health-checks'
+import type { HealthCheckInput, HealthCheckService } from 'db/health-checks'
 
 const CHECK_TIMEOUT_MS = 5000
-
-interface CheckResult {
-  service: HealthCheckService
-  status: HealthCheckStatus
-  responseTimeMs: number
-  message?: string
-  details?: Record<string, unknown>
-}
-
-function getEnv(name: string): string | undefined {
-  return process.env[name]
-}
+type CheckResult = Omit<HealthCheckInput, 'checkedAt'>
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined
   const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+    timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
   })
-  return Promise.race([promise, timeout])
+  try {
+    return await Promise.race([promise, timeout])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
 }
 
 async function checkSurrealDB(): Promise<CheckResult> {
   const service: HealthCheckService = 'surrealdb'
-  const url = getEnv('SURREAL_URL')
-  const user = getEnv('SURREAL_USER')
-  const pass = getEnv('SURREAL_PASS')
+  const url = process.env.SURREAL_URL
+  const user = process.env.SURREAL_USER
+  const pass = process.env.SURREAL_PASS
   if (!url || !user || !pass) {
     return { service, status: 'unhealthy', responseTimeMs: 0, message: 'Missing SurrealDB env vars' }
   }
   const start = Date.now()
   try {
-    const surreal = await getSurreal('platform', 'admin')
-    try {
-      await surreal.query('SELECT 1 FROM 1')
-      return { service, status: 'healthy', responseTimeMs: Date.now() - start }
-    } finally {
-      await closeSurreal(surreal)
-    }
+    await withTimeout((async () => {
+      const surreal = await getSurreal('platform', 'admin')
+      try {
+        await surreal.query('RETURN 1')
+      } finally {
+        try { await closeSurreal(surreal) } catch {}
+      }
+    })(), CHECK_TIMEOUT_MS)
+    return { service, status: 'healthy', responseTimeMs: Date.now() - start }
   } catch (err) {
     return { service, status: 'unhealthy', responseTimeMs: Date.now() - start, message: err instanceof Error ? err.message : String(err) }
   }
 }
 
-async function checkRestate(): Promise<CheckResult> {
-  const service: HealthCheckService = 'restate'
-  const url = getEnv('RESTATE_META_URL')
+async function checkHttpService(
+  service: HealthCheckService,
+  envVarName: string,
+  path: string
+): Promise<CheckResult> {
+  const url = process.env[envVarName]
   if (!url) {
-    return { service, status: 'unhealthy', responseTimeMs: 0, message: 'Missing RESTATE_META_URL' }
+    return { service, status: 'unhealthy', responseTimeMs: 0, message: `Missing ${envVarName}` }
   }
   const start = Date.now()
   try {
-    const res = await withTimeout(fetch(`${url}/services`), CHECK_TIMEOUT_MS)
+    const res = await withTimeout(fetch(`${url}${path}`), CHECK_TIMEOUT_MS)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return { service, status: 'healthy', responseTimeMs: Date.now() - start }
   } catch (err) {
@@ -60,36 +59,16 @@ async function checkRestate(): Promise<CheckResult> {
   }
 }
 
-async function checkWorkflowRuntime(): Promise<CheckResult> {
-  const service: HealthCheckService = 'workflow-runtime'
-  const url = getEnv('WORKFLOW_RUNTIME_URL')
-  if (!url) {
-    return { service, status: 'unhealthy', responseTimeMs: 0, message: 'Missing WORKFLOW_RUNTIME_URL' }
-  }
-  const start = Date.now()
-  try {
-    const res = await withTimeout(fetch(`${url}/health`), CHECK_TIMEOUT_MS)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return { service, status: 'healthy', responseTimeMs: Date.now() - start }
-  } catch (err) {
-    return { service, status: 'unhealthy', responseTimeMs: Date.now() - start, message: err instanceof Error ? err.message : String(err) }
-  }
+function checkRestate(): Promise<CheckResult> {
+  return checkHttpService('restate', 'RESTATE_META_URL', '/services')
 }
 
-async function checkWebApi(): Promise<CheckResult> {
-  const service: HealthCheckService = 'web-api'
-  const url = getEnv('WEB_API_URL')
-  if (!url) {
-    return { service, status: 'unhealthy', responseTimeMs: 0, message: 'Missing WEB_API_URL' }
-  }
-  const start = Date.now()
-  try {
-    const res = await withTimeout(fetch(`${url}/api/health`), CHECK_TIMEOUT_MS)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return { service, status: 'healthy', responseTimeMs: Date.now() - start }
-  } catch (err) {
-    return { service, status: 'unhealthy', responseTimeMs: Date.now() - start, message: err instanceof Error ? err.message : String(err) }
-  }
+function checkWorkflowRuntime(): Promise<CheckResult> {
+  return checkHttpService('workflow-runtime', 'WORKFLOW_RUNTIME_URL', '/health')
+}
+
+function checkWebApi(): Promise<CheckResult> {
+  return checkHttpService('web-api', 'WEB_API_URL', '/api/health')
 }
 
 export async function runHealthChecks(): Promise<CheckResult[]> {
