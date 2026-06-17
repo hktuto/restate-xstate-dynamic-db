@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-18
 package: db
 related:
   - [[Data Model]]
@@ -51,9 +51,19 @@ See [[Benchmarking]] for how to run the SurrealDB performance benchmark.
 ### Connection
 
 - `src/client.ts`
-  - `getSurreal(namespace?, database?)` — create and sign in to a SurrealDB connection.
-  - `closeSurreal(surreal)` — close a connection.
+  - `getSurreal(namespace?, database?)` — acquire a SurrealDB connection from an internal keyed pool (key = `namespace--database`). Creates a new connection if the pool has no idle match and is under the max size; otherwise it kicks out the oldest idle connection and creates one for the requested namespace/database.
+  - `closeSurreal(surreal)` — release the connection back to the pool.
+  - `closeSurrealPool()` — close all pooled connections (use on app shutdown).
+  - `configurePool({ max?, idleTimeoutMs?, acquireTimeoutMs? })` — override pool limits at runtime.
   - Exported via `db/client`.
+
+Pool behavior is controlled by environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SURREALDB_POOL_MAX` | `20` | Maximum open connections across all namespaces. |
+| `SURREALDB_POOL_IDLE_TIMEOUT_MS` | `30000` | How long an idle connection can stay in the pool. |
+| `SURREALDB_POOL_ACQUIRE_TIMEOUT_MS` | `10000` | How long to wait for a free connection before throwing. |
 
 ### Health checks
 

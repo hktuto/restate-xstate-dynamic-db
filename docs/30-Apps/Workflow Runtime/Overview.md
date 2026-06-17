@@ -4,7 +4,7 @@ type: app
 status: done
 area: runtime
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-17
 app:
   - runtime
 related:
@@ -42,7 +42,7 @@ For a one-command local stack, start the service with Docker Compose:
 docker compose up -d
 ```
 
-The `restate-register` service automatically registers the workflow runtime with Restate. The container exposes port `9080` and reaches the host-based `web` API at `http://host.docker.internal:3000`.
+The `restate-register` service automatically registers the workflow runtime with Restate over HTTP/2. The container exposes port `9080` for Restate traffic and port `9081` for the HTTP/1.1 health endpoint. It reaches the host-based `web` API at `http://host.docker.internal:3000`.
 
 ## Handlers
 
@@ -55,11 +55,14 @@ The `restate-register` service automatically registers the workflow runtime with
 | `waitFor` | shared | Block until a condition is met or a timeout occurs. |
 | `snapshot` | exclusive | Return the persisted actor snapshot. |
 
-## Ports
+## Protocol and ports
 
-- Service: `9080`
-- Restate ingress: `8080`
-- Restate meta: `9070`
+- **Restate endpoint:** `9080` over **HTTP/2** (`restate.serve()`).
+- **Health endpoint:** `9081` over HTTP/1.1 (`/health`), used by Docker Compose health checks.
+- **Restate ingress:** `8080`
+- **Restate meta:** `9070`
+
+The health endpoint is intentionally separate from the Restate endpoint so Compose can verify liveness without interfering with HTTP/2 traffic.
 
 ## Related
 
