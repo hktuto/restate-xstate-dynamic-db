@@ -116,15 +116,16 @@ async function maybeCreateUserTask(
 async function runTransition(
   objectCtx: restate.ObjectContext,
   state: PersistedState,
-  event: { type: string; record?: Record<string, unknown>; tableName?: string; companyId?: string; namespace?: string }
+  event: { type: string; record?: Record<string, unknown> }
 ): Promise<{ snapshot: AnyMachineSnapshot }> {
   const context: RuntimeContext = {
     ...state.context,
+    // Always use the current Restate object key as the instance id.
     instanceId: objectCtx.key,
     record: { ...(state.context.record ?? {}), ...(event.record ?? {}) },
-    tableName: (event.tableName ?? state.context.tableName) as string,
-    companyId: (event.companyId ?? state.context.companyId) as string | undefined,
-    namespace: (event.namespace ?? state.context.namespace) as string | undefined
+    tableName: state.context.tableName,
+    companyId: state.context.companyId,
+    namespace: state.context.namespace
   }
   const { machine, promises } = compileWorkflow(state.config, context, objectCtx)
   const actor = restoreActor(machine, state.snapshot)
