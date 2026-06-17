@@ -1,10 +1,10 @@
 ---
 title: Guards & Conditions
 type: feature
-status: planned
+status: done
 area: workflow
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-17
 app:
   - web
   - admin
@@ -18,15 +18,24 @@ related:
 
 ## Overview
 
-Guards determine whether a transition is allowed based on context or event data. Conditions are also used by `waitFor` to block callers until a workflow reaches a specific state.
+Guards decide whether a transition is allowed. The default guard is `condition`, which evaluates the same MongoDB-style expression used by the `condition` action.
 
-## Implementation
+## `condition` guard
 
-Guards live alongside actions in `packages/workflow-actions`. `createGuardRegistry` builds a map of XState guard implementations. Each guard receives the current machine context, event, and any params configured in the workflow definition.
+```ts
+guard: {
+  type: 'condition',
+  params: {
+    expression: { $eq: ['$context.record.status', 'active'] }
+  }
+}
+```
+
+The expression can use `$eq`, `$ne`, `$exists`, `$in`, `$nin`, `$and`, `$or`, and `$not`. Values prefixed with `$context.` are resolved from the machine context.
 
 ## Wait conditions
 
-`waitFor` supports two condition shapes:
+`waitFor` supports:
 
 - `'done'` — resolved when the workflow reaches a final state.
 - `'hasTag:<tag>'` — resolved when the current snapshot has the given tag, e.g. `hasTag:waiting`.
