@@ -1,14 +1,10 @@
 ---
 title: Real CRUD Workflow Actions & Guards
-type: design
-status: approved
-area: workflow
+type: note
+status: in-progress
+area: docs
 created: 2026-06-16
 updated: 2026-06-16
-app:
-  - web
-  - workflow-runtime
-  - workflow-editor-layer
 related:
   - [[Workflow Actions Catalog]]
   - [[Guards & Conditions]]

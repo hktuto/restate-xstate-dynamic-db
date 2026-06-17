@@ -1,10 +1,10 @@
 ---
 title: Workflow Runtime Snapshot Persistence Design
 type: note
-status: done
+status: in-progress
 area: docs
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 related:
   - [[Workflow Runtime]]
   - [[Workflow Engine]]

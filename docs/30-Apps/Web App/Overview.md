@@ -11,6 +11,7 @@ related:
   - [[Multi-tenancy]]
   - [[30-Apps/Admin App/Overview]]
   - [[40-Packages/workflow-editor-layer]]
+  - [[50-Features/Admin Health Monitor]]
 ---
 
 # Web App Overview

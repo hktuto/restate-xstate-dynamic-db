@@ -1,12 +1,10 @@
 ---
 title: Health-Driven UX Design
 type: note
-status: planned
-area: web
-app:
-  - web
+status: in-progress
+area: docs
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 related:
   - [[30-Apps/Web App/Overview]]
   - [[50-Features/Admin Health Monitor]]

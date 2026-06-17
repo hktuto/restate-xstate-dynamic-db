@@ -395,25 +395,22 @@ export async function getCompanyByNamespace(namespace: string): Promise<CompanyR
 }
 
 export async function listCompaniesForProfile(profileId: string): Promise<CompanyRecord[]> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [members] = await surreal.query<[Array<{ company: unknown }>]>(
-      'SELECT company FROM members WHERE profile = $profileId OR profile = type::record($profileId)',
-      { profileId }
-    )
-    const companyIds = (members ?? [])
-      .map((m) => String(m.company))
-      .filter((id): id is string => Boolean(id))
-    if (companyIds.length === 0) return []
-
-    const [companies] = await surreal.query<[CompanyRecord[]]>(
-      'SELECT * FROM companies WHERE id IN array::map($ids, |$id| type::record($id))',
-      { ids: companyIds }
-    )
-    return normalizeIds(companies ?? [])
-  } finally {
-    await closeSurreal(surreal)
-  }
+  const companies = await listCompanies()
+  const memberships = await Promise.all(
+    companies.map(async (company) => {
+      const surreal = await getSurreal(company.namespace, 'main')
+      try {
+        const [members] = await surreal.query<[Array<{ id: string }>]>(
+          'SELECT id FROM members WHERE profileId = $profileId LIMIT 1',
+          { profileId }
+        )
+        return Array.isArray(members) && members.length > 0 ? company : null
+      } finally {
+        await closeSurreal(surreal)
+      }
+    })
+  )
+  return memberships.filter((c): c is CompanyRecord => c !== null)
 }
 
 

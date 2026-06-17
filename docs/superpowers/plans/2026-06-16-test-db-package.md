@@ -336,7 +336,8 @@ import {
   createUserProfile, getUserProfileById, getUserProfilesByIds, updateUserProfile,
   createAccount, getAccountByProviderKey, updateAccountCredential,
 } from '../src/platform.js'
-import { resetPlatformTables } from './helpers.js'
+import { resetPlatformTables, createTenantNamespace, removeTenantNamespace } from './helpers.js'
+import { createMember } from '../src/tenant.js'
 
 const sampleWorkflow = {
   name: 'Test Workflow',
@@ -371,15 +372,20 @@ describe('platform', () => {
     it('lists companies for a profile', async () => {
       const company = await createCompany({ name: 'Acme', slug: 'acme', namespace: 'acme' })
       const profile = await createUserProfile({ name: 'Alice' })
-      const { getSurreal, closeSurreal } = await import('../src/client.js')
-      const db = await getSurreal('platform', 'admin')
+      await createTenantNamespace(company.namespace)
       try {
-        await db.query('CREATE members CONTENT { company: $company, profile: $profile }', { company: company.id, profile: profile.id })
+        await createMember(company.namespace, {
+          email: '',
+          profileId: profile.id,
+          role: 'owner',
+          status: 'active',
+          inviteCode: null,
+        })
+        const companies = await listCompaniesForProfile(profile.id)
+        expect(companies.map(c => c.id)).toContain(company.id)
       } finally {
-        await closeSurreal(db)
+        await removeTenantNamespace(company.namespace)
       }
-      const companies = await listCompaniesForProfile(profile.id)
-      expect(companies.map(c => c.id)).toContain(company.id)
     })
   })
 
@@ -547,10 +553,10 @@ git commit -m "test(db): add platform query tests"
 ```
 
 **Implementation notes:**
-- Added `members` table to the platform test schema so company-membership assertions work.
 - Fixed parameterized record IDs in platform queries.
 - Normalized SurrealDB `RecordId` objects to strings across all helpers for stable assertions.
 - Aligned platform test inputs with the real TypeScript interfaces.
+- `listCompaniesForProfile` continues to query per-company `members` tables in tenant namespaces, matching production data model.
 
 ---
 

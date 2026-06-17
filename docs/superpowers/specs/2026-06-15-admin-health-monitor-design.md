@@ -1,10 +1,8 @@
 ---
 title: Admin Health Monitor Design
 type: note
-status: done
-area: admin
-app:
-  - admin
+status: in-progress
+area: docs
 created: 2026-06-15
 updated: 2026-06-16
 related:

@@ -1,7 +1,7 @@
 ---
 title: Tenant Authentication & Authorization
 type: feature
-status: done
+status: in-progress
 area: web
 created: 2026-06-14
 updated: 2026-06-16

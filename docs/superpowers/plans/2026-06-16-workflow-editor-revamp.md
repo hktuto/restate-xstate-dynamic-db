@@ -1,10 +1,10 @@
 ---
 title: Workflow Editor Revamp Implementation Plan
 type: note
-status: done
+status: in-progress
 area: docs
 created: 2026-06-16
-updated: 2026-06-17
+updated: 2026-06-16
 ---
 
 # Workflow Editor Revamp Implementation Plan

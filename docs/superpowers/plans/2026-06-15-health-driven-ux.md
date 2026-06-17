@@ -1,3 +1,14 @@
+---
+title: Health-Driven UX Implementation Plan
+type: note
+status: in-progress
+area: docs
+created: 2026-06-16
+updated: 2026-06-16
+related:
+  - [[50-Features/Admin Health Monitor]]
+---
+
 # Health-Driven UX Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

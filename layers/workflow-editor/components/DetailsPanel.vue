@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, reactive, watch } from 'vue'
 import type { EditorNode, EditorEdge } from '../composables/useWorkflowGraph'
 import type { ActionMetadata, GuardMetadata } from 'shared'
 import ActionConfigPanel from './ActionConfigPanel.vue'
@@ -50,17 +51,38 @@ const selectedGuardType = computed({
 
 const activeGuard = computed(() => props.guards.find(g => g.id === selectedGuardType.value))
 
+const jsonErrors = reactive<Record<string, string>>({})
+
+watch(() => props.selectedEdge?.id, () => {
+  Object.keys(jsonErrors).forEach(key => delete jsonErrors[key])
+})
+
+watch(selectedGuardType, () => {
+  Object.keys(jsonErrors).forEach(key => delete jsonErrors[key])
+})
+
 const guardParamValue = computed({
-  get: () => {
-    const key = Object.keys(activeGuard.value?.paramsSchema ?? {})[0]
-    return key ? String(props.selectedEdge?.data?.guard?.params?.[key] ?? '') : ''
-  },
-  set: (value: string) => {
-    if (!props.selectedEdge || !activeGuard.value) return
+  get() {
+    if (!activeGuard.value || !props.selectedEdge?.data?.guard?.params) return ''
     const key = Object.keys(activeGuard.value.paramsSchema)[0]
+    if (!key) return ''
+    const value = props.selectedEdge.data.guard.params[key]
+    if (value === undefined || value === null) return ''
+    return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+  },
+  set(value: string) {
+    if (!props.selectedEdge) return
+    const key = Object.keys(activeGuard.value?.paramsSchema ?? {})[0]
     if (!key) return
+    let parsed: unknown = value
+    try {
+      parsed = JSON.parse(value)
+      delete jsonErrors[key]
+    } catch {
+      jsonErrors[key] = 'Invalid JSON'
+    }
     emit('update:edge', props.selectedEdge.id, {
-      guard: { type: selectedGuardType.value, params: { [key]: value } }
+      guard: { type: selectedGuardType.value, params: { [key]: parsed } }
     })
   }
 })
@@ -146,11 +168,19 @@ const guardParamValue = computed({
               {{ activeGuard.paramsSchema?.expression?.label ?? 'Value' }}
             </label>
             <textarea
-              v-model="guardParamValue"
+              :value="guardParamValue"
               rows="4"
               class="w-full border rounded px-2 py-1 text-sm font-mono"
+              :class="{ 'border-red-500': jsonErrors[Object.keys(activeGuard.paramsSchema)[0]] }"
               :readonly="readonly"
+              @blur="guardParamValue = ($event.target as HTMLTextAreaElement).value"
             />
+            <p
+              v-if="jsonErrors[Object.keys(activeGuard.paramsSchema)[0]]"
+              class="text-xs text-red-600 mt-1"
+            >
+              {{ jsonErrors[Object.keys(activeGuard.paramsSchema)[0]] }}
+            </p>
           </div>
         </template>
       </div>

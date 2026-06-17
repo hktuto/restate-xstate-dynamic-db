@@ -2,16 +2,16 @@
 title: Company Management
 type: feature
 status: done
-area: web
+area: admin
 created: 2026-06-14
 updated: 2026-06-16
 app:
-  - web
+  - admin
 related:
   - [[Data Model]]
   - [[Multi-tenancy]]
   - [[Tenant Authentication & Authorization]]
-  - [[30-Apps/Web App/Overview|Web App]]
+  - [[30-Apps/Web App/Overview]]
 ---
 
 # Company Management

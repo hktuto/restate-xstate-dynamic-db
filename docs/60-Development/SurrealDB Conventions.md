@@ -1,8 +1,8 @@
 ---
 title: SurrealDB Conventions
-type: note
-status: done
-area: db
+type: runbook
+status: in-progress
+area: docs
 created: 2026-06-16
 updated: 2026-06-16
 related:

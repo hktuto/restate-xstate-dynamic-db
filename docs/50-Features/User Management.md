@@ -1,16 +1,17 @@
 ---
 title: User Management
 type: feature
-status: done
-area: web
+status: planned
+area: admin
 created: 2026-06-14
 updated: 2026-06-16
 app:
+  - admin
   - web
 related:
   - [[Tenant Authentication & Authorization]]
   - [[Company Management]]
-  - [[30-Apps/Web App/Overview|Web App]]
+  - [[30-Apps/Web App/Overview]]
 ---
 
 # User Management
