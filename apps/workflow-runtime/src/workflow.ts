@@ -1,5 +1,5 @@
 import * as restate from '@restatedev/restate-sdk'
-import type { AnyActor, AnyMachineSnapshot, AnyStateMachine } from 'xstate'
+import type { AnyMachineSnapshot, AnyStateMachine } from 'xstate'
 import { createActor, getStateNodes } from 'xstate'
 import type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest } from 'shared'
 import { compileWorkflow } from './compile.js'
@@ -61,6 +61,10 @@ function getTaskType(machine: AnyStateMachine, snapshot: AnyMachineSnapshot): 'a
   return 'approval'
 }
 
+// Merge request context first, then overlay the actor's snapshot context.
+// This preserves action outputs (e.g. outputKey: 'record') over the stale request context.
+// Request base fields (record, tableName, companyId, namespace, etc.) are already used to configure the actor/guards;
+// they are intentionally not overlaid here so action outputs win.
 function snapshotWithContext(
   snapshot: AnyMachineSnapshot,
   context: RuntimeContext
@@ -74,7 +78,7 @@ function snapshotWithContext(
   } as AnyMachineSnapshot
 }
 
-async function settleActor(actor: AnyActor, promises: Promise<unknown>[]) {
+async function settlePromises(promises: Promise<unknown>[]) {
   for (let i = 0; i < 20; i++) {
     const before = promises.length
     await Promise.all(promises)
@@ -130,7 +134,7 @@ async function runTransition(
   const { machine, promises } = compileWorkflow(state.config, context, objectCtx)
   const actor = restoreActor(machine, state.snapshot)
   actor.send(event as any)
-  await settleActor(actor, promises)
+  await settlePromises(promises)
   const liveSnapshot = actor.getSnapshot()
   const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
   actor.stop()
@@ -197,7 +201,7 @@ export const workflowObject = restate.object({
       if (req.event) {
         actor.send({ type: req.event, record: req.record } as any)
       }
-      await settleActor(actor, promises)
+      await settlePromises(promises)
       const liveSnapshot = actor.getSnapshot()
       const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
       actor.stop()

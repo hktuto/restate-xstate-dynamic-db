@@ -6,6 +6,10 @@ import type { WorkflowDefinition } from 'shared'
 import { getSurreal, closeSurreal } from 'db/client'
 import { workflowObject } from '../src/workflow.js'
 
+function ctx(snapshot: any): Record<string, unknown> {
+  return snapshot.context as Record<string, unknown>
+}
+
 async function createTestNamespace() {
   const ns = `e2e_${randomUUID().replace(/-/g, '_')}`
   const surreal = await getSurreal(ns, 'main')
@@ -83,7 +87,7 @@ describe('workflow runtime', () => {
 
   it('returns 404 when sending to a missing instance', async () => {
     const client = rs.objectClient(workflowObject, randomUUID())
-    await expect(client.send({ event: 'start' })).rejects.toThrow()
+    await expect(client.send({ event: 'start' })).rejects.toThrow('Workflow instance not found')
   })
 
   it('branches true on a condition action', async () => {
@@ -191,7 +195,7 @@ describe('workflow runtime', () => {
       })
 
       expect(snapshot.value).toBe('done')
-      expect((snapshot.context as any).newRecord).toMatchObject({ name: 'Alice', status: 'pending' })
+      expect(ctx(snapshot).newRecord).toMatchObject({ name: 'Alice', status: 'pending' })
     } finally {
       await removeNamespace(ns)
     }
@@ -241,8 +245,8 @@ describe('workflow runtime', () => {
       })
 
       expect(snapshot.value).toBe('done')
-      expect((snapshot.context as any).record.status).toBe('active')
-      expect((snapshot.context as any).updatedRecord.status).toBe('processed')
+      expect((ctx(snapshot).record as Record<string, unknown>).status).toBe('active')
+      expect((ctx(snapshot).updatedRecord as Record<string, unknown>).status).toBe('processed')
     } finally {
       await removeNamespace(ns)
     }
@@ -293,8 +297,8 @@ describe('workflow runtime', () => {
       })
 
       expect(snapshot.value).toBe('done')
-      expect((snapshot.context as any).record.status).toBe('active')
-      expect((snapshot.context as any).deletedRecord.status).toBe('deleted')
+      expect((ctx(snapshot).record as Record<string, unknown>).status).toBe('active')
+      expect((ctx(snapshot).deletedRecord as Record<string, unknown>).status).toBe('deleted')
 
       const verify = await getSurreal(ns, 'main')
       try {
