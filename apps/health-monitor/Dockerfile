@@ -27,8 +27,6 @@ COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
 COPY apps/health-monitor ./apps/health-monitor
 
-RUN pnpm --filter shared build && pnpm --filter db build
-
 WORKDIR /app/apps/health-monitor
 
 CMD ["bun", "src/index.ts"]

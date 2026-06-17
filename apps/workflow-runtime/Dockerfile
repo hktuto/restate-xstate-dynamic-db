@@ -22,12 +22,10 @@ COPY packages/workflow-actions/package.json ./packages/workflow-actions/
 
 RUN pnpm install --frozen-lockfile
 
-# Copy and build workspace dependencies.
+# Copy workspace dependencies (imported as TypeScript source).
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
 COPY packages/workflow-actions ./packages/workflow-actions
-
-RUN pnpm --filter shared build && pnpm --filter db build && pnpm --filter workflow-actions build
 
 # Copy only the runtime service source.
 COPY apps/workflow-runtime ./apps/workflow-runtime
