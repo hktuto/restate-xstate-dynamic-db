@@ -2,20 +2,35 @@ import * as restate from '@restatedev/restate-sdk'
 import http from 'node:http'
 import { workflowObject } from './workflow.js'
 
-const handler = restate.endpoint().bind(workflowObject).handler()
 const PORT = Number(process.env.PORT) || 9080
+const HEALTH_PORT = Number(process.env.HEALTH_PORT) || 9081
 
-const server = http.createServer(async (req, res) => {
+// Restate HTTP/2 endpoint
+restate
+  .serve({
+    services: [workflowObject],
+    port: PORT,
+  })
+  .then((actualPort) => {
+    console.log(`Workflow runtime listening on ${actualPort}`)
+  })
+  .catch((err) => {
+    console.error('Failed to start workflow runtime:', err)
+    process.exit(1)
+  })
+
+// Simple HTTP/1.1 health endpoint for Docker/compose health checks
+const healthServer = http.createServer((req, res) => {
   try {
-    const { pathname } = new URL(req.url ?? '/', 'http://localhost')
-    if (pathname === '/health' && req.method === 'GET') {
+    if (req.url === '/health' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ status: 'ok' }))
       return
     }
-    await handler(req, res)
+    res.writeHead(404)
+    res.end('Not found')
   } catch (err) {
-    console.error('Request handler error:', err)
+    console.error('Health handler error:', err)
     if (!res.headersSent) {
       res.writeHead(500)
       res.end('Internal Server Error')
@@ -23,10 +38,10 @@ const server = http.createServer(async (req, res) => {
   }
 })
 
-server.on('error', (err) => {
-  console.error('Server error:', err)
+healthServer.on('error', (err) => {
+  console.error('Health server error:', err)
 })
 
-server.listen(PORT, () => {
-  console.log(`Workflow runtime listening on ${PORT}`)
+healthServer.listen(HEALTH_PORT, () => {
+  console.log(`Health endpoint listening on ${HEALTH_PORT}`)
 })
