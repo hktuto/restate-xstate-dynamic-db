@@ -24,12 +24,13 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 
 ## Key modules
 
-- `src/platform.ts` — platform-level queries (companies, platform users, platform workflows).
+- `src/platform.ts` — platform-level queries (companies, platform users, platform workflows, identities).
+- `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables).
 - `src/seed.ts` — seeds `platform/admin` namespace with default admin user.
 
 ## Build
 
-`db` is imported directly as TypeScript source. Consumers resolve `packages/db/src/*.ts` via the package `exports` field. There is no build step.
+`db` is imported directly as TypeScript source. Consumers resolve specific subpaths exported in `package.json` (e.g., `db`, `db/client`, `db/workflow-actions`). There is no build step.
 
 ```bash
 pnpm --filter db typecheck

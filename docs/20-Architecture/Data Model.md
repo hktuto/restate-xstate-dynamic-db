@@ -20,8 +20,9 @@ related:
 | `platform_users` | Superadmin accounts. |
 | `companies` | Tenant companies with slug and namespace. |
 | `workflows` | Workflow templates available to all tenants. |
+| `triggers` | Platform trigger configurations. |
 | `workflow_instances` | Running and historical platform workflow instances. |
-| `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`. |
+| `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`, with `status` (`started` / `completed` / `failed`) and timestamps. |
 | `user_tasks` | Manual tasks created by platform workflow instances. |
 | `health_checks` | Service health check records. |
 
@@ -30,8 +31,9 @@ related:
 | Record | Purpose |
 |--------|---------|
 | `workflows` | Company-specific workflow definitions. |
+| `triggers` | Trigger configurations. |
 | `workflow_instances` | Running and historical workflow instances. |
-| `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`. |
+| `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`, with `status` (`started` / `completed` / `failed`) and timestamps. |
 | `user_tasks` | Manual tasks created by workflow instances. |
 | `triggers` | Trigger configurations. |
 | `members` | Company membership, role, invite status. |
