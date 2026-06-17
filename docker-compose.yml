@@ -6,6 +6,8 @@ services:
       - "9070:9070"
     environment:
       - RESTATE_OBSERVABILITY__JAEGER__ENDPOINT=http://host.docker.internal:4317
+    volumes:
+      - restate-data:/restate-data
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/9070'"]
       interval: 5s
@@ -75,3 +77,4 @@ services:
 
 volumes:
   surreal-data:
+  restate-data:
