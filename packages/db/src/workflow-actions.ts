@@ -25,8 +25,8 @@ export async function upsertWorkflowAction(
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<[WorkflowActionRecord[]]>(
-      'UPSERT type::record($id) CONTENT $data RETURN *',
-      { id: `workflow_actions:${id}`, data }
+      'UPSERT type::record("workflow_actions", $id) CONTENT $data RETURN *',
+      { id, data }
     )
     return rows[0]
   } finally {

@@ -57,20 +57,16 @@ export function createActionActors(
           await upsertWorkflowAction(namespace, auditId, data)
         }
 
-        try {
-          await audit({
-            instanceId: input.instanceId,
-            workflowId: req.config?.id ?? '',
-            stateId: input.stateId,
-            action: actionId,
-            params: input.params,
-            status: 'started',
-            inputContext: input.context,
-            startedAt
-          })
-        } catch {
-          // Audit failures must not prevent the action from running.
-        }
+        await audit({
+          instanceId: input.instanceId,
+          workflowId: req.config?.id ?? '',
+          stateId: input.stateId,
+          action: actionId,
+          params: input.params,
+          status: 'started',
+          inputContext: input.context,
+          startedAt
+        })
 
         try {
           const data = await runtimeAction.execute(executorCtx)
@@ -83,46 +79,38 @@ export function createActionActors(
             ...(input.outputKey ? { [input.outputKey]: data } : {})
           }
 
-          try {
-            await audit({
-              instanceId: input.instanceId,
-              workflowId: req.config?.id ?? '',
-              stateId: input.stateId,
-              action: actionId,
-              params: input.params,
-              status: 'completed',
-              inputContext: input.context,
-              outputContext,
-              outputData: data,
-              resultEvent,
-              startedAt,
-              completedAt: new Date().toISOString()
-            })
-          } catch {
-            // Audit failures must not change the action result.
-          }
+          await audit({
+            instanceId: input.instanceId,
+            workflowId: req.config?.id ?? '',
+            stateId: input.stateId,
+            action: actionId,
+            params: input.params,
+            status: 'completed',
+            inputContext: input.context,
+            outputContext,
+            outputData: data,
+            resultEvent,
+            startedAt,
+            completedAt: new Date().toISOString()
+          })
 
           return { data, outputKey: input.outputKey }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
-          try {
-            await audit({
-              instanceId: input.instanceId,
-              workflowId: req.config?.id ?? '',
-              stateId: input.stateId,
-              action: actionId,
-              params: input.params,
-              status: 'failed',
-              inputContext: input.context,
-              outputContext: input.context,
-              resultEvent: actionId === 'condition' ? 'false' : 'error',
-              errorMessage: message,
-              startedAt,
-              completedAt: new Date().toISOString()
-            })
-          } catch {
-            // Audit failures must not mask the original action error.
-          }
+          await audit({
+            instanceId: input.instanceId,
+            workflowId: req.config?.id ?? '',
+            stateId: input.stateId,
+            action: actionId,
+            params: input.params,
+            status: 'failed',
+            inputContext: input.context,
+            outputContext: input.context,
+            resultEvent: actionId === 'condition' ? 'false' : 'error',
+            errorMessage: message,
+            startedAt,
+            completedAt: new Date().toISOString()
+          })
           throw error
         }
       })

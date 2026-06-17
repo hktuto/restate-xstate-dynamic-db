@@ -4,6 +4,11 @@ import type { ObjectContext } from '@restatedev/restate-sdk'
 import type { WorkflowDefinition } from 'shared'
 import { compileWorkflow } from '../src/compile.js'
 
+vi.mock('db/workflow-actions', () => ({
+  upsertWorkflowAction: vi.fn().mockResolvedValue({}),
+  listWorkflowActionsByInstance: vi.fn().mockResolvedValue([])
+}))
+
 function fakeCtx(): Pick<ObjectContext, 'run'> {
   return { run: vi.fn(async (_name: string, fn: () => Promise<unknown>) => fn()) as any }
 }
