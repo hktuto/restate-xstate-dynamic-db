@@ -1,5 +1,5 @@
 import * as restate from '@restatedev/restate-sdk'
-import type { AnyMachineSnapshot, AnyStateMachine } from 'xstate'
+import type { AnyActor, AnyMachineSnapshot, AnyStateMachine } from 'xstate'
 import { createActor, getStateNodes } from 'xstate'
 import type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest } from 'shared'
 import { compileWorkflow } from './compile.js'
@@ -68,10 +68,20 @@ function snapshotWithContext(
   return {
     ...snapshot,
     context: {
-      ...(snapshot.context as Record<string, unknown>),
-      ...context
+      ...context,
+      ...(snapshot.context as Record<string, unknown>)
     }
   } as AnyMachineSnapshot
+}
+
+async function settleActor(actor: AnyActor, promises: Promise<unknown>[]) {
+  for (let i = 0; i < 20; i++) {
+    const before = promises.length
+    await Promise.all(promises)
+    // Give XState one tick to process raised result events from completed invokes.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    if (promises.length === before) break
+  }
 }
 
 async function maybeCreateUserTask(
@@ -120,9 +130,7 @@ async function runTransition(
   const { machine, promises } = compileWorkflow(state.config, context, objectCtx)
   const actor = restoreActor(machine, state.snapshot)
   actor.send(event as any)
-  await Promise.all(promises)
-  // Give XState one tick to process raised result events from completed invokes.
-  await new Promise((resolve) => setTimeout(resolve, 0))
+  await settleActor(actor, promises)
   const liveSnapshot = actor.getSnapshot()
   const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
   actor.stop()
@@ -189,9 +197,7 @@ export const workflowObject = restate.object({
       if (req.event) {
         actor.send({ type: req.event, record: req.record } as any)
       }
-      await Promise.all(promises)
-      // Give XState one tick to process raised result events from completed invokes.
-      await new Promise((resolve) => setTimeout(resolve, 0))
+      await settleActor(actor, promises)
       const liveSnapshot = actor.getSnapshot()
       const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
       actor.stop()

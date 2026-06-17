@@ -3,7 +3,29 @@ import { RestateTestEnvironment } from '@restatedev/restate-sdk-testcontainers'
 import * as clients from '@restatedev/restate-sdk-clients'
 import { randomUUID } from 'node:crypto'
 import type { WorkflowDefinition } from 'shared'
+import { getSurreal, closeSurreal } from 'db/client'
 import { workflowObject } from '../src/workflow.js'
+
+async function createTestNamespace() {
+  const ns = `e2e_${randomUUID().replace(/-/g, '_')}`
+  const surreal = await getSurreal(ns, 'main')
+  try {
+    await surreal.query(`DEFINE NAMESPACE IF NOT EXISTS ${ns}`)
+    await surreal.query('DEFINE DATABASE IF NOT EXISTS main')
+  } finally {
+    await closeSurreal(surreal)
+  }
+  return ns
+}
+
+async function removeNamespace(ns: string) {
+  const surreal = await getSurreal(ns, 'main')
+  try {
+    await surreal.query(`REMOVE NAMESPACE ${ns}`)
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
 
 describe('workflow runtime', () => {
   let env: RestateTestEnvironment
@@ -132,5 +154,157 @@ describe('workflow runtime', () => {
     })
 
     expect(snapshot.value).toBe('inactive')
+  })
+
+  it('creates a record via createRecord action', async () => {
+    const ns = await createTestNamespace()
+    try {
+      const instanceId = randomUUID()
+      const client = rs.objectClient(workflowObject, instanceId)
+      const config: WorkflowDefinition = {
+        id: 'create-test',
+        initial: 'create',
+        states: {
+          create: {
+            meta: {
+              action: 'createRecord',
+              params: {
+                table: 'e2e_records',
+                fields: { name: 'Alice', status: 'pending' }
+              },
+              outputKey: 'newRecord'
+            },
+            on: { ok: { target: 'done' }, error: { target: 'failed' } }
+          },
+          done: { type: 'final' },
+          failed: { type: 'final' }
+        }
+      }
+
+      const snapshot = await client.create({
+        config,
+        event: 'start',
+        tableName: 'e2e_records',
+        record: {},
+        namespace: ns,
+        workflowId: 'create-test'
+      })
+
+      expect(snapshot.value).toBe('done')
+      expect((snapshot.context as any).newRecord).toMatchObject({ name: 'Alice', status: 'pending' })
+    } finally {
+      await removeNamespace(ns)
+    }
+  })
+
+  it('queries and updates a record via getRecord and updateRecord', async () => {
+    const ns = await createTestNamespace()
+    try {
+      const root = await getSurreal(ns, 'main')
+      await root.query('CREATE e2e_records CONTENT $data', { data: { name: 'Bob', status: 'active' } })
+      await closeSurreal(root)
+
+      const instanceId = randomUUID()
+      const client = rs.objectClient(workflowObject, instanceId)
+      const config: WorkflowDefinition = {
+        id: 'get-update-test',
+        initial: 'fetch',
+        states: {
+          fetch: {
+            meta: {
+              action: 'getRecord',
+              params: { table: 'e2e_records', filter: { name: { $eq: 'Bob' } }, result: { type: 'first' } },
+              outputKey: 'record'
+            },
+            on: { ok: { target: 'update' }, error: { target: 'failed' } }
+          },
+          update: {
+            meta: {
+              action: 'updateRecord',
+              params: { table: 'e2e_records', fields: { status: 'processed' } },
+              outputKey: 'updatedRecord'
+            },
+            on: { ok: { target: 'done' }, error: { target: 'failed' } }
+          },
+          done: { type: 'final' },
+          failed: { type: 'final' }
+        }
+      }
+
+      const snapshot = await client.create({
+        config,
+        event: 'start',
+        tableName: 'e2e_records',
+        record: {},
+        namespace: ns,
+        workflowId: 'get-update-test'
+      })
+
+      expect(snapshot.value).toBe('done')
+      expect((snapshot.context as any).record.status).toBe('active')
+      expect((snapshot.context as any).updatedRecord.status).toBe('processed')
+    } finally {
+      await removeNamespace(ns)
+    }
+  })
+
+  it('soft deletes a record via deleteRecord action', async () => {
+    const ns = await createTestNamespace()
+    try {
+      const root = await getSurreal(ns, 'main')
+      const [created] = await root.query<[{ id: string }[]]>('CREATE e2e_records CONTENT $data', { data: { name: 'Charlie', status: 'active' } })
+      const recordId = created[0].id
+      await closeSurreal(root)
+
+      const instanceId = randomUUID()
+      const client = rs.objectClient(workflowObject, instanceId)
+      const config: WorkflowDefinition = {
+        id: 'delete-test',
+        initial: 'fetch',
+        states: {
+          fetch: {
+            meta: {
+              action: 'getRecord',
+              params: { table: 'e2e_records', filter: { name: { $eq: 'Charlie' } }, result: { type: 'first' } },
+              outputKey: 'record'
+            },
+            on: { ok: { target: 'del' }, error: { target: 'failed' } }
+          },
+          del: {
+            meta: {
+              action: 'deleteRecord',
+              params: { table: 'e2e_records', mode: 'soft' },
+              outputKey: 'deletedRecord'
+            },
+            on: { ok: { target: 'done' }, error: { target: 'failed' } }
+          },
+          done: { type: 'final' },
+          failed: { type: 'final' }
+        }
+      }
+
+      const snapshot = await client.create({
+        config,
+        event: 'start',
+        tableName: 'e2e_records',
+        record: {},
+        namespace: ns,
+        workflowId: 'delete-test'
+      })
+
+      expect(snapshot.value).toBe('done')
+      expect((snapshot.context as any).record.status).toBe('active')
+      expect((snapshot.context as any).deletedRecord.status).toBe('deleted')
+
+      const verify = await getSurreal(ns, 'main')
+      try {
+        const [rows] = await verify.query<[{ status: string }[]]>('SELECT status FROM type::record($id)', { id: recordId })
+        expect(rows[0].status).toBe('deleted')
+      } finally {
+        await closeSurreal(verify)
+      }
+    } finally {
+      await removeNamespace(ns)
+    }
   })
 })
