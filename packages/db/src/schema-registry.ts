@@ -163,7 +163,7 @@ export async function getTableSchema(namespace: string, database: string, tableN
     }
 
     return {
-      table: table?.[0] ?? { id: `_tables:${tableName}`, name: tableName },
+      table: table ?? { id: `_tables:${tableName}`, name: tableName },
       columns: Array.from(mergedColumns.values()),
       relations: relations ?? [],
     };

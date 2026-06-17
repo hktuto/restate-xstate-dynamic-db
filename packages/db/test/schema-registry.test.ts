@@ -41,6 +41,7 @@ describe('schema-registry', () => {
   it('syncs schema from records', async () => {
     await syncTableSchemaFromRecords(testNs, 'main', 'contacts');
     const schema = await getTableSchema(testNs, 'main', 'contacts');
+    expect(schema.table.name).toBe('contacts');
     const names = schema.columns.map((c) => c.name).sort();
     expect(names).toContain('name');
     expect(names).toContain('age');
