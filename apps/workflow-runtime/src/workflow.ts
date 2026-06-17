@@ -121,6 +121,8 @@ async function runTransition(
   const actor = restoreActor(machine, state.snapshot)
   actor.send(event as any)
   await Promise.all(promises)
+  // Give XState one tick to process raised result events from completed invokes.
+  await new Promise((resolve) => setTimeout(resolve, 0))
   const liveSnapshot = actor.getSnapshot()
   const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
   actor.stop()
@@ -188,6 +190,8 @@ export const workflowObject = restate.object({
         actor.send({ type: req.event, record: req.record } as any)
       }
       await Promise.all(promises)
+      // Give XState one tick to process raised result events from completed invokes.
+      await new Promise((resolve) => setTimeout(resolve, 0))
       const liveSnapshot = actor.getSnapshot()
       const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
       actor.stop()
