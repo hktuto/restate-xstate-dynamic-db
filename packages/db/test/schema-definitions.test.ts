@@ -58,7 +58,7 @@ describe('schema-definitions', () => {
 
         expect(column.config?.relationId).toBeTypeOf('string');
         expect(column.config!.relationId).toBe(
-          `relations:${table.name}:${column.name}:${relation!.toTable}`
+          `_relations:⟨${table.name}:${column.name}:${relation!.toTable}:${relation!.toColumn}⟩`
         );
       }
     }

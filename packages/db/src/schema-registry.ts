@@ -36,10 +36,37 @@ export interface RelationInput {
   linkTable?: string
 }
 
+export interface TableRow {
+  id: string
+  name: string
+  label?: string
+  description?: string
+  hidden?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ColumnRow extends ColumnDefinition {
+  table: string
+}
+
+export interface RelationRow {
+  id: string
+  name?: string
+  fromTable: string
+  fromColumn: string
+  toTable: string
+  toColumn: string
+  type: 'one-to-one' | 'one-to-many' | 'many-to-many'
+  linkTable?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface TableSchema {
-  table: Record<string, unknown>
-  columns: (ColumnDefinition & { table?: string })[]
-  relations: Record<string, unknown>[]
+  table: TableRow
+  columns: ColumnRow[]
+  relations: RelationRow[]
 }
 
 export interface SyncResult {
@@ -48,7 +75,10 @@ export interface SyncResult {
 }
 
 const SYSTEM_COLUMN_NAMES = SYSTEM_COLUMNS.map((c) => c.name)
-const VALID_TABLE_NAME = /^[a-z_][a-z0-9_]*$/
+
+export function isValidIdentifier(value: string): boolean {
+  return /^[a-z_][a-z0-9_]*$/i.test(value)
+}
 
 async function ensureRegistryTables(surreal: Surreal) {
   await surreal.query(`
@@ -64,11 +94,18 @@ async function ensureRegistryTables(surreal: Surreal) {
   `)
 }
 
+function releaseConnection(surreal: Surreal, shared: boolean) {
+  if (!shared) {
+    return closeSurreal(surreal)
+  }
+  return Promise.resolve()
+}
+
 export async function listTables(namespace: string, database: string) {
   const surreal = await getSurreal(namespace, database)
   try {
     await ensureRegistryTables(surreal)
-    const [rows] = (await surreal.query('SELECT * FROM _tables ORDER BY name')) as [any[]]
+    const [rows] = (await surreal.query('SELECT * FROM _tables ORDER BY name')) as [TableRow[]]
     return rows ?? []
   } finally {
     await closeSurreal(surreal)
@@ -80,13 +117,21 @@ export async function listUserTables(namespace: string, database: string) {
   return all.filter((t) => !t.name.startsWith('_'))
 }
 
-export async function upsertTable(namespace: string, database: string, input: TableInput) {
-  const surreal = await getSurreal(namespace, database)
+export async function upsertTable(
+  namespace: string,
+  database: string,
+  input: TableInput,
+  surreal?: Surreal
+) {
+  if (!isValidIdentifier(input.name)) {
+    throw new Error(`Invalid table name: ${input.name}`)
+  }
+  const managed = surreal ?? (await getSurreal(namespace, database))
   try {
-    await ensureRegistryTables(surreal)
+    await ensureRegistryTables(managed)
     const id = `_tables:⟨${input.name}⟩`
     const now = new Date().toISOString()
-    await surreal.query(
+    await managed.query(
       `
       UPSERT ${id} SET
         name = $name,
@@ -100,17 +145,31 @@ export async function upsertTable(namespace: string, database: string, input: Ta
     )
     return { id }
   } finally {
-    await closeSurreal(surreal)
+    await releaseConnection(managed, !!surreal)
   }
 }
 
-export async function upsertColumn(namespace: string, database: string, input: ColumnInput) {
-  const surreal = await getSurreal(namespace, database)
+export async function upsertColumn(
+  namespace: string,
+  database: string,
+  input: ColumnInput,
+  surreal?: Surreal
+) {
+  if (!isValidIdentifier(input.table)) {
+    throw new Error(`Invalid table name: ${input.table}`)
+  }
+  if (!isValidIdentifier(input.name)) {
+    throw new Error(`Invalid column name: ${input.name}`)
+  }
+  if (SYSTEM_COLUMN_NAMES.includes(input.name) && input.system !== true) {
+    throw new Error(`Cannot upsert system column ${input.name} without system: true`)
+  }
+  const managed = surreal ?? (await getSurreal(namespace, database))
   try {
-    await ensureRegistryTables(surreal)
+    await ensureRegistryTables(managed)
     const id = `_columns:⟨${input.table}:${input.name}⟩`
     const now = new Date().toISOString()
-    await surreal.query(
+    await managed.query(
       `
       UPSERT ${id} SET
         table = $table,
@@ -133,17 +192,32 @@ export async function upsertColumn(namespace: string, database: string, input: C
     )
     return { id }
   } finally {
-    await closeSurreal(surreal)
+    await releaseConnection(managed, !!surreal)
   }
 }
 
-export async function upsertRelation(namespace: string, database: string, input: RelationInput) {
-  const surreal = await getSurreal(namespace, database)
+export async function upsertRelation(
+  namespace: string,
+  database: string,
+  input: RelationInput,
+  surreal?: Surreal
+) {
+  for (const [key, value] of [
+    ['fromTable', input.fromTable],
+    ['fromColumn', input.fromColumn],
+    ['toTable', input.toTable],
+    ['toColumn', input.toColumn],
+  ] as const) {
+    if (!isValidIdentifier(value)) {
+      throw new Error(`Invalid ${key}: ${value}`)
+    }
+  }
+  const managed = surreal ?? (await getSurreal(namespace, database))
   try {
-    await ensureRegistryTables(surreal)
-    const id = `_relations:⟨${input.fromTable}:${input.fromColumn}:${input.toTable}⟩`
+    await ensureRegistryTables(managed)
+    const id = `_relations:⟨${input.fromTable}:${input.fromColumn}:${input.toTable}:${input.toColumn}⟩`
     const now = new Date().toISOString()
-    await surreal.query(
+    await managed.query(
       `
       UPSERT ${id} SET
         name = $name,
@@ -160,7 +234,7 @@ export async function upsertRelation(namespace: string, database: string, input:
     )
     return { id }
   } finally {
-    await closeSurreal(surreal)
+    await releaseConnection(managed, !!surreal)
   }
 }
 
@@ -169,6 +243,9 @@ export async function getTableSchema(
   database: string,
   tableName: string
 ): Promise<TableSchema> {
+  if (!isValidIdentifier(tableName)) {
+    throw new Error(`Invalid table name: ${tableName}`)
+  }
   const surreal = await getSurreal(namespace, database)
   try {
     await ensureRegistryTables(surreal)
@@ -179,11 +256,11 @@ export async function getTableSchema(
       SELECT * FROM _relations WHERE fromTable = $tableName OR toTable = $tableName;
       `,
       { tableName }
-    )) as [any[], any[], any[]]
+    )) as [TableRow[], ColumnRow[], RelationRow[]]
 
-    const mergedColumns = new Map<string, ColumnDefinition & { table?: string }>()
+    const mergedColumns = new Map<string, ColumnRow>()
     for (const col of SYSTEM_COLUMNS) {
-      mergedColumns.set(col.name, { ...col })
+      mergedColumns.set(col.name, { ...col, table: tableName })
     }
     for (const col of columns ?? []) {
       mergedColumns.set(col.name, col)
@@ -240,7 +317,7 @@ export async function syncTableSchemaFromRecords(
   tableName: string,
   sampleSize = 100
 ): Promise<SyncResult> {
-  if (!VALID_TABLE_NAME.test(tableName)) {
+  if (!isValidIdentifier(tableName)) {
     throw new Error(`Invalid table name: ${tableName}`)
   }
   if (tableName.startsWith('_')) {
@@ -249,11 +326,11 @@ export async function syncTableSchemaFromRecords(
   const surreal = await getSurreal(namespace, database)
   try {
     await ensureRegistryTables(surreal)
-    await upsertTable(namespace, database, { name: tableName })
+    await upsertTable(namespace, database, { name: tableName }, surreal)
     const [records] = (await surreal.query(
       `SELECT * FROM ${tableName} LIMIT $sampleSize`,
       { sampleSize }
-    )) as [any[]]
+    )) as [Record<string, unknown>[]]
 
     const columnMap = new Map<string, ColumnInput>()
     const upsertedRelations = new Set<string>()
@@ -261,6 +338,9 @@ export async function syncTableSchemaFromRecords(
     for (const record of records ?? []) {
       for (const [name, value] of Object.entries(record)) {
         if (SYSTEM_COLUMN_NAMES.includes(name)) continue
+        if (!isValidIdentifier(name)) {
+          throw new Error(`Invalid column name: ${name}`)
+        }
         const { dbType, displayType, relation } = inferTypes(value)
         const existing = columnMap.get(name)
         if (!existing) {
@@ -274,14 +354,19 @@ export async function syncTableSchemaFromRecords(
           })
         }
         if (relation && displayType === 'relation') {
-          const relationId = `_relations:⟨${tableName}:${name}:${relation.toTable}⟩`
+          const relationId = `_relations:⟨${tableName}:${name}:${relation.toTable}:id⟩`
           if (!upsertedRelations.has(relationId)) {
-            await upsertRelation(namespace, database, {
-              ...relation,
-              fromTable: tableName,
-              fromColumn: name,
-              type: 'many-to-many',
-            })
+            await upsertRelation(
+              namespace,
+              database,
+              {
+                ...relation,
+                fromTable: tableName,
+                fromColumn: name,
+                type: 'many-to-many',
+              },
+              surreal
+            )
             upsertedRelations.add(relationId)
           }
           const column = columnMap.get(name)
@@ -296,7 +381,7 @@ export async function syncTableSchemaFromRecords(
     }
 
     for (const column of columnMap.values()) {
-      await upsertColumn(namespace, database, column)
+      await upsertColumn(namespace, database, column, surreal)
     }
 
     return { tableName, columnsDiscovered: columnMap.size }

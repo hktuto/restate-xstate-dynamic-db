@@ -67,7 +67,7 @@ describe('schema-registry', () => {
       toColumn: 'id',
       type: 'many-to-many',
     })
-    expect(result.id).toBe('_relations:⟨contacts:companyId:companies⟩')
+    expect(result.id).toBe('_relations:⟨contacts:companyId:companies:id⟩')
     const schema = await getTableSchema(testNs, 'main', 'contacts')
     expect(schema.relations.some((r) => r.toTable === 'companies')).toBe(true)
   })
@@ -105,5 +105,97 @@ describe('schema-registry', () => {
   it('rejects invalid table names', async () => {
     await expect(syncTableSchemaFromRecords(testNs, 'main', 'contacts-table')).rejects.toThrow('Invalid table name')
     await expect(syncTableSchemaFromRecords(testNs, 'main', '123contacts')).rejects.toThrow('Invalid table name')
+  })
+
+  it('upsertTable rejects invalid identifiers', async () => {
+    await expect(upsertTable(testNs, 'main', { name: 'bad-name' })).rejects.toThrow('Invalid table name')
+    await expect(upsertTable(testNs, 'main', { name: '123bad' })).rejects.toThrow('Invalid table name')
+    await expect(upsertTable(testNs, 'main', { name: 'bad.name' })).rejects.toThrow('Invalid table name')
+  })
+
+  it('upsertColumn rejects invalid identifiers', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', { table: 'bad-table', name: 'email', dbType: 'string', displayType: 'email' })
+    ).rejects.toThrow('Invalid table name')
+    await expect(
+      upsertColumn(testNs, 'main', { table: 'contacts', name: 'bad-name', dbType: 'string', displayType: 'email' })
+    ).rejects.toThrow('Invalid column name')
+    await expect(
+      upsertColumn(testNs, 'main', { table: 'contacts', name: '123bad', dbType: 'string', displayType: 'email' })
+    ).rejects.toThrow('Invalid column name')
+  })
+
+  it('upsertRelation rejects invalid identifiers', async () => {
+    await expect(
+      upsertRelation(testNs, 'main', {
+        fromTable: 'bad-table',
+        fromColumn: 'companyId',
+        toTable: 'companies',
+        toColumn: 'id',
+        type: 'many-to-many',
+      })
+    ).rejects.toThrow('Invalid fromTable')
+    await expect(
+      upsertRelation(testNs, 'main', {
+        fromTable: 'contacts',
+        fromColumn: 'bad-col',
+        toTable: 'companies',
+        toColumn: 'id',
+        type: 'many-to-many',
+      })
+    ).rejects.toThrow('Invalid fromColumn')
+    await expect(
+      upsertRelation(testNs, 'main', {
+        fromTable: 'contacts',
+        fromColumn: 'companyId',
+        toTable: 'bad-table',
+        toColumn: 'id',
+        type: 'many-to-many',
+      })
+    ).rejects.toThrow('Invalid toTable')
+    await expect(
+      upsertRelation(testNs, 'main', {
+        fromTable: 'contacts',
+        fromColumn: 'companyId',
+        toTable: 'companies',
+        toColumn: 'bad-col',
+        type: 'many-to-many',
+      })
+    ).rejects.toThrow('Invalid toColumn')
+  })
+
+  it('syncs relation column config with four-part relation IDs', async () => {
+    const surreal = await getSurreal(testNs, 'main')
+    try {
+      await surreal.query(`UPSERT leads:test SET name = 'Lead', accountId = 'accounts:acc1';`)
+    } finally {
+      await closeSurreal(surreal)
+    }
+    await syncTableSchemaFromRecords(testNs, 'main', 'leads')
+    const schema = await getTableSchema(testNs, 'main', 'leads')
+    const accountId = schema.columns.find((c) => c.name === 'accountId')
+    expect(accountId).toBeDefined()
+    expect(accountId?.displayType).toBe('relation')
+    expect(accountId?.config?.relationId).toBe('_relations:⟨leads:accountId:accounts:id⟩')
+  })
+
+  it('upsertColumn cannot overwrite a system column without system: true', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', { table: 'contacts', name: 'id', dbType: 'string', displayType: 'text' })
+    ).rejects.toThrow('system column')
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'id',
+        dbType: 'record',
+        displayType: 'text',
+        system: true,
+      })
+    ).resolves.toBeDefined()
+  })
+
+  it('getTableSchema rejects invalid tableName', async () => {
+    await expect(getTableSchema(testNs, 'main', 'bad-name')).rejects.toThrow('Invalid table name')
+    await expect(getTableSchema(testNs, 'main', '123bad')).rejects.toThrow('Invalid table name')
   })
 })
