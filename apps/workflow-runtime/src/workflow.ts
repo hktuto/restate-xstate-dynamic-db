@@ -10,15 +10,6 @@ import type { Condition, PersistedState, RuntimeContext } from './types.js'
 export const SCHEMA_VERSION = 1
 const NITRO_API_URL = process.env.NITRO_API_URL || 'http://localhost:3000'
 
-function toRuntimeContext(req: CreateWorkflowRequest): RuntimeContext {
-  return {
-    record: req.record,
-    tableName: req.tableName,
-    companyId: req.companyId,
-    namespace: req.namespace
-  }
-}
-
 export async function loadState(
   ctx: restate.ObjectContext | restate.ObjectSharedContext
 ): Promise<PersistedState | null> {
@@ -125,11 +116,15 @@ async function maybeCreateUserTask(
 async function runTransition(
   objectCtx: restate.ObjectContext,
   state: PersistedState,
-  event: { type: string; record?: Record<string, unknown> }
+  event: { type: string; record?: Record<string, unknown>; tableName?: string; companyId?: string; namespace?: string }
 ): Promise<{ snapshot: AnyMachineSnapshot }> {
   const context: RuntimeContext = {
     ...state.context,
-    ...(event.record ? { record: event.record } : {})
+    instanceId: objectCtx.key,
+    record: { ...(state.context.record ?? {}), ...(event.record ?? {}) },
+    tableName: (event.tableName ?? state.context.tableName) as string,
+    companyId: (event.companyId ?? state.context.companyId) as string | undefined,
+    namespace: (event.namespace ?? state.context.namespace) as string | undefined
   }
   const { machine, promises } = compileWorkflow(state.config, context, objectCtx)
   const actor = restoreActor(machine, state.snapshot)
@@ -199,7 +194,13 @@ export const workflowObject = restate.object({
         return existing.snapshot
       }
 
-      const context = toRuntimeContext(req)
+      const context: RuntimeContext = {
+        instanceId: objectCtx.key,
+        record: req.record,
+        tableName: req.tableName,
+        companyId: req.companyId,
+        namespace: req.namespace
+      }
       const { machine, promises } = compileWorkflow(req.config, context, objectCtx)
       const actor = createActor(machine)
       let liveSnapshot: AnyMachineSnapshot

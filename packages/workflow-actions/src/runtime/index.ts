@@ -13,6 +13,8 @@ export interface ActionActorInput {
   outputKey?: string
   context: Record<string, unknown>
   event: any
+  instanceId: string
+  stateId: string
 }
 
 export interface ActionActorOutput {
@@ -40,6 +42,7 @@ export function createActionActors(
         tableName: (input.context.tableName ?? req.tableName) as string,
         companyId: (input.context.companyId ?? req.companyId) as string | undefined,
         namespace: (input.context.namespace ?? req.namespace) as string | undefined,
+        instanceId: (input.instanceId ?? input.context.instanceId) as string,
         params: input.params
       }
 

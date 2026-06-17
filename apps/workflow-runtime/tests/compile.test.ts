@@ -41,6 +41,7 @@ describe('compileWorkflow with meta actions', () => {
     }
 
     const { machine } = compileWorkflow(definition, {
+      instanceId: 'inst-1',
       record: { id: '1', status: 'active' },
       tableName: 'members',
       namespace: 'ns-1'
@@ -78,6 +79,7 @@ describe('compileWorkflow with meta actions', () => {
     }
 
     const { machine } = compileWorkflow(definition, {
+      instanceId: 'inst-1',
       record: { id: '1', status: 'inactive' },
       tableName: 'members',
       namespace: 'ns-1'
@@ -113,6 +115,7 @@ describe('compileWorkflow with meta actions', () => {
     }
 
     const { machine } = compileWorkflow(definition, {
+      instanceId: 'inst-1',
       record: { id: '1' },
       tableName: 'members',
       namespace: 'ns-1'

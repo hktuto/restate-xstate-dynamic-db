@@ -53,11 +53,13 @@ export function compileWorkflow(
 
       states[stateId].invoke = {
         src: actionId,
-        input: ({ context: machineContext, event }: { context: unknown; event: AnyEventObject }): ActionActorInput => ({
+        input: ({ context: machineContext, event }: any) => ({
           params: stateDef.meta?.params as Record<string, unknown> | undefined,
           outputKey: stateDef.meta?.outputKey as string | undefined,
-          context: machineContext as Record<string, unknown>,
-          event
+          context: machineContext,
+          event,
+          instanceId: (machineContext.instanceId ?? context.instanceId) as string,
+          stateId
         }),
         onDone: isCondition
           ? {
