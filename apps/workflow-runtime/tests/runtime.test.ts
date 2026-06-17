@@ -63,4 +63,74 @@ describe('workflow runtime', () => {
     const client = rs.objectClient(workflowObject, randomUUID())
     await expect(client.send({ event: 'start' })).rejects.toThrow()
   })
+
+  it('branches true on a condition action', async () => {
+    const instanceId = randomUUID()
+    const client = rs.objectClient(workflowObject, instanceId)
+    const config: WorkflowDefinition = {
+      id: 'condition-test',
+      initial: 'check',
+      states: {
+        check: {
+          meta: {
+            action: 'condition',
+            params: {
+              expression: { $eq: ['$context.record.status', 'active'] }
+            }
+          },
+          on: {
+            true: { target: 'active' },
+            false: { target: 'inactive' }
+          }
+        },
+        active: { type: 'final' },
+        inactive: { type: 'final' }
+      }
+    }
+
+    const snapshot = await client.create({
+      config,
+      event: 'start',
+      tableName: 'tests',
+      record: { id: '1', status: 'active' },
+      workflowId: 'condition-test'
+    })
+
+    expect(snapshot.value).toBe('active')
+  })
+
+  it('branches false on a condition action', async () => {
+    const instanceId = randomUUID()
+    const client = rs.objectClient(workflowObject, instanceId)
+    const config: WorkflowDefinition = {
+      id: 'condition-test',
+      initial: 'check',
+      states: {
+        check: {
+          meta: {
+            action: 'condition',
+            params: {
+              expression: { $eq: ['$context.record.status', 'active'] }
+            }
+          },
+          on: {
+            true: { target: 'active' },
+            false: { target: 'inactive' }
+          }
+        },
+        active: { type: 'final' },
+        inactive: { type: 'final' }
+      }
+    }
+
+    const snapshot = await client.create({
+      config,
+      event: 'start',
+      tableName: 'tests',
+      record: { id: '2', status: 'inactive' },
+      workflowId: 'condition-test'
+    })
+
+    expect(snapshot.value).toBe('inactive')
+  })
 })
