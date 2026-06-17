@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import type { AnyMachineSnapshot } from 'xstate'
 import type { WorkflowDefinition } from 'shared'
 import { getSurreal, closeSurreal } from 'db/client'
+import { listWorkflowActionsByInstance } from 'db/workflow-actions'
 import { workflowObject } from '../src/workflow.js'
 
 function ctx(snapshot: AnyMachineSnapshot): Record<string, unknown> {
@@ -197,6 +198,53 @@ describe('workflow runtime', () => {
 
       expect(snapshot.value).toBe('done')
       expect(ctx(snapshot).newRecord).toMatchObject({ name: 'Alice', status: 'pending' })
+    } finally {
+      await removeNamespace(ns)
+    }
+  })
+
+  it('records workflow_actions audit rows', async () => {
+    const ns = await createTestNamespace()
+    try {
+      const instanceId = randomUUID()
+      const client = rs.objectClient(workflowObject, instanceId)
+      const config: WorkflowDefinition = {
+        id: 'audit-test',
+        initial: 'create',
+        states: {
+          create: {
+            meta: {
+              action: 'createRecord',
+              params: {
+                table: 'e2e_records',
+                fields: { name: 'Alice', status: 'pending' }
+              },
+              outputKey: 'newRecord'
+            },
+            on: { ok: { target: 'done' }, error: { target: 'failed' } }
+          },
+          done: { type: 'final' },
+          failed: { type: 'final' }
+        }
+      }
+
+      const snapshot = await client.create({
+        config,
+        event: 'start',
+        tableName: 'e2e_records',
+        record: {},
+        namespace: ns,
+        workflowId: 'audit-test'
+      })
+
+      expect(snapshot.value).toBe('done')
+
+      const actions = await listWorkflowActionsByInstance(ns, instanceId)
+      expect(actions.length).toBe(1)
+      expect(actions[0].action).toBe('createRecord')
+      expect(actions[0].status).toBe('completed')
+      expect(actions[0].resultEvent).toBe('ok')
+      expect(actions[0].outputData).toMatchObject({ name: 'Alice', status: 'pending' })
     } finally {
       await removeNamespace(ns)
     }

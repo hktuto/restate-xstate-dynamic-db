@@ -50,17 +50,27 @@ export function createActionActors(
       const runPromise = objectCtx.run(actionId, async () => {
         const auditId = `${input.instanceId}:${input.stateId}`
         const startedAt = new Date().toISOString()
+        const namespace = executorCtx.namespace
 
-        await upsertWorkflowAction(executorCtx.namespace ?? '', auditId, {
-          instanceId: input.instanceId,
-          workflowId: req.config?.id ?? '',
-          stateId: input.stateId,
-          action: actionId,
-          params: input.params,
-          status: 'started',
-          inputContext: input.context,
-          startedAt
-        })
+        const audit = async (data: Parameters<typeof upsertWorkflowAction>[2]) => {
+          if (!namespace) return
+          await upsertWorkflowAction(namespace, auditId, data)
+        }
+
+        try {
+          await audit({
+            instanceId: input.instanceId,
+            workflowId: req.config?.id ?? '',
+            stateId: input.stateId,
+            action: actionId,
+            params: input.params,
+            status: 'started',
+            inputContext: input.context,
+            startedAt
+          })
+        } catch {
+          // Audit failures must not prevent the action from running.
+        }
 
         try {
           const data = await runtimeAction.execute(executorCtx)
@@ -73,38 +83,46 @@ export function createActionActors(
             ...(input.outputKey ? { [input.outputKey]: data } : {})
           }
 
-          await upsertWorkflowAction(executorCtx.namespace ?? '', auditId, {
-            instanceId: input.instanceId,
-            workflowId: req.config?.id ?? '',
-            stateId: input.stateId,
-            action: actionId,
-            params: input.params,
-            status: 'completed',
-            inputContext: input.context,
-            outputContext,
-            outputData: data,
-            resultEvent,
-            startedAt,
-            completedAt: new Date().toISOString()
-          })
+          try {
+            await audit({
+              instanceId: input.instanceId,
+              workflowId: req.config?.id ?? '',
+              stateId: input.stateId,
+              action: actionId,
+              params: input.params,
+              status: 'completed',
+              inputContext: input.context,
+              outputContext,
+              outputData: data,
+              resultEvent,
+              startedAt,
+              completedAt: new Date().toISOString()
+            })
+          } catch {
+            // Audit failures must not change the action result.
+          }
 
           return { data, outputKey: input.outputKey }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
-          await upsertWorkflowAction(executorCtx.namespace ?? '', auditId, {
-            instanceId: input.instanceId,
-            workflowId: req.config?.id ?? '',
-            stateId: input.stateId,
-            action: actionId,
-            params: input.params,
-            status: 'failed',
-            inputContext: input.context,
-            outputContext: input.context,
-            resultEvent: actionId === 'condition' ? 'false' : 'error',
-            errorMessage: message,
-            startedAt,
-            completedAt: new Date().toISOString()
-          })
+          try {
+            await audit({
+              instanceId: input.instanceId,
+              workflowId: req.config?.id ?? '',
+              stateId: input.stateId,
+              action: actionId,
+              params: input.params,
+              status: 'failed',
+              inputContext: input.context,
+              outputContext: input.context,
+              resultEvent: actionId === 'condition' ? 'false' : 'error',
+              errorMessage: message,
+              startedAt,
+              completedAt: new Date().toISOString()
+            })
+          } catch {
+            // Audit failures must not mask the original action error.
+          }
           throw error
         }
       })
