@@ -250,6 +250,150 @@ describe('workflow runtime', () => {
     }
   })
 
+  it('records condition audit rows with true and false result events', async () => {
+    const ns = await createTestNamespace()
+    try {
+      const instanceIdTrue = randomUUID()
+      const clientTrue = rs.objectClient(workflowObject, instanceIdTrue)
+      const trueConfig: WorkflowDefinition = {
+        id: 'condition-audit-true',
+        initial: 'check',
+        states: {
+          check: {
+            meta: {
+              action: 'condition',
+              params: { expression: { $eq: ['$context.record.status', 'active'] } }
+            },
+            on: { true: { target: 'done' }, false: { target: 'done' } }
+          },
+          done: { type: 'final' }
+        }
+      }
+
+      const trueSnapshot = await clientTrue.create({
+        config: trueConfig,
+        event: 'start',
+        tableName: 'tests',
+        record: { id: '1', status: 'active' },
+        namespace: ns,
+        workflowId: 'condition-audit-true'
+      })
+
+      expect(trueSnapshot.value).toBe('done')
+
+      const trueActions = await listWorkflowActionsByInstance(ns, instanceIdTrue)
+      expect(trueActions.length).toBe(1)
+      expect(trueActions[0].action).toBe('condition')
+      expect(trueActions[0].status).toBe('completed')
+      expect(trueActions[0].resultEvent).toBe('true')
+
+      const instanceIdFalse = randomUUID()
+      const clientFalse = rs.objectClient(workflowObject, instanceIdFalse)
+      const falseConfig: WorkflowDefinition = {
+        id: 'condition-audit-false',
+        initial: 'check',
+        states: {
+          check: {
+            meta: {
+              action: 'condition',
+              params: { expression: { $eq: ['$context.record.status', 'active'] } }
+            },
+            on: { true: { target: 'done' }, false: { target: 'done' } }
+          },
+          done: { type: 'final' }
+        }
+      }
+
+      const falseSnapshot = await clientFalse.create({
+        config: falseConfig,
+        event: 'start',
+        tableName: 'tests',
+        record: { id: '2', status: 'inactive' },
+        namespace: ns,
+        workflowId: 'condition-audit-false'
+      })
+
+      expect(falseSnapshot.value).toBe('done')
+
+      const falseActions = await listWorkflowActionsByInstance(ns, instanceIdFalse)
+      expect(falseActions.length).toBe(1)
+      expect(falseActions[0].resultEvent).toBe('false')
+    } finally {
+      await removeNamespace(ns)
+    }
+  })
+
+  it('records audit rows for a multi-state workflow', async () => {
+    const ns = await createTestNamespace()
+    try {
+      const root = await getSurreal(ns, 'main')
+      await root.query('CREATE e2e_records CONTENT $data', { data: { name: 'Bob', status: 'active' } })
+      await closeSurreal(root)
+
+      const instanceId = randomUUID()
+      const client = rs.objectClient(workflowObject, instanceId)
+      const config: WorkflowDefinition = {
+        id: 'multi-audit-test',
+        initial: 'fetch',
+        states: {
+          fetch: {
+            meta: {
+              action: 'getRecord',
+              params: { table: 'e2e_records', filter: { name: { $eq: 'Bob' } }, result: { type: 'first' } },
+              outputKey: 'record'
+            },
+            on: { ok: { target: 'update' }, error: { target: 'failed' } }
+          },
+          update: {
+            meta: {
+              action: 'updateRecord',
+              params: { table: 'e2e_records', fields: { status: 'processed' } },
+              outputKey: 'updatedRecord'
+            },
+            on: { ok: { target: 'done' }, error: { target: 'failed' } }
+          },
+          done: { type: 'final' },
+          failed: { type: 'final' }
+        }
+      }
+
+      const snapshot = await client.create({
+        config,
+        event: 'start',
+        tableName: 'e2e_records',
+        record: {},
+        namespace: ns,
+        workflowId: 'multi-audit-test'
+      })
+
+      expect(snapshot.value).toBe('done')
+
+      const actions = await listWorkflowActionsByInstance(ns, instanceId)
+      expect(actions.length).toBe(2)
+
+      const fetchAction = actions.find((a) => a.stateId === 'fetch')
+      const updateAction = actions.find((a) => a.stateId === 'update')
+
+      expect(fetchAction).toBeDefined()
+      expect(fetchAction!.action).toBe('getRecord')
+      expect(fetchAction!.status).toBe('completed')
+      expect(fetchAction!.resultEvent).toBe('ok')
+      expect(fetchAction!.outputData).toMatchObject({ name: 'Bob', status: 'active' })
+
+      expect(updateAction).toBeDefined()
+      expect(updateAction!.action).toBe('updateRecord')
+      expect(updateAction!.status).toBe('completed')
+      expect(updateAction!.resultEvent).toBe('ok')
+      expect(updateAction!.inputContext).toMatchObject({ record: { name: 'Bob', status: 'active' } })
+      expect(updateAction!.outputContext).toMatchObject({
+        record: { name: 'Bob', status: 'active' },
+        updatedRecord: { status: 'processed' }
+      })
+    } finally {
+      await removeNamespace(ns)
+    }
+  })
+
   it('queries and updates a record via getRecord and updateRecord', async () => {
     const ns = await createTestNamespace()
     try {
