@@ -10,6 +10,7 @@ import {
   syncTableSchemaFromRecords,
 } from '../src/schema-registry.js'
 import { getSurreal, closeSurreal } from '../src/client.js'
+import { SYSTEM_COLUMNS } from '../src/schema-definitions.js'
 import { uniqueTenantName } from './helpers.js'
 
 describe('schema-registry', () => {
@@ -52,7 +53,8 @@ describe('schema-registry', () => {
     })
     expect(result.id).toBe('_columns:⟨contacts:email⟩')
     const schema = await getTableSchema(testNs, 'main', 'contacts')
-    const email = schema.columns.find((c) => c.name === 'email')
+    expect(schema).not.toBeNull()
+    const email = schema!.columns.find((c) => c.name === 'email')
     expect(email).toBeDefined()
     expect(email?.dbType).toBe('string')
     expect(email?.displayType).toBe('email')
@@ -69,29 +71,31 @@ describe('schema-registry', () => {
     })
     expect(result.id).toBe('_relations:⟨contacts:companyId:companies:id⟩')
     const schema = await getTableSchema(testNs, 'main', 'contacts')
-    expect(schema.relations.some((r) => r.toTable === 'companies')).toBe(true)
+    expect(schema).not.toBeNull()
+    expect(schema!.relations.some((r) => r.toTable === 'companies')).toBe(true)
   })
 
   it('syncs schema from records and infers types', async () => {
     await syncTableSchemaFromRecords(testNs, 'main', 'contacts')
     const schema = await getTableSchema(testNs, 'main', 'contacts')
-    expect(schema.table.name).toBe('contacts')
-    const names = schema.columns.map((c) => c.name).sort()
+    expect(schema).not.toBeNull()
+    expect(schema!.table.name).toBe('contacts')
+    const names = schema!.columns.map((c) => c.name).sort()
     expect(names).toContain('name')
     expect(names).toContain('age')
     expect(names).toContain('active')
     expect(names).toContain('id')
     expect(names).toContain('createdAt')
 
-    const age = schema.columns.find((c) => c.name === 'age')
+    const age = schema!.columns.find((c) => c.name === 'age')
     expect(age?.dbType).toBe('number')
     expect(age?.displayType).toBe('number')
 
-    const active = schema.columns.find((c) => c.name === 'active')
+    const active = schema!.columns.find((c) => c.name === 'active')
     expect(active?.dbType).toBe('boolean')
     expect(active?.displayType).toBe('checkbox')
 
-    const name = schema.columns.find((c) => c.name === 'name')
+    const name = schema!.columns.find((c) => c.name === 'name')
     expect(name?.dbType).toBe('string')
     expect(name?.displayType).toBe('text')
   })
@@ -173,7 +177,8 @@ describe('schema-registry', () => {
     }
     await syncTableSchemaFromRecords(testNs, 'main', 'leads')
     const schema = await getTableSchema(testNs, 'main', 'leads')
-    const accountId = schema.columns.find((c) => c.name === 'accountId')
+    expect(schema).not.toBeNull()
+    const accountId = schema!.columns.find((c) => c.name === 'accountId')
     expect(accountId).toBeDefined()
     expect(accountId?.displayType).toBe('relation')
     expect(accountId?.config?.relationId).toBe('_relations:⟨leads:accountId:accounts:id⟩')
@@ -183,6 +188,16 @@ describe('schema-registry', () => {
     await expect(
       upsertColumn(testNs, 'main', { table: 'contacts', name: 'id', dbType: 'string', displayType: 'text' })
     ).rejects.toThrow('system column')
+    const idColumn = SYSTEM_COLUMNS.find((c) => c.name === 'id')!
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        ...idColumn,
+      })
+    ).resolves.toBeDefined()
+  })
+
+  it('upsertColumn rejects a non-canonical system column definition', async () => {
     await expect(
       upsertColumn(testNs, 'main', {
         table: 'contacts',
@@ -191,7 +206,12 @@ describe('schema-registry', () => {
         displayType: 'text',
         system: true,
       })
-    ).resolves.toBeDefined()
+    ).rejects.toThrow('non-canonical')
+  })
+
+  it('getTableSchema returns null when the table row is missing', async () => {
+    const schema = await getTableSchema(testNs, 'main', 'non_existent_table_xyz')
+    expect(schema).toBeNull()
   })
 
   it('getTableSchema rejects invalid tableName', async () => {

@@ -94,26 +94,25 @@ async function ensureRegistryTables(surreal: Surreal) {
   `)
 }
 
-function releaseConnection(surreal: Surreal, shared: boolean) {
+async function releaseConnection(surreal: Surreal, shared: boolean): Promise<void> {
   if (!shared) {
-    return closeSurreal(surreal)
-  }
-  return Promise.resolve()
-}
-
-export async function listTables(namespace: string, database: string) {
-  const surreal = await getSurreal(namespace, database)
-  try {
-    await ensureRegistryTables(surreal)
-    const [rows] = (await surreal.query('SELECT * FROM _tables ORDER BY name')) as [TableRow[]]
-    return rows ?? []
-  } finally {
     await closeSurreal(surreal)
   }
 }
 
-export async function listUserTables(namespace: string, database: string) {
-  const all = await listTables(namespace, database)
+export async function listTables(namespace: string, database: string, surreal?: Surreal) {
+  const managed = surreal ?? (await getSurreal(namespace, database))
+  try {
+    await ensureRegistryTables(managed)
+    const [rows] = (await managed.query('SELECT * FROM _tables ORDER BY name')) as [TableRow[]]
+    return rows ?? []
+  } finally {
+    await releaseConnection(managed, !!surreal)
+  }
+}
+
+export async function listUserTables(namespace: string, database: string, surreal?: Surreal) {
+  const all = await listTables(namespace, database, surreal)
   return all.filter((t) => !t.name.startsWith('_'))
 }
 
@@ -163,6 +162,23 @@ export async function upsertColumn(
   }
   if (SYSTEM_COLUMN_NAMES.includes(input.name) && input.system !== true) {
     throw new Error(`Cannot upsert system column ${input.name} without system: true`)
+  }
+  if (input.system === true) {
+    const canonical = SYSTEM_COLUMNS.find((c) => c.name === input.name)
+    if (!canonical) {
+      throw new Error(`Unknown system column: ${input.name}`)
+    }
+    if (
+      input.dbType !== canonical.dbType ||
+      input.displayType !== canonical.displayType ||
+      input.optional !== canonical.optional ||
+      input.hidden !== canonical.hidden
+    ) {
+      throw new Error(`Cannot upsert system column ${input.name} with non-canonical definition`)
+    }
+    if (input.config !== undefined && JSON.stringify(input.config) !== JSON.stringify(canonical.config)) {
+      throw new Error(`Cannot upsert system column ${input.name} with non-canonical config`)
+    }
   }
   const managed = surreal ?? (await getSurreal(namespace, database))
   try {
@@ -242,7 +258,7 @@ export async function getTableSchema(
   namespace: string,
   database: string,
   tableName: string
-): Promise<TableSchema> {
+): Promise<TableSchema | null> {
   if (!isValidIdentifier(tableName)) {
     throw new Error(`Invalid table name: ${tableName}`)
   }
@@ -258,6 +274,10 @@ export async function getTableSchema(
       { tableName }
     )) as [TableRow[], ColumnRow[], RelationRow[]]
 
+    if (!table) {
+      return null
+    }
+
     const mergedColumns = new Map<string, ColumnRow>()
     for (const col of SYSTEM_COLUMNS) {
       mergedColumns.set(col.name, { ...col, table: tableName })
@@ -267,7 +287,7 @@ export async function getTableSchema(
     }
 
     return {
-      table: table ?? { id: `_tables:⟨${tableName}⟩`, name: tableName },
+      table,
       columns: Array.from(mergedColumns.values()),
       relations: relations ?? [],
     }
@@ -279,7 +299,7 @@ export async function getTableSchema(
 type InferResult = {
   dbType: ColumnDefinition['dbType']
   displayType: ColumnDefinition['displayType']
-  relation?: RelationInput
+  relation?: Omit<RelationInput, 'fromTable' | 'fromColumn'>
 }
 
 function inferTypes(value: unknown): InferResult {
@@ -298,8 +318,6 @@ function inferTypes(value: unknown): InferResult {
         dbType: 'record',
         displayType: 'relation',
         relation: {
-          fromTable: '',
-          fromColumn: '',
           toTable,
           toColumn: 'id',
           type: 'many-to-many',
