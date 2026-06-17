@@ -133,11 +133,16 @@ async function runTransition(
   }
   const { machine, promises } = compileWorkflow(state.config, context, objectCtx)
   const actor = restoreActor(machine, state.snapshot)
-  actor.send(event as any)
-  await settlePromises(promises)
-  const liveSnapshot = actor.getSnapshot()
-  const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
-  actor.stop()
+  let liveSnapshot: AnyMachineSnapshot
+  let persistedSnapshot: AnyMachineSnapshot
+  try {
+    actor.send(event as any)
+    await settlePromises(promises)
+    liveSnapshot = actor.getSnapshot()
+    persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
+  } finally {
+    actor.stop()
+  }
 
   const nextState = { snapshot: persistedSnapshot, config: state.config, context }
   await maybeCreateUserTask(objectCtx, machine, liveSnapshot, nextState)
@@ -197,14 +202,19 @@ export const workflowObject = restate.object({
       const context = toRuntimeContext(req)
       const { machine, promises } = compileWorkflow(req.config, context, objectCtx)
       const actor = createActor(machine)
-      actor.start()
-      if (req.event) {
-        actor.send({ type: req.event, record: req.record } as any)
+      let liveSnapshot: AnyMachineSnapshot
+      let persistedSnapshot: AnyMachineSnapshot
+      try {
+        actor.start()
+        if (req.event) {
+          actor.send({ type: req.event, record: req.record } as any)
+        }
+        await settlePromises(promises)
+        liveSnapshot = actor.getSnapshot()
+        persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
+      } finally {
+        actor.stop()
       }
-      await settlePromises(promises)
-      const liveSnapshot = actor.getSnapshot()
-      const persistedSnapshot = actor.getPersistedSnapshot() as AnyMachineSnapshot
-      actor.stop()
       const snapshot = snapshotWithContext(persistedSnapshot, context)
 
       const state = { snapshot, config: req.config, context }

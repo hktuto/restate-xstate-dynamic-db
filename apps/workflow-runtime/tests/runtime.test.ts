@@ -2,11 +2,12 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { RestateTestEnvironment } from '@restatedev/restate-sdk-testcontainers'
 import * as clients from '@restatedev/restate-sdk-clients'
 import { randomUUID } from 'node:crypto'
+import type { AnyMachineSnapshot } from 'xstate'
 import type { WorkflowDefinition } from 'shared'
 import { getSurreal, closeSurreal } from 'db/client'
 import { workflowObject } from '../src/workflow.js'
 
-function ctx(snapshot: any): Record<string, unknown> {
+function ctx(snapshot: AnyMachineSnapshot): Record<string, unknown> {
   return snapshot.context as Record<string, unknown>
 }
 
