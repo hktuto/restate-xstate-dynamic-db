@@ -3,6 +3,7 @@ import { createActor } from 'xstate'
 import type { ObjectContext } from '@restatedev/restate-sdk'
 import type { WorkflowDefinition } from 'shared'
 import { compileWorkflow } from '../src/compile.js'
+import { upsertWorkflowAction } from 'db/workflow-actions'
 
 vi.mock('db/workflow-actions', () => ({
   upsertWorkflowAction: vi.fn().mockResolvedValue({}),
@@ -23,6 +24,8 @@ function fakeCtxRejecting(actionId: string): Pick<ObjectContext, 'run'> {
 }
 
 describe('compileWorkflow with meta actions', () => {
+  beforeEach(() => vi.clearAllMocks())
+
   it('runs a condition action and branches true', () => new Promise<void>((done) => {
     const definition: WorkflowDefinition = {
       id: 'test',
@@ -55,6 +58,19 @@ describe('compileWorkflow with meta actions', () => {
     const actor = createActor(machine)
     actor.subscribe((snapshot) => {
       if (snapshot.status === 'done' && (snapshot.value as any) === 'activeBranch') {
+        expect(upsertWorkflowAction).toHaveBeenCalledTimes(2)
+        expect(upsertWorkflowAction).toHaveBeenNthCalledWith(
+          1,
+          'ns-1',
+          'inst-1:check',
+          expect.objectContaining({ status: 'started' })
+        )
+        expect(upsertWorkflowAction).toHaveBeenNthCalledWith(
+          2,
+          'ns-1',
+          'inst-1:check',
+          expect.objectContaining({ status: 'completed', resultEvent: 'true' })
+        )
         done()
       }
     })
@@ -93,6 +109,13 @@ describe('compileWorkflow with meta actions', () => {
     const actor = createActor(machine)
     actor.subscribe((snapshot) => {
       if (snapshot.status === 'done' && (snapshot.value as any) === 'inactiveBranch') {
+        expect(upsertWorkflowAction).toHaveBeenCalledTimes(2)
+        expect(upsertWorkflowAction).toHaveBeenNthCalledWith(
+          2,
+          'ns-1',
+          'inst-1:check',
+          expect.objectContaining({ status: 'completed', resultEvent: 'false' })
+        )
         done()
       }
     })
