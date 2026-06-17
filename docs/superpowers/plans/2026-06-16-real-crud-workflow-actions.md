@@ -208,6 +208,7 @@ Expected: `pnpm -r build` exits `0`.
   - Create a workflow with a `condition` action state.
   - Send an event that triggers the condition.
   - Assert the workflow ends in the correct branch based on `context.record.status`.
+- [x] Add SurrealDB-backed end-to-end tests for `createRecord`, `getRecord` + `updateRecord`, and `deleteRecord`.
 - [x] Run `pnpm --filter workflow-runtime test`.
 - [x] Commit.
 
