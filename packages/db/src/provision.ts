@@ -16,6 +16,7 @@ export async function provisionCompanyNamespace(namespace: string) {
       DEFINE TABLE IF NOT EXISTS triggers SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS workflow_actions SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
       DEFINE INDEX IF NOT EXISTS idx_members_inviteCode ON members FIELDS inviteCode UNIQUE;
     `)

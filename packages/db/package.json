@@ -30,6 +30,10 @@
       "types": "./src/health-checks.ts",
       "default": "./src/health-checks.ts"
     },
+    "./workflow-actions": {
+      "types": "./src/workflow-actions.ts",
+      "default": "./src/workflow-actions.ts"
+    },
     "./normalize": {
       "types": "./src/normalize.ts",
       "default": "./src/normalize.ts"

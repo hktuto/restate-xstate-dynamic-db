@@ -18,6 +18,7 @@ async function seed() {
       DEFINE TABLE IF NOT EXISTS triggers SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS workflow_actions SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS health_checks SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_health_checks_checkedAt ON health_checks FIELDS checkedAt;
       DEFINE INDEX IF NOT EXISTS idx_companies_slug ON companies FIELDS slug UNIQUE;
