@@ -39,7 +39,8 @@
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/seed.ts",
     "seed:workflows": "tsx src/seed-workflows.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "benchmark": "tsx scripts/benchmark.ts"
   },
   "dependencies": {
     "shared": "workspace:*",

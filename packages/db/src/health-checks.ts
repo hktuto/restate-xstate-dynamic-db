@@ -39,16 +39,23 @@ export async function createHealthCheck(input: HealthCheckInput): Promise<Health
 export async function listLatestHealthChecks(): Promise<HealthCheckRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    const [records] = await surreal.query<[HealthCheckRecord[]]>(
-      'SELECT * FROM health_checks ORDER BY checkedAt DESC'
+    const [services] = await surreal.query<[HealthCheckService[]]>(
+      'SELECT VALUE service FROM health_checks GROUP BY service'
     )
-    const seen = new Set<string>()
-    const latest = records.filter((record) => {
-      if (seen.has(record.service)) return false
-      seen.add(record.service)
-      return true
+    if (services.length === 0) return []
+
+    const params: Record<string, HealthCheckService> = {}
+    const statements = services.map((service, index) => {
+      const key = `service${index}`
+      params[key] = service
+      return `SELECT * FROM health_checks WHERE service = $${key} ORDER BY checkedAt DESC LIMIT 1`
     })
-    return normalizeIds(latest)
+
+    const results = await surreal.query<HealthCheckRecord[][]>(statements.join(';'), params)
+    const records = results
+      .map((rows) => rows[0])
+      .sort((a, b) => b.checkedAt.localeCompare(a.checkedAt))
+    return normalizeIds(records)
   } finally {
     await closeSurreal(surreal)
   }

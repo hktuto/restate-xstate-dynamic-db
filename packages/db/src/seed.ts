@@ -20,6 +20,7 @@ async function seed() {
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS health_checks SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_health_checks_checkedAt ON health_checks FIELDS checkedAt;
+      DEFINE INDEX IF NOT EXISTS idx_health_checks_service_checkedAt ON health_checks FIELDS service, checkedAt;
       DEFINE INDEX IF NOT EXISTS idx_companies_slug ON companies FIELDS slug UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_accounts_provider_key ON accounts FIELDS provider, providerKey UNIQUE;
 
