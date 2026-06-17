@@ -3,8 +3,8 @@ title: Workflow Runtime Bun + Docker Compose Implementation Plan
 type: note
 status: in-progress
 area: docs
-created: 2026-06-16
-updated: 2026-06-16
+created: 2026-06-17
+updated: 2026-06-17
 ---
 
 # Workflow Runtime Bun + Docker Compose Implementation Plan

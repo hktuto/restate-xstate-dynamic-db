@@ -1,12 +1,12 @@
 ---
 title: SurrealDB Performance Benchmark Implementation Plan
 type: note
-status: planned
+status: done
 area: db
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 related:
-  - [[DB Package]]
+  - [[db package]]
   - [[Testing]]
   - [[SurrealDB Conventions]]
 ---
@@ -64,6 +64,14 @@ Add a `benchmark` script:
 }
 ```
 
+- [ ] **Step 1b: Create a stub `packages/db/scripts/benchmark.ts`**
+
+Task 3 will replace this with the real entrypoint. The stub prevents `pnpm --filter db benchmark` from failing with `ERR_MODULE_NOT_FOUND` while Task 1 is done but Task 3 is not yet started.
+
+```ts
+console.log('Benchmark entrypoint stub — will be replaced in Task 3')
+```
+
 - [ ] **Step 2: Update `packages/db/tsconfig.json`**
 
 Add `scripts/**/*.ts` to `include` so the benchmark files are type-checked:
@@ -95,22 +103,30 @@ export interface BenchmarkResult {
   errors: number
 }
 
-export interface Scenario<TState> {
+export interface BenchmarkScenario {
   name: string
   group: string
-  setup?: () => Promise<TState>
-  fn: (state: TState) => Promise<void>
-  teardown?: (state: TState) => Promise<void>
+  setup?(): Promise<unknown>
+  fn(state: unknown): Promise<void>
+  teardown?(state: unknown): Promise<void>
 }
 
-export async function runBenchmark<TState>(
-  scenario: Scenario<TState>,
+export interface Scenario<TState> extends BenchmarkScenario {
+  setup?(): Promise<TState>
+  fn(state: TState | undefined): Promise<void>
+  teardown?(state: TState | undefined): Promise<void>
+}
+
+export async function runBenchmark(
+  scenario: BenchmarkScenario,
   concurrency: number,
   durationMs: number,
   warmupMs = 1000,
 ): Promise<BenchmarkResult> {
-  const state = await scenario.setup?.()
+  let state: unknown = undefined
+  let benchmarkError: unknown = undefined
   try {
+    state = await scenario.setup?.()
     await runWorkers(scenario.fn, state, concurrency, warmupMs)
     const { totalOps, errors, latencies } = await runWorkers(
       scenario.fn,
@@ -133,14 +149,29 @@ export async function runBenchmark<TState>(
       },
       errors,
     }
+  } catch (err) {
+    benchmarkError = err
   } finally {
-    await scenario.teardown?.(state)
+    try {
+      await scenario.teardown?.(state)
+    } catch (teardownErr) {
+      if (benchmarkError) {
+        console.error('Teardown failed after benchmark error:', teardownErr)
+      } else {
+        benchmarkError = teardownErr
+      }
+    }
   }
+  if (benchmarkError) {
+    throw benchmarkError
+  }
+  // This should be unreachable; throw to satisfy TypeScript's return-path check
+  throw new Error('Benchmark ended without result')
 }
 
-async function runWorkers<TState>(
-  fn: (state: TState) => Promise<void>,
-  state: TState,
+async function runWorkers(
+  fn: (state: unknown) => Promise<void>,
+  state: unknown,
   concurrency: number,
   durationMs: number,
 ): Promise<{ totalOps: number; errors: number; latencies: number[] }> {
@@ -148,18 +179,21 @@ async function runWorkers<TState>(
   const workers = Array.from({ length: concurrency }, () => worker(fn, state, endTime))
   const outputs = await Promise.all(workers)
   return outputs.reduce(
-    (acc, cur) => ({
-      totalOps: acc.totalOps + cur.ops,
-      errors: acc.errors + cur.errors,
-      latencies: acc.latencies.concat(cur.latencies),
-    }),
+    (acc, cur) => {
+      acc.totalOps += cur.ops
+      acc.errors += cur.errors
+      for (const latency of cur.latencies) {
+        acc.latencies.push(latency)
+      }
+      return acc
+    },
     { totalOps: 0, errors: 0, latencies: [] as number[] },
   )
 }
 
-async function worker<TState>(
-  fn: (state: TState) => Promise<void>,
-  state: TState,
+async function worker(
+  fn: (state: unknown) => Promise<void>,
+  state: unknown,
   endTime: number,
 ): Promise<{ ops: number; errors: number; latencies: number[] }> {
   let ops = 0
@@ -170,10 +204,9 @@ async function worker<TState>(
     try {
       await fn(state)
       ops++
+      latencies.push(performance.now() - start)
     } catch {
       errors++
-    } finally {
-      latencies.push(performance.now() - start)
     }
   }
   return { ops, errors, latencies }
@@ -214,9 +247,11 @@ git commit -m "chore(db): add benchmark script and runner"
 
 ```ts
 import { randomUUID } from 'node:crypto'
+import type { WorkflowDefinition } from 'shared'
 import * as platform from '../../src/platform.js'
 import * as tenant from '../../src/tenant.js'
 import * as health from '../../src/health-checks.js'
+// The benchmark reuses the test helper infrastructure for namespace provisioning.
 import {
   ensurePlatformNamespace,
   resetPlatformTables,
@@ -225,25 +260,43 @@ import {
 } from '../../test/helpers.js'
 import type { Scenario } from './runner.js'
 
-const sampleWorkflow = {
-  name: 'Benchmark',
-  xstateConfig: { id: 'benchmark', initial: 'idle', states: { idle: {} } },
+const sampleWorkflow: WorkflowDefinition = {
+  id: 'benchmark',
+  initial: 'idle',
+  states: { idle: {} },
 }
 
 let slugCounter = 0
 let emailCounter = 0
+let workflowNameCounter = 0
 
-function uniqueSlug() {
+function uniqueSlug(): string {
   slugCounter++
   return `bench-${Date.now()}-${slugCounter}`
 }
 
-function uniqueEmail() {
+function uniqueEmail(): string {
   emailCounter++
   return `bench-${Date.now()}-${emailCounter}@example.com`
 }
 
-async function setupPlatform() {
+function uniqueWorkflowName(): string {
+  workflowNameCounter++
+  return `Benchmark ${Date.now()}-${workflowNameCounter}`
+}
+
+function uniqueTenantNamespace(): string {
+  return `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+}
+
+interface PlatformSetup {
+  company: platform.CompanyRecord
+  workflow: platform.PlatformWorkflowRecord
+  instance: platform.PlatformWorkflowInstanceRecord
+  task: platform.PlatformUserTaskRecord
+}
+
+async function setupPlatform(): Promise<PlatformSetup> {
   await ensurePlatformNamespace()
   await resetPlatformTables()
   const company = await platform.createCompany({
@@ -251,7 +304,10 @@ async function setupPlatform() {
     slug: 'bench-co',
     namespace: 'bench_co',
   })
-  const workflow = await platform.createPlatformWorkflow(sampleWorkflow)
+  const workflow = await platform.createPlatformWorkflow({
+    name: uniqueWorkflowName(),
+    xstateConfig: sampleWorkflow,
+  })
   const instance = await platform.createPlatformWorkflowInstance({
     workflowId: workflow.id,
     status: 'running',
@@ -269,13 +325,23 @@ async function setupPlatform() {
   return { company, workflow, instance, task }
 }
 
-async function setupTenant(namespace: string) {
+interface TenantSetup {
+  member: tenant.MemberRecord
+  workflow: tenant.WorkflowRecord
+  instance: tenant.WorkflowInstanceRecord
+  task: tenant.UserTaskRecord
+}
+
+async function setupTenant(namespace: string): Promise<TenantSetup> {
   await createTenantNamespace(namespace)
   const member = await tenant.createMember(namespace, {
     email: uniqueEmail(),
     role: 'admin',
   })
-  const workflow = await tenant.createWorkflow(namespace, sampleWorkflow)
+  const workflow = await tenant.createWorkflow(namespace, {
+    name: uniqueWorkflowName(),
+    xstateConfig: sampleWorkflow,
+  })
   const instance = await tenant.createWorkflowInstance(namespace, {
     workflowId: workflow.id,
     status: 'running',
@@ -293,12 +359,15 @@ async function setupTenant(namespace: string) {
   return { member, workflow, instance, task }
 }
 
-export const platformScenarios: Scenario<unknown>[] = [
+export const platformScenarios = [
   {
     name: 'createCompany',
     group: 'platform',
     setup: async () => {
       await ensurePlatformNamespace()
+      await resetPlatformTables()
+    },
+    teardown: async () => {
       await resetPlatformTables()
     },
     fn: async () => {
@@ -308,7 +377,7 @@ export const platformScenarios: Scenario<unknown>[] = [
         namespace: uniqueSlug(),
       })
     },
-  },
+  } satisfies Scenario<void>,
   {
     name: 'getCompanyBySlug',
     group: 'platform',
@@ -316,10 +385,14 @@ export const platformScenarios: Scenario<unknown>[] = [
       const state = await setupPlatform()
       return state.company.slug
     },
-    fn: async (slug: unknown) => {
-      await platform.getCompanyBySlug(slug as string)
+    teardown: async () => {
+      await resetPlatformTables()
     },
-  },
+    fn: async (slug) => {
+      if (!slug) throw new Error('getCompanyBySlug scenario state missing')
+      await platform.getCompanyBySlug(slug)
+    },
+  } satisfies Scenario<string>,
   {
     name: 'createPlatformWorkflow',
     group: 'platform',
@@ -327,13 +400,16 @@ export const platformScenarios: Scenario<unknown>[] = [
       await ensurePlatformNamespace()
       await resetPlatformTables()
     },
+    teardown: async () => {
+      await resetPlatformTables()
+    },
     fn: async () => {
       await platform.createPlatformWorkflow({
-        ...sampleWorkflow,
-        name: `Benchmark ${Date.now()}`,
+        name: uniqueWorkflowName(),
+        xstateConfig: sampleWorkflow,
       })
     },
-  },
+  } satisfies Scenario<void>,
   {
     name: 'getPlatformWorkflow',
     group: 'platform',
@@ -341,10 +417,14 @@ export const platformScenarios: Scenario<unknown>[] = [
       const state = await setupPlatform()
       return state.workflow.id
     },
-    fn: async (id: unknown) => {
-      await platform.getPlatformWorkflow(id as string)
+    teardown: async () => {
+      await resetPlatformTables()
     },
-  },
+    fn: async (id) => {
+      if (!id) throw new Error('getPlatformWorkflow scenario state missing')
+      await platform.getPlatformWorkflow(id)
+    },
+  } satisfies Scenario<string>,
   {
     name: 'createPlatformWorkflowInstance',
     group: 'platform',
@@ -352,16 +432,20 @@ export const platformScenarios: Scenario<unknown>[] = [
       const state = await setupPlatform()
       return state.workflow.id
     },
-    fn: async (workflowId: unknown) => {
+    teardown: async () => {
+      await resetPlatformTables()
+    },
+    fn: async (workflowId) => {
+      if (!workflowId) throw new Error('createPlatformWorkflowInstance scenario state missing')
       await platform.createPlatformWorkflowInstance({
-        workflowId: workflowId as string,
+        workflowId,
         status: 'running',
         tableName: 'orders',
         recordId: `orders:${randomUUID()}`,
         namespace: 'bench_co',
       })
     },
-  },
+  } satisfies Scenario<string>,
   {
     name: 'getPlatformWorkflowInstance',
     group: 'platform',
@@ -369,10 +453,14 @@ export const platformScenarios: Scenario<unknown>[] = [
       const state = await setupPlatform()
       return state.instance.id
     },
-    fn: async (id: unknown) => {
-      await platform.getPlatformWorkflowInstance(id as string)
+    teardown: async () => {
+      await resetPlatformTables()
     },
-  },
+    fn: async (id) => {
+      if (!id) throw new Error('getPlatformWorkflowInstance scenario state missing')
+      await platform.getPlatformWorkflowInstance(id)
+    },
+  } satisfies Scenario<string>,
   {
     name: 'createPlatformUserTask',
     group: 'platform',
@@ -380,8 +468,12 @@ export const platformScenarios: Scenario<unknown>[] = [
       const state = await setupPlatform()
       return state
     },
-    fn: async (state: unknown) => {
-      const { workflow, instance } = state as Awaited<ReturnType<typeof setupPlatform>>
+    teardown: async () => {
+      await resetPlatformTables()
+    },
+    fn: async (state) => {
+      if (!state) throw new Error('createPlatformUserTask scenario state missing')
+      const { workflow, instance } = state
       await platform.createPlatformUserTask({
         instanceId: instance.id,
         type: 'approval',
@@ -390,7 +482,7 @@ export const platformScenarios: Scenario<unknown>[] = [
         workflowId: workflow.id,
       })
     },
-  },
+  } satisfies Scenario<PlatformSetup>,
   {
     name: 'getPlatformUserTaskById',
     group: 'platform',
@@ -398,15 +490,22 @@ export const platformScenarios: Scenario<unknown>[] = [
       const state = await setupPlatform()
       return state.task.id
     },
-    fn: async (id: unknown) => {
-      await platform.getPlatformUserTaskById(id as string)
+    teardown: async () => {
+      await resetPlatformTables()
     },
-  },
+    fn: async (id) => {
+      if (!id) throw new Error('getPlatformUserTaskById scenario state missing')
+      await platform.getPlatformUserTaskById(id)
+    },
+  } satisfies Scenario<string>,
   {
     name: 'createHealthCheck',
     group: 'platform',
     setup: async () => {
       await ensurePlatformNamespace()
+      await resetPlatformTables()
+    },
+    teardown: async () => {
       await resetPlatformTables()
     },
     fn: async () => {
@@ -417,7 +516,7 @@ export const platformScenarios: Scenario<unknown>[] = [
         checkedAt: new Date().toISOString(),
       })
     },
-  },
+  } satisfies Scenario<void>,
   {
     name: 'listLatestHealthChecks',
     group: 'platform',
@@ -429,98 +528,142 @@ export const platformScenarios: Scenario<unknown>[] = [
           service: i % 2 === 0 ? 'api' : 'worker',
           status: 'healthy',
           responseTimeMs: i,
-          checkedAt: new Date().toISOString(),
+          checkedAt: new Date(Date.now() - i * 1000).toISOString(),
         })
       }
+    },
+    teardown: async () => {
+      await resetPlatformTables()
     },
     fn: async () => {
       await health.listLatestHealthChecks()
     },
-  },
+  } satisfies Scenario<void>,
 ]
 
-export const tenantScenarios: Scenario<unknown>[] = [
+interface TenantMemberState {
+  namespace: string
+  id: string
+}
+
+interface TenantWorkflowState {
+  namespace: string
+  id: string
+}
+
+interface TenantWorkflowInstanceCreateState {
+  namespace: string
+  workflowId: string
+}
+
+interface TenantWorkflowInstanceGetState {
+  namespace: string
+  id: string
+}
+
+interface TenantUserTaskCreateState {
+  namespace: string
+  workflowId: string
+  instanceId: string
+}
+
+interface TenantUserTaskGetState {
+  namespace: string
+  id: string
+}
+
+export const tenantScenarios = [
   {
     name: 'createMember',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       await createTenantNamespace(namespace)
       return namespace
     },
-    teardown: async (namespace: unknown) => {
-      await removeTenantNamespace(namespace as string)
+    teardown: async (namespace) => {
+      if (!namespace) return
+      await removeTenantNamespace(namespace)
     },
-    fn: async (namespace: unknown) => {
-      await tenant.createMember(namespace as string, {
+    fn: async (namespace) => {
+      if (!namespace) throw new Error('createMember scenario state missing')
+      await tenant.createMember(namespace, {
         email: uniqueEmail(),
         role: 'admin',
       })
     },
-  },
+  } satisfies Scenario<string>,
   {
     name: 'getMemberById',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
       return { namespace, id: state.member.id }
     },
-    teardown: async (state: unknown) => {
-      await removeTenantNamespace((state as { namespace: string }).namespace)
+    teardown: async (state) => {
+      if (!state) return
+      await removeTenantNamespace(state.namespace)
     },
-    fn: async (state: unknown) => {
-      const { namespace, id } = state as { namespace: string; id: string }
+    fn: async (state) => {
+      if (!state) throw new Error('getMemberById scenario state missing')
+      const { namespace, id } = state
       await tenant.getMemberById(namespace, id)
     },
-  },
+  } satisfies Scenario<TenantMemberState>,
   {
     name: 'createWorkflow',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       await createTenantNamespace(namespace)
       return namespace
     },
-    teardown: async (namespace: unknown) => {
-      await removeTenantNamespace(namespace as string)
+    teardown: async (namespace) => {
+      if (!namespace) return
+      await removeTenantNamespace(namespace)
     },
-    fn: async (namespace: unknown) => {
-      await tenant.createWorkflow(namespace as string, {
-        ...sampleWorkflow,
-        name: `Benchmark ${Date.now()}`,
+    fn: async (namespace) => {
+      if (!namespace) throw new Error('createWorkflow scenario state missing')
+      await tenant.createWorkflow(namespace, {
+        name: uniqueWorkflowName(),
+        xstateConfig: sampleWorkflow,
       })
     },
-  },
+  } satisfies Scenario<string>,
   {
     name: 'getWorkflow',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
       return { namespace, id: state.workflow.id }
     },
-    teardown: async (state: unknown) => {
-      await removeTenantNamespace((state as { namespace: string }).namespace)
+    teardown: async (state) => {
+      if (!state) return
+      await removeTenantNamespace(state.namespace)
     },
-    fn: async (state: unknown) => {
-      const { namespace, id } = state as { namespace: string; id: string }
+    fn: async (state) => {
+      if (!state) throw new Error('getWorkflow scenario state missing')
+      const { namespace, id } = state
       await tenant.getWorkflow(namespace, id)
     },
-  },
+  } satisfies Scenario<TenantWorkflowState>,
   {
     name: 'createWorkflowInstance',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
       return { namespace, workflowId: state.workflow.id }
     },
-    teardown: async (state: unknown) => {
-      await removeTenantNamespace((state as { namespace: string }).namespace)
+    teardown: async (state) => {
+      if (!state) return
+      await removeTenantNamespace(state.namespace)
     },
-    fn: async (state: unknown) => {
-      const { namespace, workflowId } = state as { namespace: string; workflowId: string }
+    fn: async (state) => {
+      if (!state) throw new Error('createWorkflowInstance scenario state missing')
+      const { namespace, workflowId } = state
       await tenant.createWorkflowInstance(namespace, {
         workflowId,
         status: 'running',
@@ -529,40 +672,40 @@ export const tenantScenarios: Scenario<unknown>[] = [
         namespace,
       })
     },
-  },
+  } satisfies Scenario<TenantWorkflowInstanceCreateState>,
   {
     name: 'getWorkflowInstance',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
       return { namespace, id: state.instance.id }
     },
-    teardown: async (state: unknown) => {
-      await removeTenantNamespace((state as { namespace: string }).namespace)
+    teardown: async (state) => {
+      if (!state) return
+      await removeTenantNamespace(state.namespace)
     },
-    fn: async (state: unknown) => {
-      const { namespace, id } = state as { namespace: string; id: string }
+    fn: async (state) => {
+      if (!state) throw new Error('getWorkflowInstance scenario state missing')
+      const { namespace, id } = state
       await tenant.getWorkflowInstance(namespace, id)
     },
-  },
+  } satisfies Scenario<TenantWorkflowInstanceGetState>,
   {
     name: 'createUserTask',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
       return { namespace, workflowId: state.workflow.id, instanceId: state.instance.id }
     },
-    teardown: async (state: unknown) => {
-      await removeTenantNamespace((state as { namespace: string }).namespace)
+    teardown: async (state) => {
+      if (!state) return
+      await removeTenantNamespace(state.namespace)
     },
-    fn: async (state: unknown) => {
-      const { namespace, workflowId, instanceId } = state as {
-        namespace: string
-        workflowId: string
-        instanceId: string
-      }
+    fn: async (state) => {
+      if (!state) throw new Error('createUserTask scenario state missing')
+      const { namespace, workflowId, instanceId } = state
       await tenant.createUserTask(namespace, {
         instanceId,
         type: 'approval',
@@ -571,23 +714,25 @@ export const tenantScenarios: Scenario<unknown>[] = [
         workflowId,
       })
     },
-  },
+  } satisfies Scenario<TenantUserTaskCreateState>,
   {
     name: 'getUserTaskById',
     group: 'tenant',
     setup: async () => {
-      const namespace = `bench_tenant_${randomUUID().replaceAll('-', '_')}`
+      const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
       return { namespace, id: state.task.id }
     },
-    teardown: async (state: unknown) => {
-      await removeTenantNamespace((state as { namespace: string }).namespace)
+    teardown: async (state) => {
+      if (!state) return
+      await removeTenantNamespace(state.namespace)
     },
-    fn: async (state: unknown) => {
-      const { namespace, id } = state as { namespace: string; id: string }
+    fn: async (state) => {
+      if (!state) throw new Error('getUserTaskById scenario state missing')
+      const { namespace, id } = state
       await tenant.getUserTaskById(namespace, id)
     },
-  },
+  } satisfies Scenario<TenantUserTaskGetState>,
 ]
 ```
 
@@ -619,7 +764,7 @@ git commit -m "feat(db): add benchmark scenarios"
 - [ ] **Step 1: Create `packages/db/scripts/benchmark/report.ts`**
 
 ```ts
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { BenchmarkResult } from './runner.js'
@@ -632,15 +777,21 @@ interface ReportRow extends BenchmarkResult {
 const __filename = fileURLToPath(import.meta.url)
 const root = resolve(__filename, '..', '..', '..', '..')
 
+function writeAtomic(filePath: string, content: string) {
+  const tmp = `${filePath}.tmp`
+  writeFileSync(tmp, content)
+  renameSync(tmp, filePath)
+}
+
 export function writeReport(rows: ReportRow[], durationSeconds: number, concurrencyLevels: number[]) {
   const md = generateMarkdown(rows, durationSeconds, concurrencyLevels)
   const mdPath = resolve(root, 'docs', '60-Development', 'SurrealDB Performance Benchmark.md')
-  writeFileSync(mdPath, md)
+  writeAtomic(mdPath, md)
 
   const jsonDir = resolve(root, 'packages', 'db', 'benchmark-results')
   mkdirSync(jsonDir, { recursive: true })
   const jsonPath = resolve(jsonDir, 'latest.json')
-  writeFileSync(
+  writeAtomic(
     jsonPath,
     JSON.stringify(
       {
@@ -826,7 +977,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 related:
   - [[DB Package]]
   - [[Testing]]

@@ -10,6 +10,8 @@ related:
   - [[Data Model]]
   - [[Multi-tenancy]]
   - [[Testing]]
+  - [[Benchmarking]]
+  - [[SurrealDB Performance Benchmark]]
 ---
 
 # db package
@@ -39,6 +41,10 @@ pnpm --filter db typecheck
 ## Testing
 
 See [[Testing]] for how to run the DB test suite.
+
+## Benchmarking
+
+See [[Benchmarking]] for how to run the SurrealDB performance benchmark.
 
 ## Key helpers
 
