@@ -166,6 +166,7 @@ async function main() {
         status: 'running',
         tableName: 'orders',
         recordId: 'orders:1',
+        namespace: 'platform'
       }),
   )
   if (pInstance) {
@@ -251,6 +252,7 @@ async function main() {
         status: 'running',
         tableName: 'orders',
         recordId: 'orders:1',
+        namespace: ns
       }),
   )
   if (tInstance) {
