@@ -2,42 +2,42 @@
 
 /** Supported SurrealDB column data types. */
 export interface ColumnDefinition {
-  name: string;
-  label?: string;
-  dbType: 'string' | 'number' | 'boolean' | 'datetime' | 'object' | 'array' | 'record';
-  displayType: 'text' | 'url' | 'email' | 'user' | 'select' | 'checkbox' | 'date' | 'number' | 'relation' | 'formula' | 'richText';
-  config?: Record<string, unknown>;
-  system?: boolean;
-  unique?: boolean;
-  uniqueScope?: string;
-  optional?: boolean;
-  defaultValue?: unknown;
-  hidden?: boolean;
-  order?: number;
+  name: string
+  label?: string
+  dbType: 'string' | 'number' | 'boolean' | 'datetime' | 'object' | 'array' | 'record'
+  displayType: 'text' | 'url' | 'email' | 'user' | 'select' | 'checkbox' | 'date' | 'number' | 'relation' | 'formula' | 'richText'
+  config?: Record<string, unknown>
+  system?: boolean
+  unique?: boolean
+  uniqueScope?: string
+  optional?: boolean
+  defaultValue?: unknown
+  hidden?: boolean
+  order?: number
 }
 
 /** Defines a directed relation between a column in one table and a column in another table. */
 export interface RelationDefinition {
-  fromTable: string;
-  fromColumn: string;
-  toTable: string;
-  toColumn: string;
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many';
-  linkTable?: string;
+  fromTable: string
+  fromColumn: string
+  toTable: string
+  toColumn: string
+  type: 'one-to-one' | 'one-to-many' | 'many-to-many'
+  linkTable?: string
 }
 
 /** Complete schema for a single table, including columns and optional relations. */
 export interface TableSchemaDefinition {
-  name: string;
-  label?: string;
-  description?: string;
-  hidden?: boolean;
-  columns: ColumnDefinition[];
-  relations?: RelationDefinition[];
+  name: string
+  label?: string
+  description?: string
+  hidden?: boolean
+  columns: ColumnDefinition[]
+  relations?: RelationDefinition[]
 }
 
 /** Build a list of select options from raw string values. */
-const buildOptions = (values: string[]) => values.map((v) => ({ label: v, value: v }));
+const buildOptions = (values: string[]) => values.map((v) => ({ label: v, value: v }))
 
 /** Declare a relation from a column in the current table to another table. */
 const relation = (
@@ -49,7 +49,7 @@ const relation = (
   toTable,
   toColumn: 'id',
   type,
-});
+})
 
 /** Build a table schema, injecting the table name into each declared relation. */
 const table = (
@@ -62,7 +62,7 @@ const table = (
   label,
   columns,
   relations: relations?.map((r) => ({ ...r, fromTable: name })),
-});
+})
 
 /** Build a column definition. Name, dbType, and displayType cannot be overridden via `extra`. */
 const column = (
@@ -70,7 +70,7 @@ const column = (
   dbType: ColumnDefinition['dbType'],
   displayType: ColumnDefinition['displayType'],
   extra: Omit<Partial<ColumnDefinition>, 'name' | 'dbType' | 'displayType'> = {}
-): ColumnDefinition => ({ name, dbType, displayType, optional: true, ...extra });
+): ColumnDefinition => ({ name, dbType, displayType, optional: true, ...extra })
 
 /** System columns added automatically to every table. */
 export const SYSTEM_COLUMNS: ColumnDefinition[] = [
@@ -81,7 +81,7 @@ export const SYSTEM_COLUMNS: ColumnDefinition[] = [
   { name: 'updatedBy', dbType: 'record', displayType: 'relation', system: true, optional: true, hidden: true },
   { name: 'deletedAt', dbType: 'datetime', displayType: 'date', system: true, optional: true, hidden: true },
   { name: 'deletedBy', dbType: 'record', displayType: 'relation', system: true, optional: true, hidden: true },
-];
+]
 
 /** Platform-level table schemas, available across all tenants. */
 export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
@@ -157,7 +157,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('message', 'string', 'text'),
     column('details', 'object', 'text'),
   ]),
-];
+]
 
 /** Tenant-level table schemas, provisioned inside each company namespace. */
 export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
@@ -212,4 +212,4 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('startedAt', 'datetime', 'date'),
     column('completedAt', 'datetime', 'date'),
   ], [relation('instanceId', 'workflow_instances'), relation('workflowId', 'workflows')]),
-];
+]
