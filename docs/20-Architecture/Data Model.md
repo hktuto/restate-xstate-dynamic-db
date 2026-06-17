@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-17
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
@@ -21,6 +21,7 @@ related:
 | `companies` | Tenant companies with slug and namespace. |
 | `workflows` | Workflow templates available to all tenants. |
 | `workflow_instances` | Running and historical platform workflow instances. |
+| `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`. |
 | `user_tasks` | Manual tasks created by platform workflow instances. |
 | `health_checks` | Service health check records. |
 
@@ -30,6 +31,7 @@ related:
 |--------|---------|
 | `workflows` | Company-specific workflow definitions. |
 | `workflow_instances` | Running and historical workflow instances. |
+| `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`. |
 | `user_tasks` | Manual tasks created by workflow instances. |
 | `triggers` | Trigger configurations. |
 | `members` | Company membership, role, invite status. |

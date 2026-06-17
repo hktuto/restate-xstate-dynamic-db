@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-17
 package: db
 related:
   - [[Data Model]]
@@ -73,6 +73,10 @@ See [[Testing]] for how to run the DB test suite.
 - `findActiveWorkflowInstance(namespace, workflowId, tableName, recordId)`
 - `createWorkflowInstance(namespace, ...)` / `createPlatformWorkflowInstance(...)`
 - `updateWorkflowInstanceStatus(namespace, id, status)`
+
+### Workflow actions
+
+- `db/workflow-actions` — helpers for the `workflow_actions` audit table (`upsertWorkflowAction`, `listWorkflowActionsByInstance`).
 
 ### User tasks
 

@@ -4,7 +4,7 @@ type: feature
 status: planned
 area: workflow
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-17
 app:
   - runtime
 related:
@@ -42,6 +42,17 @@ The Restate Virtual Object `workflow` exposes:
 - `unsubscribe` — remove an awakeable subscription.
 - `waitFor` (shared) — block until a condition is met or a timeout occurs.
 - `snapshot` — return the persisted actor snapshot.
+
+## Action audit
+
+Each action state writes a `workflow_actions` row when entered and updates it when the action completes or fails. The row captures:
+
+- `instanceId`, `stateId`, `action`
+- `inputContext` on entry
+- `outputContext`, `outputData`, and `resultEvent` on exit
+- `errorMessage` on failure
+
+This gives the UI the current action state and a per-instance history.
 
 ## Instance lifecycle statuses
 

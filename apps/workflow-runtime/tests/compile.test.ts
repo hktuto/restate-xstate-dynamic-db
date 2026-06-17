@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createActor } from 'xstate'
 import type { ObjectContext } from '@restatedev/restate-sdk'
 import type { WorkflowDefinition } from 'shared'
