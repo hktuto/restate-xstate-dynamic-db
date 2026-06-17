@@ -4,6 +4,7 @@ import type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest
 export type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest }
 
 export interface RuntimeContext {
+  instanceId: string
   record: Record<string, unknown>
   tableName: string
   companyId?: string

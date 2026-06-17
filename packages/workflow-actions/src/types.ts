@@ -9,6 +9,7 @@ export interface ActionExecutorContext {
   tableName: string
   companyId?: string
   namespace?: string
+  instanceId: string
   params?: Record<string, unknown>
 }
 
