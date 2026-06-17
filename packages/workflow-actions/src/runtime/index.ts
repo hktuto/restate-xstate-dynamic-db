@@ -3,6 +3,7 @@ import { fromPromise } from 'xstate'
 import type { PromiseActorLogic } from 'xstate'
 import type { CreateWorkflowRequest } from 'shared'
 import type { ActionExecutorContext } from '../types.js'
+import { upsertWorkflowAction } from 'db/workflow-actions'
 import { runtimeActions } from './actions.js'
 import { runtimeGuards } from './guards.js'
 
@@ -28,7 +29,7 @@ export interface ActionActors {
 
 export function createActionActors(
   objectCtx: Pick<ObjectContext, 'run'>,
-  req: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace'>,
+  req: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace' | 'config'>,
   promises: Promise<unknown>[] = []
 ): ActionActors {
   const actors: Record<string, PromiseActorLogic<ActionActorOutput, ActionActorInput>> = {}
@@ -46,12 +47,70 @@ export function createActionActors(
         params: input.params
       }
 
-      const runPromise = objectCtx.run(actionId, async () => runtimeAction.execute(executorCtx))
+      const runPromise = objectCtx.run(actionId, async () => {
+        const auditId = `${input.instanceId}:${input.stateId}`
+        const startedAt = new Date().toISOString()
+
+        await upsertWorkflowAction(executorCtx.namespace ?? '', auditId, {
+          instanceId: input.instanceId,
+          workflowId: req.config?.id ?? '',
+          stateId: input.stateId,
+          action: actionId,
+          params: input.params,
+          status: 'started',
+          inputContext: input.context,
+          startedAt
+        })
+
+        try {
+          const data = await runtimeAction.execute(executorCtx)
+          const isCondition = actionId === 'condition'
+          const resultEvent = isCondition
+            ? (data === true ? 'true' : 'false')
+            : 'ok'
+          const outputContext: Record<string, unknown> = {
+            ...input.context,
+            ...(input.outputKey ? { [input.outputKey]: data } : {})
+          }
+
+          await upsertWorkflowAction(executorCtx.namespace ?? '', auditId, {
+            instanceId: input.instanceId,
+            workflowId: req.config?.id ?? '',
+            stateId: input.stateId,
+            action: actionId,
+            params: input.params,
+            status: 'completed',
+            inputContext: input.context,
+            outputContext,
+            outputData: data,
+            resultEvent,
+            startedAt,
+            completedAt: new Date().toISOString()
+          })
+
+          return { data, outputKey: input.outputKey }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          await upsertWorkflowAction(executorCtx.namespace ?? '', auditId, {
+            instanceId: input.instanceId,
+            workflowId: req.config?.id ?? '',
+            stateId: input.stateId,
+            action: actionId,
+            params: input.params,
+            status: 'failed',
+            inputContext: input.context,
+            outputContext: input.context,
+            resultEvent: actionId === 'condition' ? 'false' : 'error',
+            errorMessage: message,
+            startedAt,
+            completedAt: new Date().toISOString()
+          })
+          throw error
+        }
+      })
+
       promises.push(runPromise.catch(() => {}))
-
-      const result = await runPromise
-
-      return { data: result, outputKey: input.outputKey }
+      return runPromise
     })
   }
 
