@@ -99,9 +99,10 @@ onMounted(() => {
   <div class="flex flex-col h-full min-h-[600px] border rounded bg-white">
     <WorkflowToolbar
       v-model:tool="editor.tool.value"
-      v-model:name="name"
+      :name="name"
       :readonly="readonly"
       :can-save="canSave"
+      @update:name="emit('update:name', $event)"
       @fit-view="fitView"
       @save="onSave"
     />
