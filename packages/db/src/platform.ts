@@ -93,52 +93,6 @@ export async function deletePlatformWorkflowDesign(namespace: string, id: string
   }
 }
 
-export interface PlatformTriggerRecord {
-  id: string
-  tableName: string
-  event: string
-  workflowId: string
-  [key: string]: unknown
-}
-
-export interface PlatformTriggerInput {
-  tableName: string
-  event: string
-  workflowId: string
-}
-
-export async function listPlatformTriggers(): Promise<PlatformTriggerRecord[]> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [triggers] = await surreal.query<[PlatformTriggerRecord[]]>('SELECT * FROM triggers')
-    return normalizeIds(triggers)
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export async function createPlatformTrigger(input: PlatformTriggerInput): Promise<PlatformTriggerRecord> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [created] = await surreal.query<[PlatformTriggerRecord[]]>(
-      'CREATE triggers CONTENT $data',
-      { data: input }
-    )
-    return normalizeId(created[0])!
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export async function deletePlatformTrigger(id: string): Promise<void> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    await surreal.query('DELETE type::record($id)', { id })
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
 export interface PlatformWorkflowInstanceRecord {
   id: string
   designId: string
