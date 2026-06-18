@@ -35,7 +35,7 @@ This note extends the workflow system so a workflow can be started by more than 
 - Implement cron scheduling or webhook ingress in this iteration.
 - Implement permission rules for user triggers (any logged-in tenant user may trigger for now).
 - Build a visual start-rule editor inside the workflow canvas; start rules are configured on the design page.
-- Change the runtime XState contract (`CreateWorkflowRequest` still receives a `record`).
+
 
 ## Context
 
@@ -50,12 +50,9 @@ The runtime expects every start request to include a `record` object with at lea
 
 ```ts
 export interface CreateWorkflowRequest {
-  config: WorkflowDefinition
-  startState: string
-  event?: string
-  tableName: string
-  record: Record<string, unknown>
   designId: string
+  trigger: TriggerBy
+  context?: Record<string, unknown>
   companyId?: string
   namespace?: string
 }
@@ -234,12 +231,19 @@ The design resource now includes `starts`:
 Behavior:
 
 1. Look up the design and confirm it has at least one `user_trigger` start rule.
-2. Pick the first matching rule and note its `startState`.
+2. Pick the first matching rule.
 3. Build a synthetic record: `{ id: <new instance id>, ...values }`.
 4. Create a `workflow_instances` row with:
    - `designId`
-   - `triggerBy = { type: 'user_trigger', startState, record }`
-5. Call Restate ingress `/workflow/{instanceId}/create` with the full `CreateWorkflowRequest`, including `startState`.
+   - `triggerBy = { type: 'user_trigger', startState: rule.startState, record }`
+5. Call Restate ingress `/workflow/{instanceId}/create` with:
+   ```ts
+   {
+     designId,
+     trigger: triggerBy,
+     context: { record }
+   }
+   ```
 
 A matching admin route `POST /api/admin/workflow-instances` handles platform designs.
 
@@ -255,11 +259,19 @@ const matching = designs.filter((d) =>
 )
 ```
 
-Each match produces a start request that includes the rule's `startState`.
+Each match produces a `CreateWorkflowRequest` shaped like:
 
-A new helper `dispatchUserTrigger(namespace, designId, startState, values, { companyId })` creates the instance (with `triggerBy`) and calls Restate. It is invoked from `POST /api/workflow-instances`, not from DB CRUD hooks.
+```ts
+{
+  designId: design.id,
+  trigger: { type: 'db_trigger', startState: rule.startState, record },
+  context: { record }
+}
+```
 
-For DB triggers, the dispatch now creates a new instance on every matching event (no active-instance lookup). The new instance's `triggerBy` stores `{ type: 'db_trigger', startState, record }`.
+A new helper `dispatchUserTrigger(namespace, designId, trigger, context, { companyId })` creates the instance (with `triggerBy`) and calls Restate. It is invoked from `POST /api/workflow-instances`, not from DB CRUD hooks.
+
+For DB triggers, the dispatch now creates a new instance on every matching event (no active-instance lookup).
 
 ## UI changes
 
@@ -285,9 +297,26 @@ For DB triggers, the dispatch now creates a new instance on every matching event
 
 ## Runtime impact
 
-The runtime must honor `CreateWorkflowRequest.startState`. When starting the actor, the runtime compiles a one-off `WorkflowDefinition` whose `initial` property is replaced by `startState`. The rest of the machine is unchanged.
+The runtime receives a simplified `CreateWorkflowRequest`:
 
-The `input` configuration is UI metadata only; the runtime still receives a synthetic `record` in `CreateWorkflowRequest`. The first action receives `context.record` as usual. If the action's `params` reference `record.<field>` (e.g. `{ $context: 'record.name' }`), the submitted value is used.
+```ts
+{
+  designId: string
+  trigger: TriggerBy
+  context?: Record<string, unknown>
+  companyId?: string
+  namespace?: string
+}
+```
+
+On start, the runtime:
+
+1. Loads the design config by `designId`.
+2. Compiles a one-off `WorkflowDefinition` whose `initial` property is replaced by `trigger.startState`.
+3. Builds the actor context by merging `context` with `trigger.record` under `context.record`.
+4. Starts the actor.
+
+The `input` configuration is UI metadata only. The first action receives `context.record` as usual. If the action's `params` reference `record.<field>` (e.g. `{ $context: 'record.name' }`), the submitted value is used.
 
 The runtime should also report state transitions back to the API so `workflow_instances.currentState` stays up to date. This can reuse or extend the existing `/api/workflow-instances/:id/status` patch.
 
