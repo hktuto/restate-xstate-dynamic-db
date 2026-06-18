@@ -1,6 +1,5 @@
-import type { EditorNode } from './types.js'
+import { CONDITION_ACTION_ID, type EditorNode } from './types.js'
 
-const CONDITION_ACTION_ID = 'condition'
 const TASK_SUGGESTED_EVENTS = ['approved', 'rejected']
 
 export function useWorkflowRuntimeEvents() {

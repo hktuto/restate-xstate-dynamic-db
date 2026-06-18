@@ -1,5 +1,7 @@
 export type EditorNodeType = 'start' | 'action' | 'condition' | 'task' | 'final'
 
+export const CONDITION_ACTION_ID = 'condition'
+
 export interface EditorNode {
   id: string
   type: EditorNodeType
