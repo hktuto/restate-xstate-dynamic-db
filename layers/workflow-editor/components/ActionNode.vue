@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
-import type { EditorNode } from '../composables/types.js'
+import type { EditorNodeData } from '../composables/types.js'
+
+type ActionData = Extract<EditorNodeData, { kind: 'action' }>
 
 defineProps<{
   id: string
-  data: EditorNode['data']
+  data: ActionData
   selected?: boolean
 }>()
 </script>
@@ -16,10 +18,10 @@ defineProps<{
   >
     <Handle type="target" :position="Position.Top" class="!bg-blue-400" />
     <div class="font-semibold text-sm">{{ id }}</div>
-    <div v-if="data.kind === 'action'" class="text-xs text-blue-700 mt-1">
+    <div class="text-xs text-blue-700 mt-1">
       {{ data.actionId || 'No action' }}
     </div>
-    <div v-if="data.kind === 'action' && data.outputKey" class="text-[10px] text-gray-500">
+    <div v-if="data.outputKey" class="text-[10px] text-gray-500">
       → {{ data.outputKey }}
     </div>
     <Handle type="source" :position="Position.Bottom" class="!bg-blue-400" />

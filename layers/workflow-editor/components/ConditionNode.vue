@@ -18,9 +18,9 @@ defineProps<{
     >
       <span class="-rotate-45 text-xs font-semibold text-center">{{ id }}</span>
     </div>
-    <Handle type="target" :position="Position.Top" class="!bg-amber-400" />
-    <Handle type="source" :position="Position.Bottom" class="!bg-amber-400" />
-    <Handle type="source" :position="Position.Left" class="!bg-amber-400" />
-    <Handle type="source" :position="Position.Right" class="!bg-amber-400" />
+    <Handle id="top" type="target" :position="Position.Top" class="!bg-amber-400" />
+    <Handle id="bottom" type="source" :position="Position.Bottom" class="!bg-amber-400" />
+    <Handle id="left" type="source" :position="Position.Left" class="!bg-amber-400" />
+    <Handle id="right" type="source" :position="Position.Right" class="!bg-amber-400" />
   </div>
 </template>
