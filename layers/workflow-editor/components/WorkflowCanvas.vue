@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
+import type { NodeMouseEvent, EdgeMouseEvent } from '@vue-flow/core'
 import type { EditorNode, EditorEdge } from '../composables/types.js'
 import type { EditorTool } from '../composables/useWorkflowEditor.js'
 import StartNode from './StartNode.vue'
@@ -55,11 +56,13 @@ const flowEdges = computed({
 function onPaneClick(event: MouseEvent) {
   if (props.tool.startsWith('add-')) {
     const type = props.tool.replace('add-', '') as EditorNode['type']
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    emit('add-node', type, {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
-    })
+    const position = vueFlowInstance.value?.screenToFlowCoordinate({
+      x: event.clientX,
+      y: event.clientY
+    }) ?? { x: event.clientX, y: event.clientY }
+    emit('add-node', type, position)
+    emit('select', null)
+  } else {
     emit('select', null)
   }
 }
@@ -68,16 +71,12 @@ function onConnect(params: { source: string; target: string }) {
   emit('connect', params)
 }
 
-function onNodeClick(_event: MouseEvent, node: EditorNode) {
-  emit('select', node.id)
+function onNodeClick({ node }: NodeMouseEvent) {
+  emit('select', (node as EditorNode).id)
 }
 
-function onEdgeClick(_event: MouseEvent, edge: EditorEdge) {
-  emit('select', edge.id)
-}
-
-function onPaneClickClear() {
-  if (props.tool === 'select') emit('select', null)
+function onEdgeClick({ edge }: EdgeMouseEvent) {
+  emit('select', (edge as EditorEdge).id)
 }
 
 function fitView() {
@@ -101,8 +100,7 @@ defineExpose({ fitView })
       :delete-key-code="null"
       fit-view-on-init
       @init="onInit"
-      @pane-click="onPaneClickClear"
-      @dblclick="onPaneClick"
+      @pane-click="onPaneClick"
       @connect="onConnect"
       @node-click="onNodeClick"
       @edge-click="onEdgeClick"
