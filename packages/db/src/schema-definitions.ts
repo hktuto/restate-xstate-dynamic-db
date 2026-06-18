@@ -5,7 +5,7 @@ export interface ColumnDefinition {
   name: string
   label?: string
   dbType: 'string' | 'number' | 'boolean' | 'datetime' | 'object' | 'array' | 'record'
-  displayType: 'text' | 'url' | 'email' | 'user' | 'select' | 'checkbox' | 'date' | 'number' | 'relation' | 'formula' | 'richText'
+  displayType: 'text' | 'url' | 'email' | 'user' | 'select' | 'checkbox' | 'date' | 'number' | 'relation' | 'formula' | 'richText' | 'json'
   config?: Record<string, unknown>
   system?: boolean
   unique?: boolean
@@ -107,36 +107,32 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('birthday', 'datetime', 'date'),
     column('preferences', 'object', 'text'),
   ]),
-  table('workflows', 'Workflows', [
+  table('workflow_designs', 'Workflow Designs', [
     column('name', 'string', 'text'),
-    column('xstateConfig', 'object', 'text'),
+    column('xstateConfig', 'object', 'json'),
+    column('starts', 'object', 'json'),
   ]),
-  table('triggers', 'Triggers', [
-    column('tableName', 'string', 'text'),
-    column('event', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['insert', 'update', 'delete']) } }),
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨triggers:workflowId:workflows:id⟩' } }),
-  ], [relation('workflowId', 'workflows')]),
   table('workflow_instances', 'Workflow Instances', [
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:workflowId:workflows:id⟩' } }),
-    column('tableName', 'string', 'text'),
-    column('recordId', 'record', 'text'),
+    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } }),
+    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
+    column('currentState', 'string', 'text'),
+    column('context', 'object', 'json'),
+    column('triggerBy', 'object', 'json'),
     column('namespace', 'string', 'text'),
     column('companyId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } }),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
-    column('context', 'object', 'text'),
-  ], [relation('workflowId', 'workflows'), relation('companyId', 'companies')]),
+  ], [relation('designId', 'workflow_designs'), relation('companyId', 'companies')]),
   table('user_tasks', 'User Tasks', [
     column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:instanceId:workflow_instances:id⟩' } }),
     column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['approval', 'review', 'manual']) } }),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'completed', 'cancelled', 'rejected']) } }),
     column('tableName', 'string', 'text'),
     column('recordId', 'record', 'text'),
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:workflowId:workflows:id⟩' } }),
+    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:designId:workflow_designs:id⟩' } }),
     column('resolvedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('workflowId', 'workflows')]),
+  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
   table('workflow_actions', 'Workflow Actions', [
     column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:instanceId:workflow_instances:id⟩' } }),
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:workflowId:workflows:id⟩' } }),
+    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:designId:workflow_designs:id⟩' } }),
     column('stateId', 'string', 'text'),
     column('action', 'string', 'text'),
     column('params', 'object', 'text'),
@@ -148,7 +144,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('errorMessage', 'string', 'text'),
     column('startedAt', 'datetime', 'date'),
     column('completedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('workflowId', 'workflows')]),
+  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
   table('health_checks', 'Health Checks', [
     column('service', 'string', 'text'),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['healthy', 'unhealthy']) } }),
@@ -170,36 +166,32 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('joinedAt', 'datetime', 'date'),
     column('invitedBy', 'record', 'relation', { config: { relationId: '_relations:⟨members:invitedBy:members:id⟩' } }),
   ], [relation('profileId', 'user_profiles'), relation('invitedBy', 'members', 'one-to-many')]),
-  table('workflows', 'Workflows', [
+  table('workflow_designs', 'Workflow Designs', [
     column('name', 'string', 'text'),
-    column('xstateConfig', 'object', 'text'),
+    column('xstateConfig', 'object', 'json'),
+    column('starts', 'object', 'json'),
   ]),
-  table('triggers', 'Triggers', [
-    column('tableName', 'string', 'text'),
-    column('event', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['insert', 'update', 'delete']) } }),
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨triggers:workflowId:workflows:id⟩' } }),
-  ], [relation('workflowId', 'workflows')]),
   table('workflow_instances', 'Workflow Instances', [
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:workflowId:workflows:id⟩' } }),
-    column('tableName', 'string', 'text'),
-    column('recordId', 'record', 'text'),
+    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } }),
+    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
+    column('currentState', 'string', 'text'),
+    column('context', 'object', 'json'),
+    column('triggerBy', 'object', 'json'),
     column('namespace', 'string', 'text'),
     column('companyId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } }),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
-    column('context', 'object', 'text'),
-  ], [relation('workflowId', 'workflows'), relation('companyId', 'companies')]),
+  ], [relation('designId', 'workflow_designs'), relation('companyId', 'companies')]),
   table('user_tasks', 'User Tasks', [
     column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:instanceId:workflow_instances:id⟩' } }),
     column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['approval', 'review', 'manual']) } }),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'completed', 'cancelled', 'rejected']) } }),
     column('tableName', 'string', 'text'),
     column('recordId', 'record', 'text'),
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:workflowId:workflows:id⟩' } }),
+    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:designId:workflow_designs:id⟩' } }),
     column('resolvedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('workflowId', 'workflows')]),
+  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
   table('workflow_actions', 'Workflow Actions', [
     column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:instanceId:workflow_instances:id⟩' } }),
-    column('workflowId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:workflowId:workflows:id⟩' } }),
+    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:designId:workflow_designs:id⟩' } }),
     column('stateId', 'string', 'text'),
     column('action', 'string', 'text'),
     column('params', 'object', 'text'),
@@ -211,5 +203,5 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('errorMessage', 'string', 'text'),
     column('startedAt', 'datetime', 'date'),
     column('completedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('workflowId', 'workflows')]),
+  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
 ]
