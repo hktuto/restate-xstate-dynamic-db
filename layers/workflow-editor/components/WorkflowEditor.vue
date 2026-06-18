@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import type { WorkflowDefinition } from 'shared'
-import { useWorkflowEditor } from '../composables/useWorkflowEditor'
-import { useWorkflowActions } from '../composables/useWorkflowActions'
-import { useWorkflowValidator } from '../composables/useWorkflowValidator'
+import { useWorkflowEditor } from '../composables/useWorkflowEditor.js'
+import { useWorkflowActions } from '../composables/useWorkflowActions.js'
+import { useWorkflowValidator } from '../composables/useWorkflowValidator.js'
 import WorkflowToolbar from './WorkflowToolbar.vue'
 import WorkflowCanvas from './WorkflowCanvas.vue'
 import SidebarPanel from './SidebarPanel.vue'
-import ContextPanel from './ContextPanel.vue'
+import WorkflowContextPanel from './WorkflowContextPanel.vue'
 import DetailsPanel from './DetailsPanel.vue'
+import ValidationDrawer from './ValidationDrawer.vue'
 
 const props = defineProps<{
   modelValue: WorkflowDefinition
@@ -19,6 +20,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: WorkflowDefinition): void
   (e: 'update:name', value: string): void
   (e: 'save', value: WorkflowDefinition): void
+  (e: 'error', message: string): void
 }>()
 
 const definition = computed({
@@ -27,51 +29,25 @@ const definition = computed({
 })
 
 const editor = useWorkflowEditor({ definition, readonly: props.readonly })
-const { actions, guards } = useWorkflowActions()
+const { actions } = useWorkflowActions()
 const { validate } = useWorkflowValidator()
 
 const canvasRef = ref<InstanceType<typeof WorkflowCanvas> | null>(null)
 const sidebarOpen = ref(true)
 const activeTab = ref<'context' | 'details'>('details')
+const validationOpen = ref(true)
 
 const selectedNode = computed(() => editor.nodes.value.find(n => n.id === editor.selectedId.value))
 const selectedEdge = computed(() => editor.edges.value.find(e => e.id === editor.selectedId.value))
-const errors = computed(() => validate(props.modelValue))
+const errors = computed(() => validate(editor.nodes.value, editor.edges.value))
+const canSave = computed(() => !props.readonly && errors.value.length === 0)
 
 function onConnect(params: { source: string; target: string }) {
-  const event = prompt('Event name for this transition?')
-  if (event) {
-    editor.addTransition(params.source, params.target, event)
-  }
+  editor.addTransition(params.source, params.target)
 }
 
-function onAddState(position: { x: number; y: number }) {
-  const id = prompt('State name?')?.trim()
-  if (id) {
-    editor.addState(id, position)
-  }
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (props.readonly) return
-  const target = event.target as HTMLElement | null
-  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-    return
-  }
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-    event.preventDefault()
-    emit('save', props.modelValue)
-  }
-  if (event.key === 'Delete' || event.key === 'Backspace') {
-    if (selectedNode.value) {
-      editor.removeState(selectedNode.value.id)
-    } else if (selectedEdge.value) {
-      editor.removeEdge(selectedEdge.value.id)
-    }
-  }
-  if (event.key.toLowerCase() === 'v') editor.tool.value = 'pan'
-  if (event.key.toLowerCase() === 's') editor.tool.value = 'select'
-  if (event.key.toLowerCase() === 'a') editor.tool.value = 'add-state'
+function onAddNode(type: EditorNode['type'], position: { x: number; y: number }) {
+  editor.addNode(type, position)
 }
 
 function fitView() {
@@ -79,7 +55,16 @@ function fitView() {
 }
 
 function onSave() {
+  if (!canSave.value) {
+    emit('error', 'Please fix validation errors before saving.')
+    return
+  }
   emit('save', props.modelValue)
+}
+
+function onFocusError(id: string) {
+  editor.selectedId.value = id
+  // VueFlow exposes fitView with nodes option if needed; keep simple for now.
 }
 
 let isInternalUpdate = false
@@ -97,29 +82,20 @@ watch(() => props.modelValue, (def) => {
 }, { deep: false })
 
 onMounted(() => {
-  window.addEventListener('keydown', onKeydown)
   editor.load(props.modelValue)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', onKeydown)
 })
 </script>
 
 <template>
   <div class="flex flex-col h-full min-h-[600px] border rounded bg-white">
     <WorkflowToolbar
-      v-model:tool="editor.tool"
+      v-model:tool="editor.tool.value"
+      v-model:name="name"
       :readonly="readonly"
+      :can-save="canSave"
       @fit-view="fitView"
       @save="onSave"
     />
-
-    <div v-if="errors.length" class="bg-red-50 text-red-700 px-3 py-2 text-sm border-b">
-      <ul class="list-disc pl-4">
-        <li v-for="err in errors" :key="err.path">{{ err.path }}: {{ err.message }}</li>
-      </ul>
-    </div>
 
     <div class="flex flex-1 overflow-hidden">
       <WorkflowCanvas
@@ -131,14 +107,12 @@ onUnmounted(() => {
         @update:nodes="editor.nodes.value = $event"
         @update:edges="editor.edges.value = $event"
         @select="editor.selectedId.value = $event"
-        @add-state="onAddState"
+        @add-node="onAddNode"
         @connect="onConnect"
-        @rename:node="editor.renameState"
-        @delete:edge="editor.removeEdge"
       />
 
       <SidebarPanel v-model:open="sidebarOpen" v-model:active-tab="activeTab">
-        <ContextPanel
+        <WorkflowContextPanel
           v-if="activeTab === 'context'"
           :definition="modelValue"
           :name="name"
@@ -151,15 +125,19 @@ onUnmounted(() => {
           :selected-node="selectedNode"
           :selected-edge="selectedEdge"
           :actions="actions"
-          :guards="guards"
           :readonly="readonly"
-          @update:node="editor.updateStateData"
-          @update:edge="editor.updateEdgeData"
-          @rename:node="editor.renameState"
-          @rename:edge="editor.renameEdge"
+          @update:node="editor.updateNodeData"
+          @update:edge="editor.updateEdgeEvent"
+          @rename:node="editor.renameNode"
           @select:node="editor.selectedId.value = $event"
         />
       </SidebarPanel>
     </div>
+
+    <ValidationDrawer
+      v-model:open="validationOpen"
+      :errors="errors"
+      @focus="onFocusError"
+    />
   </div>
 </template>
