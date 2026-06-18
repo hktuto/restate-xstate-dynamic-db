@@ -33,4 +33,7 @@ export interface EditorEdge {
   source: string
   target: string
   label: string
+  data?: {
+    readonly?: boolean
+  }
 }

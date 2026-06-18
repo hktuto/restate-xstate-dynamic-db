@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@vue-flow/core'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, useVueFlow, type EdgeProps } from '@vue-flow/core'
 import type { EditorEdge } from '../composables/types.js'
 
 const props = defineProps<EdgeProps<EditorEdge>>()
+
+const { removeEdges } = useVueFlow()
 
 const path = computed(() => getBezierPath({
   sourceX: props.sourceX,
@@ -28,6 +30,15 @@ const path = computed(() => getBezierPath({
       :class="selected ? 'border-blue-500' : 'border-gray-300'"
     >
       {{ label }}
+      <button
+        v-if="!props.data?.readonly"
+        type="button"
+        class="ml-1 text-red-500 hover:text-red-700"
+        aria-label="Delete edge"
+        @click.stop="removeEdges([id])"
+      >
+        ×
+      </button>
     </div>
   </EdgeLabelRenderer>
 </template>

@@ -49,8 +49,8 @@ const flowNodes = computed({
 })
 
 const flowEdges = computed({
-  get: () => props.edges,
-  set: (value) => emit('update:edges', value)
+  get: () => props.edges.map(e => ({ ...e, data: { readonly: props.readonly } })),
+  set: (value) => emit('update:edges', value.map(({ data, ...rest }) => rest))
 })
 
 function onPaneClick(event: MouseEvent) {
