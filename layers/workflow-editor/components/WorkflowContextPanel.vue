@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { WorkflowDefinition } from 'shared'
 
 const props = defineProps<{
