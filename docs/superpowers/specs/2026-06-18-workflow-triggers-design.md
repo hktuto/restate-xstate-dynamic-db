@@ -53,6 +53,7 @@ export interface CreateWorkflowRequest {
   designId: string
   trigger: TriggerBy
   context?: Record<string, unknown>
+  createdBy: string
   companyId?: string
   namespace?: string
 }
@@ -122,11 +123,10 @@ export interface WorkflowInstanceInput {
 export interface TriggerBy {
   type: 'db_trigger' | 'user_trigger' | 'cron' | 'webhook'
   startState: string
-  record?: Record<string, unknown>
 }
 ```
 
-`triggerBy` stores a snapshot of how the instance was started. For `db_trigger` it includes the source record; for `user_trigger` it includes the synthetic record built from submitted values.
+`triggerBy` stores a snapshot of how the instance was started: the trigger type and the entry state.
 
 `currentState` is updated by the runtime as the actor transitions.
 
@@ -142,6 +142,7 @@ export interface ActionInputMetadata {
   displayType: 'text' | 'email' | 'url' | 'number' | 'select' | 'checkbox' | 'date' | 'json' | 'richText'
   description?: string
   required?: boolean
+  hidden?: boolean
   defaultValue?: unknown
   config?: Record<string, unknown>
 }
@@ -180,6 +181,7 @@ meta: {
   params: { table: 'members', fields: { ... } },
   input: {
     fields: {
+      id: { hidden: true },
       email: { required: true, defaultValue: '', events: { onChange: 'validateEmail' } },
       role: { required: true, defaultValue: 'member', events: { onMount: 'prefillRole' } }
     }
@@ -231,17 +233,20 @@ The design resource now includes `starts`:
 Behavior:
 
 1. Look up the design and confirm it has at least one `user_trigger` start rule.
-2. Pick the first matching rule.
-3. Build a synthetic record: `{ id: <new instance id>, ...values }`.
-4. Create a `workflow_instances` row with:
+2. Pick the first matching rule and resolve its start state.
+3. Build context from the submitted form values, using the start state's input names as context paths.
+4. Validate that every required input has a value or `defaultValue`.
+5. Create a `workflow_instances` row with:
    - `designId`
-   - `triggerBy = { type: 'user_trigger', startState: rule.startState, record }`
-5. Call Restate ingress `/workflow/{instanceId}/create` with:
+   - `triggerBy = { type: 'user_trigger', startState: rule.startState }`
+   - `createdBy` set to the authenticated user's id
+6. Call Restate ingress `/workflow/{instanceId}/create` with:
    ```ts
    {
      designId,
      trigger: triggerBy,
-     context: { record }
+     context,
+     createdBy: user.id
    }
    ```
 
@@ -264,14 +269,17 @@ Each match produces a `CreateWorkflowRequest` shaped like:
 ```ts
 {
   designId: design.id,
-  trigger: { type: 'db_trigger', startState: rule.startState, record },
-  context: { record }
+  trigger: { type: 'db_trigger', startState: rule.startState },
+  context: buildContextFromInputs(rule.startState, sourceRecord),
+  createdBy: 'system'
 }
 ```
 
-A new helper `dispatchUserTrigger(namespace, designId, trigger, context, { companyId })` creates the instance (with `triggerBy`) and calls Restate. It is invoked from `POST /api/workflow-instances`, not from DB CRUD hooks.
+`buildContextFromInputs` resolves the start state's inputs (`inputs` or `tableInput`), maps source record fields by input name, injects hidden inputs such as `id`, fills defaults, and fails if a required input is missing without a default.
 
-For DB triggers, the dispatch now creates a new instance on every matching event (no active-instance lookup).
+A new helper `dispatchUserTrigger(namespace, designId, trigger, context, createdBy, { companyId })` creates the instance (with `triggerBy`) and calls Restate. It is invoked from `POST /api/workflow-instances`, not from DB CRUD hooks.
+
+For DB triggers, the dispatch now creates a new instance on every matching event (no active-instance lookup). If input validation fails, the instance is not created and the failure is logged.
 
 ## UI changes
 
@@ -287,13 +295,14 @@ For DB triggers, the dispatch now creates a new instance on every matching event
 
 - For actions that declare `tableInput` or `inputs`, add an "Input" section.
 - The section lists fields from the table schema or explicit inputs.
-- The user can set required/default and attach hook names for `onChange`/`onMount`.
+- The user can set required/hidden/default and attach hook names for `onChange`/`onMount`.
 - These overrides are saved in `state.meta.input`.
 
 ### Run workflow modal
 
-- Clicking **Run** opens a modal whose form is generated from the first action's `tableInput` schema, merged with `state.meta.input` overrides.
-- On submit, call `POST /api/workflow-instances` and show success/error feedback.
+- Clicking **Run** resolves the start state's inputs from action metadata.
+- The modal form is generated from those inputs, merged with `state.meta.input` overrides. Hidden inputs are not shown.
+- On submit, the form values are built into a context object using input names as paths and sent to `POST /api/workflow-instances`.
 
 ## Runtime impact
 
@@ -313,10 +322,12 @@ On start, the runtime:
 
 1. Loads the design config by `designId`.
 2. Compiles a one-off `WorkflowDefinition` whose `initial` property is replaced by `trigger.startState`.
-3. Builds the actor context by merging `context` with `trigger.record` under `context.record`.
+3. Uses the provided `context` object directly as the actor context.
 4. Starts the actor.
 
-The `input` configuration is UI metadata only. The first action receives `context.record` as usual. If the action's `params` reference `record.<field>` (e.g. `{ $context: 'record.name' }`), the submitted value is used.
+The `input` configuration is UI metadata only. Actions reference context values directly via their input names (e.g. `{ $context: 'name' }` or `{ $context: 'user.name' }`).
+
+The runtime should also report state transitions back to the API so `workflow_instances.currentState` stays up to date. This can reuse or extend the existing `/api/workflow-instances/:id/status` patch.
 
 The runtime should also report state transitions back to the API so `workflow_instances.currentState` stays up to date. This can reuse or extend the existing `/api/workflow-instances/:id/status` patch.
 
@@ -331,7 +342,7 @@ This is a breaking schema change. A one-time migration is required:
 5. Rename `workflow_instances.workflowId` → `designId`.
 6. Drop `workflow_instances.tableName` and `workflow_instances.recordId`.
 7. Add `workflow_instances.currentState` and `workflow_instances.triggerBy`.
-8. Backfill existing instances: build `triggerBy = { type: 'db_trigger', startState: definition.initial, record: { id: oldRecordId } }` from the old `tableName`/`recordId` columns.
+8. Backfill existing instances: build `triggerBy = { type: 'db_trigger', startState: definition.initial }` from the old `tableName`/`recordId` columns. Old record data can be moved into `context` if needed.
 9. Update `workflow_actions`, `user_tasks`, and any other tables that reference `workflowId` to use `designId`.
 
 Because this touches many files, the implementation should be done in a single focused branch with a full typecheck and runtime test pass.
