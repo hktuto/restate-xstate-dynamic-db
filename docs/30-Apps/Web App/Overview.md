@@ -4,7 +4,7 @@ type: app
 status: done
 area: web
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-18
 app:
   - web
 related:
@@ -22,7 +22,8 @@ The tenant-facing Nuxt application. Each user belongs to a company and manages w
 
 ## Key behaviors
 
-- Company context resolved from `company_slug` cookie or `x-company-namespace` header.
+- Authentication is handled by the API service (`apps/api`); the web app calls `/api/auth/*` through `useApi().fetch()`.
+- Company context resolved from `company` cookie or `x-company-namespace` header.
 - `/` is company-agnostic and lets users select or switch companies.
 - All other pages require a resolved company; missing context redirects to `/`.
 - Extends `layers/workflow-editor` for the workflow designer.

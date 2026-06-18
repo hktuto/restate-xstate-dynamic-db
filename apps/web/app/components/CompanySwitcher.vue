@@ -6,8 +6,13 @@ interface Company {
   namespace: string
 }
 
-const { data: companies } = await useFetch<Company[]>('/api/companies')
+const companies = ref<Company[]>([])
 const companyCookie = useCookie('company')
+const api = useApi()
+
+onMounted(async () => {
+  companies.value = await api.fetch<Company[]>('/api/companies')
+})
 
 function onChange(event: Event) {
   const target = event.target as HTMLSelectElement

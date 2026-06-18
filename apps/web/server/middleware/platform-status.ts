@@ -1,4 +1,8 @@
-import { getPlatformStatus, type PlatformStatus } from '#server/utils/platform-status'
+interface PlatformStatus {
+  mode: 'normal' | 'degraded' | 'maintenance'
+  message?: string
+  checkedAt?: string
+}
 
 declare module 'h3' {
   interface H3EventContext {
@@ -19,7 +23,19 @@ export default defineEventHandler(async (event) => {
     return
   }
 
-  const status = await getPlatformStatus()
+  const config = useRuntimeConfig()
+  const apiUrl = config.public.apiUrl as string
+
+  let status: PlatformStatus
+  try {
+    status = await $fetch<PlatformStatus>(`${apiUrl}/api/platform-status`, { timeout: 3000 })
+  } catch {
+    status = {
+      mode: 'maintenance',
+      message: 'Platform status endpoint unavailable',
+    }
+  }
+
   event.context.platformStatus = status
 
   if (status.mode === 'maintenance' && path !== '/maintenance') {

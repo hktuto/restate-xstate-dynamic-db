@@ -97,7 +97,7 @@ workflow-runtime:
     dockerfile: apps/workflow-runtime/Dockerfile
   env_file: .env
   environment:
-    - NITRO_API_URL=http://host.docker.internal:3000
+    - NITRO_API_URL=http://host.docker.internal:3002
   ports:
     - "9080:9080"
   depends_on:

@@ -6,7 +6,8 @@ const router = useRouter()
 async function submit() {
   error.value = ''
   try {
-    const company = await $fetch('/api/companies', {
+    const api = useApi()
+    const company = await api.fetch('/api/companies', {
       method: 'POST',
       body: { name: name.value }
     })
@@ -14,7 +15,7 @@ async function submit() {
     companyCookie.value = JSON.stringify({ id: company.id, slug: company.slug, namespace: company.namespace })
     await router.push('/')
   } catch (e: any) {
-    error.value = e.statusMessage || 'Failed to create company'
+    error.value = e.message || 'Failed to create company'
   }
 }
 </script>

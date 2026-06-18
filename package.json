@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm -F web dev",
     "dev:admin": "pnpm -F admin dev",
+    "dev:api": "pnpm -F api dev",
     "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "test": "vitest",

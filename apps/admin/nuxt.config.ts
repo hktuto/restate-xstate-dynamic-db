@@ -4,5 +4,11 @@ export default defineNuxtConfig({
   extends: ['../../layers/workflow-editor'],
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
+  ssr:false,
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.API_URL ?? 'http://localhost:3002',
+    },
+  },
   css: ['~/assets/css/main.css'],
 })

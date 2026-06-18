@@ -1,5 +1,5 @@
 export default defineNuxtRouteMiddleware((to) => {
-  const publicPaths = ['/login', '/register', '/accept-invite', '/logout']
+  const publicPaths = ['/login', '/register', '/accept-invite', '/logout', '/maintenance']
   if (publicPaths.includes(to.path) || to.path.startsWith('/api/')) {
     return
   }

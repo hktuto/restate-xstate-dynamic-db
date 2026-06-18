@@ -43,7 +43,7 @@ describe('workflow runtime', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = typeof input === 'string' ? input : input.toString()
-        if (url.startsWith('http://localhost:3000/api/')) {
+        if (url.startsWith('http://localhost:3002/api/')) {
           return { ok: true, status: 200, json: async () => ({}) } as Response
         }
         return originalFetch(input, init)

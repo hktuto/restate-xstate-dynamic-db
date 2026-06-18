@@ -1,7 +1,7 @@
 ---
 title: Workflow Engine
 type: feature
-status: done
+status: planned
 area: workflow
 created: 2026-06-14
 updated: 2026-06-17

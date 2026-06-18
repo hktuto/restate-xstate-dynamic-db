@@ -4,7 +4,7 @@ type: feature
 status: in-progress
 area: web
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-18
 app:
   - web
 related:
@@ -24,6 +24,10 @@ Tenant users authenticate through global `accounts` linked to a single `user_pro
 - `company` — plain JSON cookie containing the active company's `id`, `slug`, and `namespace`.
 - Both cookies are `httpOnly`, `sameSite: 'lax'`, and valid for 24 hours.
 - `SESSION_SECRET` is required in the environment.
+
+## Auth service
+
+Tenant and admin auth endpoints live in the dedicated Hono API service (`apps/api`) under `/api/auth`. The Nuxt frontends call these endpoints through `useApi().fetch()`, and the API sets/clears the signed `tenant_session`, `company`, and `admin_session` cookies.
 
 ## Auth flows
 

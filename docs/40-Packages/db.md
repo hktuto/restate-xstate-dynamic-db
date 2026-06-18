@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-15
 package: db
 related:
   - [[Data Model]]
@@ -12,6 +12,7 @@ related:
   - [[Testing]]
   - [[Benchmarking]]
   - [[SurrealDB Performance Benchmark]]
+  - [[Dynamic Table Schema Registry — Backend Implementation Plan]]
 ---
 
 # db package
@@ -27,7 +28,7 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 ## Key modules
 
 - `src/platform.ts` — platform-level queries (companies, platform users, platform workflows, identities).
-- `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables).
+- `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables, indexes) and seeds the schema registry (`_tables`, `_columns`, `_relations`) from the declarative schemas in `schema-definitions.ts`.
 - `src/seed.ts` — seeds `platform/admin` namespace with default admin user.
 
 ## Build

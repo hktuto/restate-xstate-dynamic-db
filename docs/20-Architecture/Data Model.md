@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-15
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
@@ -37,6 +37,18 @@ related:
 | `user_tasks` | Manual tasks created by workflow instances. |
 | `triggers` | Trigger configurations. |
 | `members` | Company membership, role, invite status. |
+
+## Schema registry
+
+Every namespace/database contains three system tables that describe its own schema:
+
+- `_tables` — one row per table (name, label, hidden).
+- `_columns` — one row per column (name, dbType, displayType, config, system, unique, optional, etc.).
+- `_relations` — one row per relation between tables (fromTable, fromColumn, toTable, toColumn, type).
+
+Existing platform and tenant tables (`companies`, `members`, `workflows`, etc.) are described declaratively in `packages/db/src/schema-definitions.ts`. `seed.ts` and `provision.ts` use this file to both `DEFINE TABLE` and populate `_tables`, `_columns`, and `_relations`. Every table also receives a standard set of system columns (`id`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `deletedAt`, `deletedBy`) via `SYSTEM_COLUMNS`.
+
+The table/schema API is served by `apps/api`, a dedicated Hono service. Both `apps/web` and `apps/admin` call this service instead of duplicating server routes.
 
 ## Workflow instance statuses
 

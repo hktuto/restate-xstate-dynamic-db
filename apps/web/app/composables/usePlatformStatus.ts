@@ -1,4 +1,4 @@
-import type { PlatformStatus } from '#server/utils/platform-status'
+import type { PlatformStatus } from '~/types/platform-status'
 
 export function usePlatformStatus(): PlatformStatus | null {
   const event = useRequestEvent()

@@ -1,10 +1,10 @@
 ---
 title: DB Test Results
-type: note
-status: done
+type: runbook
+status: in-progress
 area: docs
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-17
 related:
   - [[Testing]]
   - [[DB Package]]

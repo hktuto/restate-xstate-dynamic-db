@@ -3,11 +3,12 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const router = useRouter()
+const api = useApi()
 
 async function submit() {
   error.value = ''
   try {
-    const result = await $fetch('/api/auth/login', {
+    const result = await api.fetch('/api/auth/login', {
       method: 'POST',
       body: { email: email.value, password: password.value }
     })
@@ -20,7 +21,7 @@ async function submit() {
       await router.push('/')
     }
   } catch (e: any) {
-    error.value = e.statusMessage || 'Login failed'
+    error.value = e.message || 'Login failed'
   }
 }
 </script>

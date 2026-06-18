@@ -1,9 +1,10 @@
 <script setup lang="ts">
 const status = usePlatformStatus()
 const session = useCookie('tenant_session')
+const api = useApi()
 
 async function logout() {
-  await $fetch('/api/auth/logout', { method: 'POST' })
+  await api.fetch('/api/auth/logout', { method: 'POST' })
   await navigateTo('/login')
 }
 </script>

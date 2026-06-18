@@ -96,8 +96,8 @@ function checkWorkflowRuntime(): Promise<CheckResult> {
   return checkHttpService('workflow-runtime', 'WORKFLOW_RUNTIME_URL', '/health')
 }
 
-function checkWebApi(): Promise<CheckResult> {
-  return checkHttpService('web-api', 'WEB_API_URL', '/api/health')
+function checkApi(): Promise<CheckResult> {
+  return checkHttpService('api', 'API_URL', '/health')
 }
 
 export async function runHealthChecks(): Promise<CheckResult[]> {
@@ -105,6 +105,6 @@ export async function runHealthChecks(): Promise<CheckResult[]> {
     checkSurrealDB(),
     checkRestate(),
     checkWorkflowRuntime(),
-    checkWebApi()
+    checkApi()
   ])
 }

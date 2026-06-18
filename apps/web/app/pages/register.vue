@@ -4,17 +4,18 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const router = useRouter()
+const api = useApi()
 
 async function submit() {
   error.value = ''
   try {
-    await $fetch('/api/auth/register', {
+    await api.fetch('/api/auth/register', {
       method: 'POST',
       body: { name: name.value, email: email.value, password: password.value }
     })
     await router.push('/companies')
   } catch (e: any) {
-    error.value = e.statusMessage || 'Registration failed'
+    error.value = e.message || 'Registration failed'
   }
 }
 </script>

@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import type { HealthCheckRecord, HealthCheckService } from 'db/health-checks'
+type HealthCheckService = 'surrealdb' | 'restate' | 'workflow-runtime' | 'api'
+
+interface HealthCheckRecord {
+  id: string
+  service: HealthCheckService
+  status: 'healthy' | 'unhealthy'
+  responseTimeMs: number
+  checkedAt: string
+  message?: string
+  details?: Record<string, unknown>
+}
 
 interface LatestData {
   latest: HealthCheckRecord[]
@@ -13,7 +23,25 @@ interface HistoryData {
 
 const DEFAULT_HISTORY_LIMIT = 20
 
-const { data, refresh, pending, error } = await useFetch<LatestData>('/api/health-checks')
+const data = ref<LatestData | null>(null)
+const pending = ref(true)
+const error = ref<Error | null>(null)
+const api = useApi()
+
+async function refresh() {
+  pending.value = true
+  error.value = null
+  try {
+    data.value = await api.fetch<LatestData>('/api/admin/health-checks')
+  } catch (err) {
+    error.value = err instanceof Error ? err : new Error('Failed to load health checks')
+  } finally {
+    pending.value = false
+  }
+}
+
+await refresh()
+
 const expanded = ref<Set<HealthCheckService>>(new Set())
 
 const historyByService = ref<Partial<Record<HealthCheckService, HealthCheckRecord[]>>>({})
@@ -27,9 +55,8 @@ async function loadHistory(service: HealthCheckService, force = false) {
   historyError.value[service] = undefined
 
   try {
-    const result = await $fetch<HistoryData>('/api/health-checks/history', {
-      query: { service, limit: DEFAULT_HISTORY_LIMIT }
-    })
+    const query = new URLSearchParams({ service, limit: String(DEFAULT_HISTORY_LIMIT) })
+    const result = await api.fetch<HistoryData>(`/api/admin/health-checks/history?${query}`)
     historyByService.value[service] = result.history
   } catch (err) {
     historyError.value[service] = err instanceof Error ? err.message : String(err)

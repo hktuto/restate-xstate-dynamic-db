@@ -1,14 +1,17 @@
 ---
 title: SurrealDB Performance Benchmark Implementation Plan
 type: note
-status: done
-area: db
+status: in-progress
+area: docs
 created: 2026-06-16
 updated: 2026-06-17
 related:
   - [[db package]]
   - [[Testing]]
   - [[SurrealDB Conventions]]
+  - [[Benchmarking]]
+  - [[DB Package]]
+  - [[SurrealDB Performance Benchmark]]
 ---
 
 # SurrealDB Performance Benchmark Implementation Plan

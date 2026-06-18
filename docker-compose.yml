@@ -33,7 +33,7 @@ services:
       dockerfile: apps/workflow-runtime/Dockerfile
     env_file: .env
     environment:
-      - NITRO_API_URL=http://host.docker.internal:3000
+      - NITRO_API_URL=http://host.docker.internal:3002
     ports:
       - "9080:9080"
     depends_on:
@@ -64,16 +64,33 @@ services:
       dockerfile: apps/health-monitor/Dockerfile
     env_file: .env
     environment:
-      - SURREAL_URL=http://surrealdb:8000/rpc
+      - SURREAL_URL=ws://surrealdb:8000/rpc
       - RESTATE_META_URL=http://restate:9070
       - WORKFLOW_RUNTIME_URL=http://workflow-runtime:9080
-      - WEB_API_URL=http://host.docker.internal:3000
+      - API_URL=http://host.docker.internal:3002
       - HEALTH_CHECK_INTERVAL_MS=1800000
       - HEALTH_CHECK_RETENTION_DAYS=365
     depends_on:
       - surrealdb
       - restate
       - workflow-runtime
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: .env
+    environment:
+      - SURREAL_URL=ws://surrealdb:8000/rpc
+      - SURREAL_USER=root
+      - SURREAL_PASS=root
+      - WEB_URL=http://host.docker.internal:3000
+      - ADMIN_URL=http://host.docker.internal:3001
+    ports:
+      - "3002:3002"
+    depends_on:
+      - surrealdb
     restart: unless-stopped
 
 volumes:

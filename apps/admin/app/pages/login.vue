@@ -6,18 +6,19 @@ const password = ref('admin')
 const error = ref('')
 const router = useRouter()
 const auth = useState<{ authenticated: boolean } | null>('adminAuth')
+const api = useApi()
 
 async function login() {
   error.value = ''
   try {
-    await $fetch('/api/auth/login', {
+    await api.fetch('/api/auth/admin/login', {
       method: 'POST',
       body: { email: email.value, password: password.value }
     })
     auth.value = { authenticated: true }
     await router.push('/')
   } catch (e: any) {
-    error.value = e.statusMessage || 'Login failed'
+    error.value = e.message || 'Login failed'
   }
 }
 </script>

@@ -312,7 +312,7 @@ function inferTypes(value: unknown): InferResult {
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return { dbType: 'string', displayType: 'email' }
     if (/^https?:\/\//.test(value)) return { dbType: 'string', displayType: 'url' }
     const recordMatch = value.match(/^([^:]+):([^:]+)$/)
-    if (recordMatch) {
+    if (recordMatch && recordMatch[1] ) {
       const toTable = recordMatch[1]
       return {
         dbType: 'record',

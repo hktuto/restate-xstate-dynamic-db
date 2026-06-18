@@ -174,5 +174,5 @@ No UI or runtime wiring changes are required.
 - Multiple transitions from the same source/event with different guards are supported for XOR logic.
 - Human-in-the-loop is triggered by entering a state named exactly `awaitingApproval`.
 - The tenant app resolves company context from a `company_slug` cookie or `x-company-namespace` header; Restate calls use the header.
-- The callback URL from Restate to the tenant API defaults to `http://localhost:3000`. Set `NITRO_API_URL` if you run the service elsewhere.
+- The callback URL from Restate to the tenant API defaults to `http://localhost:3002`. Set `NITRO_API_URL` if you run the service elsewhere.
 - `host.docker.internal` is used by the Restate container to reach the service; on some Windows setups this may need Docker Desktop.

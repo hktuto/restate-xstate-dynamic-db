@@ -18,6 +18,18 @@
       "types": "./src/provision.ts",
       "default": "./src/provision.ts"
     },
+    "./platform-status": {
+      "types": "./src/platform-status.ts",
+      "default": "./src/platform-status.ts"
+    },
+    "./schema-definitions": {
+      "types": "./src/schema-definitions.ts",
+      "default": "./src/schema-definitions.ts"
+    },
+    "./schema-registry": {
+      "types": "./src/schema-registry.ts",
+      "default": "./src/schema-registry.ts"
+    },
     "./seed": {
       "types": "./src/seed.ts",
       "default": "./src/seed.ts"
@@ -43,6 +55,7 @@
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/seed.ts",
     "seed:workflows": "tsx src/seed-workflows.ts",
+    "benchmark:schema": "tsx scripts/schema-benchmark.ts",
     "test": "vitest run",
     "benchmark": "tsx scripts/benchmark.ts"
   },

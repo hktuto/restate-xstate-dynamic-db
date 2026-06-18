@@ -5,7 +5,12 @@ interface DashboardStats {
   triggers: number
 }
 
-const { data: stats } = await useFetch<DashboardStats>('/api/dashboard')
+const stats = ref<DashboardStats | null>(null)
+const api = useApi()
+
+onMounted(async () => {
+  stats.value = await api.fetch<DashboardStats>('/api/admin/dashboard')
+})
 </script>
 
 <template>

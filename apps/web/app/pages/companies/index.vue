@@ -6,7 +6,15 @@ interface Company {
   namespace: string
 }
 
-const { data: companies, refresh } = await useFetch<Company[]>('/api/companies')
+const companies = ref<Company[]>([])
+const api = useApi()
+
+async function loadCompanies() {
+  companies.value = await api.fetch<Company[]>('/api/companies')
+}
+
+await loadCompanies()
+
 const router = useRouter()
 
 function enterCompany(company: Company) {

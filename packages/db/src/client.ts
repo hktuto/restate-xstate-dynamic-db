@@ -1,6 +1,6 @@
 import { Surreal } from 'surrealdb'
 
-const SURREAL_URL = process.env.SURREAL_URL || 'http://127.0.0.1:8000/rpc'
+const SURREAL_URL = process.env.SURREAL_URL || 'ws://127.0.0.1:8000/rpc'
 const SURREAL_USER = process.env.SURREAL_USER || 'root'
 const SURREAL_PASS = process.env.SURREAL_PASS || 'root'
 
@@ -26,8 +26,11 @@ function makeKey(namespace: string, database: string): string {
 }
 
 function parseKey(key: string): { namespace: string; database: string } {
-  const [namespace, database] = key.split('--')
-  return { namespace, database }
+  const parts = key.split('--')
+  if (parts.length !== 2) {
+    throw new Error(`Invalid connection pool key: ${key}`)
+  }
+  return { namespace: parts[0], database: parts[1] }
 }
 
 async function createConnection(key: string): Promise<Surreal> {
@@ -41,7 +44,7 @@ async function createConnection(key: string): Promise<Surreal> {
 function evictIdleIfOverLimit(): void {
   const now = Date.now()
   for (let i = pool.length - 1; i >= 0; i--) {
-    const c = pool[i]
+    const c = pool[i]!
     if (c.inUse) continue
     if (pool.length > MAX_POOL_SIZE || now - c.lastUsedAt > IDLE_TIMEOUT_MS) {
       c.surreal.close().catch(() => {})

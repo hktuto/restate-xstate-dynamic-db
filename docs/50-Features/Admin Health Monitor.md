@@ -47,7 +47,7 @@ The standalone health-monitor service is configured via `.env.example`:
 
 - `RESTATE_META_URL`
 - `WORKFLOW_RUNTIME_URL`
-- `WEB_API_URL`
+- `API_URL`
 - `HEALTH_CHECK_INTERVAL_MS`
 - `HEALTH_CHECK_RETENTION_DAYS`
 

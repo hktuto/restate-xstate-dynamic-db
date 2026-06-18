@@ -15,7 +15,24 @@ interface Member {
   profile: UserProfile | null
 }
 
-const { data: members, refresh, pending, error: fetchError } = await useFetch<Member[]>('/api/users')
+const members = ref<Member[]>([])
+const pending = ref(true)
+const fetchError = ref<Error | null>(null)
+const api = useApi()
+
+async function refresh() {
+  pending.value = true
+  fetchError.value = null
+  try {
+    members.value = await api.fetch<Member[]>('/api/users')
+  } catch (err) {
+    fetchError.value = err instanceof Error ? err : new Error('Failed to load members')
+  } finally {
+    pending.value = false
+  }
+}
+
+await refresh()
 
 const invite = reactive<{ email: string; role: Member['role'] }>({
   email: '',
@@ -36,7 +53,7 @@ async function inviteMember() {
   submitting.value = true
 
   try {
-    await $fetch('/api/users', {
+    await api.fetch('/api/users', {
       method: 'POST',
       body: {
         email: invite.email,

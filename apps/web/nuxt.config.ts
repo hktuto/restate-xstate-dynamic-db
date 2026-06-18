@@ -5,6 +5,12 @@ export default defineNuxtConfig({
   extends: ['../../layers/workflow-editor'],
   modules: ['@nuxt/ui'],
   css: ['~/assets/css/main.css'],
+  ssr:false,
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.API_URL ?? 'http://localhost:3002',
+    },
+  },
   vite: {
     optimizeDeps: {
       include: ['@vue-flow/core', '@vue-flow/background', 'xstate', '@xstate/vue']

@@ -8,11 +8,12 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const router = useRouter()
+const api = useApi()
 
 async function submit() {
   error.value = ''
   try {
-    await $fetch('/api/users/accept-invite', {
+    await api.fetch('/api/auth/accept-invite', {
       method: 'POST',
       body: {
         inviteCode: code.value,
@@ -24,7 +25,7 @@ async function submit() {
     })
     await router.push('/')
   } catch (e: any) {
-    error.value = e.statusMessage || 'Failed to accept invite'
+    error.value = e.message || 'Failed to accept invite'
   }
 }
 </script>

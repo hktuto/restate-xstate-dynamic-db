@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: ops
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-15
 related:
   - [[SurrealDB Maintenance]]
   - [[Restate Operations]]
@@ -34,10 +34,10 @@ The `health-monitor` service loads `.env` and then overrides the URLs so it can 
 |----------|---------------|
 | Variable | Compose value |
 |----------|---------------|
-| `SURREAL_URL` | `http://surrealdb:8000/rpc` |
+| `SURREAL_URL` | `ws://surrealdb:8000/rpc` |
 | `RESTATE_META_URL` | `http://restate:9070` |
 | `WORKFLOW_RUNTIME_URL` | `http://host.docker.internal:9080` |
-| `WEB_API_URL` | `http://host.docker.internal:3000` |
+| `API_URL` | `http://host.docker.internal:3002` |
 | `HEALTH_CHECK_INTERVAL_MS` | `1800000` (30 min) |
 | `HEALTH_CHECK_RETENTION_DAYS` | `365` |
 

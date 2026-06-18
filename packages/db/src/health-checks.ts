@@ -54,6 +54,7 @@ export async function listLatestHealthChecks(): Promise<HealthCheckRecord[]> {
     const results = await surreal.query<HealthCheckRecord[][]>(statements.join(';'), params)
     const records = results
       .map((rows) => rows[0])
+      .filter((record): record is HealthCheckRecord => record !== undefined)
       .sort((a, b) => b.checkedAt.localeCompare(a.checkedAt))
     return normalizeIds(records)
   } finally {

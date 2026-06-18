@@ -12,8 +12,18 @@ interface Trigger {
   workflowName: string
 }
 
-const { data: workflows } = await useFetch<Workflow[]>('/api/workflows')
-const { data: triggers, refresh } = await useFetch<Trigger[]>('/api/triggers')
+const workflows = ref<Workflow[]>([])
+const triggers = ref<Trigger[]>([])
+const api = useApi()
+
+async function refresh() {
+  ;[workflows.value, triggers.value] = await Promise.all([
+    api.fetch<Workflow[]>('/api/admin/workflows'),
+    api.fetch<Trigger[]>('/api/admin/triggers'),
+  ])
+}
+
+await refresh()
 
 const form = reactive({
   tableName: 'companies',
@@ -23,7 +33,7 @@ const form = reactive({
 
 async function createTrigger() {
   if (!form.workflowId) return
-  await $fetch('/api/triggers', {
+  await api.fetch('/api/admin/triggers', {
     method: 'POST',
     body: {
       tableName: form.tableName,
@@ -36,7 +46,7 @@ async function createTrigger() {
 }
 
 async function deleteTrigger(id: string) {
-  await $fetch(`/api/triggers/${id}`, { method: 'DELETE' })
+  await api.fetch(`/api/admin/triggers/${id}`, { method: 'DELETE' })
   await refresh()
 }
 </script>

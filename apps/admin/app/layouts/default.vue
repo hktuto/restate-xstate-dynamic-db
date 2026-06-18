@@ -1,9 +1,10 @@
 <script setup lang="ts">
 const router = useRouter()
 const auth = useState<{ authenticated: boolean } | null>('adminAuth')
+const api = useApi()
 
 async function logout() {
-  await $fetch('/api/auth/logout', { method: 'POST' })
+  await api.fetch('/api/auth/admin/logout', { method: 'POST' })
   auth.value = { authenticated: false }
   await router.push('/login')
 }

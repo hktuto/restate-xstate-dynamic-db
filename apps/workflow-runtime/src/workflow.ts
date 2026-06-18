@@ -8,7 +8,7 @@ import { evaluateCondition, registerSubscription, resolveMatchingSubscriptions }
 import type { Condition, PersistedState, RuntimeContext } from './types.js'
 
 export const SCHEMA_VERSION = 1
-const NITRO_API_URL = process.env.NITRO_API_URL || 'http://localhost:3000'
+const NITRO_API_URL = process.env.NITRO_API_URL || 'http://localhost:3002'
 
 export async function loadState(
   ctx: restate.ObjectContext | restate.ObjectSharedContext

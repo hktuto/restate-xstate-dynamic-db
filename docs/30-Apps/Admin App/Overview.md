@@ -4,7 +4,7 @@ type: app
 status: done
 area: admin
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-18
 app:
   - admin
 related:
@@ -23,7 +23,7 @@ The superadmin Nuxt application for platform-level management.
 
 ## Key behaviors
 
-- Authenticated via cookie session against `platform_users`.
+- Authenticated via cookie session against `platform_users`; login/logout are handled by the API service (`apps/api`) through `useApi().fetch()`.
 - Global auth middleware redirects unauthenticated users to `/login`.
 - Uses a dedicated `auth.vue` layout for the login page.
 - Dashboard shows aggregate stats: companies, workflows, users.

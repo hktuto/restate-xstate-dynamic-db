@@ -1,4 +1,7 @@
+// packages/db/src/provision.ts
 import { getSurreal, closeSurreal } from './client.js'
+import { TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
+import { upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
 
 export async function provisionCompanyNamespace(namespace: string) {
   if (!/^[a-z_][a-z0-9_]*$/.test(namespace)) {
@@ -6,20 +9,45 @@ export async function provisionCompanyNamespace(namespace: string) {
   }
   const surreal = await getSurreal()
   try {
+    const tableDefinitions = TENANT_TABLE_SCHEMAS.map((t) => `DEFINE TABLE IF NOT EXISTS ${t.name} SCHEMALESS;`).join('\n')
+
     await surreal.query(`
       DEFINE NAMESPACE IF NOT EXISTS ${namespace};
       USE NS ${namespace} DB main;
       DEFINE DATABASE IF NOT EXISTS main;
       USE NS ${namespace} DB main;
-      DEFINE TABLE IF NOT EXISTS members SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS workflows SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS triggers SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS workflow_actions SCHEMALESS;
+
+      ${tableDefinitions}
+
+      DEFINE TABLE IF NOT EXISTS _tables SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_tables_name ON _tables FIELDS name UNIQUE;
+
+      DEFINE TABLE IF NOT EXISTS _columns SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_columns_table ON _columns FIELDS table;
+      DEFINE INDEX IF NOT EXISTS idx_columns_table_name ON _columns FIELDS table, name UNIQUE;
+
+      DEFINE TABLE IF NOT EXISTS _relations SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_relations_from ON _relations FIELDS fromTable, fromColumn;
+      DEFINE INDEX IF NOT EXISTS idx_relations_to ON _relations FIELDS toTable, toColumn;
+      DEFINE INDEX IF NOT EXISTS idx_relations_unique ON _relations FIELDS fromTable, fromColumn, toTable, toColumn UNIQUE;
+
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
       DEFINE INDEX IF NOT EXISTS idx_members_inviteCode ON members FIELDS inviteCode UNIQUE;
     `)
+
+    for (const table of TENANT_TABLE_SCHEMAS) {
+      await upsertTable(namespace, 'main', { name: table.name, label: table.label })
+      for (const column of table.columns) {
+        await upsertColumn(namespace, 'main', { ...column, table: table.name })
+      }
+      for (const column of SYSTEM_COLUMNS) {
+        await upsertColumn(namespace, 'main', { ...column, table: table.name })
+      }
+      for (const relation of table.relations ?? []) {
+        await upsertRelation(namespace, 'main', relation)
+      }
+    }
+
     return { ok: true, namespace }
   } finally {
     await closeSurreal(surreal)

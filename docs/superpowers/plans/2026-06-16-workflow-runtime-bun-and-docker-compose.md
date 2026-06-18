@@ -241,7 +241,7 @@ services:
       dockerfile: apps/workflow-runtime/Dockerfile
     env_file: .env
     environment:
-      - NITRO_API_URL=http://host.docker.internal:3000
+      - NITRO_API_URL=http://host.docker.internal:3002
     ports:
       - "9080:9080"
     depends_on:
@@ -254,7 +254,7 @@ services:
       dockerfile: apps/health-monitor/Dockerfile
     env_file: .env
     environment:
-      - SURREAL_URL=http://surrealdb:8000/rpc
+      - SURREAL_URL=ws://surrealdb:8000/rpc
       - RESTATE_META_URL=http://restate:9070
       - WORKFLOW_RUNTIME_URL=http://workflow-runtime:9080
       - WEB_API_URL=http://host.docker.internal:3000

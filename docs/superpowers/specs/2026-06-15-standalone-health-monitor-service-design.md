@@ -129,7 +129,7 @@ On Windows, Bun support is still maturing; if it proves unreliable, the same sou
 The service reuses existing environment variables already documented in `.env.example`:
 
 ```bash
-SURREAL_URL=http://127.0.0.1:8000/rpc
+SURREAL_URL=ws://127.0.0.1:8000/rpc
 SURREAL_USER=root
 SURREAL_PASS=root
 

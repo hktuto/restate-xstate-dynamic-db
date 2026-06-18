@@ -11,15 +11,22 @@ interface UserTask {
   }
 }
 
-const { data: tasks, refresh } = await useFetch<UserTask[]>('/api/user-tasks')
+const tasks = ref<UserTask[]>([])
+const api = useApi()
+
+async function refresh() {
+  tasks.value = await api.fetch<UserTask[]>('/api/user-tasks')
+}
+
+await refresh()
 
 async function approve(id: string) {
-  await $fetch(`/api/user-tasks/${id}/approve`, { method: 'POST' })
+  await api.fetch(`/api/user-tasks/${id}/approve`, { method: 'POST' })
   await refresh()
 }
 
 async function reject(id: string) {
-  await $fetch(`/api/user-tasks/${id}/reject`, { method: 'POST' })
+  await api.fetch(`/api/user-tasks/${id}/reject`, { method: 'POST' })
   await refresh()
 }
 </script>

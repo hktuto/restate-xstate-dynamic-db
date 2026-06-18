@@ -1,4 +1,4 @@
-import type { PlatformStatus } from '#server/utils/platform-status'
+import type { PlatformStatus } from '~/types/platform-status'
 
 export default defineNuxtRouteMiddleware((to) => {
   if (to.path.startsWith('/api/') || to.path === '/maintenance') {

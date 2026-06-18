@@ -4,10 +4,17 @@ interface Workflow {
   name: string
 }
 
-const { data: workflows, refresh } = await useFetch<Workflow[]>('/api/workflows')
+const workflows = ref<Workflow[]>([])
+const api = useApi()
+
+async function refresh() {
+  workflows.value = await api.fetch<Workflow[]>('/api/admin/workflows')
+}
+
+await refresh()
 
 async function deleteWorkflow(id: string) {
-  await $fetch(`/api/workflows/${id}`, { method: 'DELETE' })
+  await api.fetch(`/api/admin/workflows/${id}`, { method: 'DELETE' })
   await refresh()
 }
 </script>
