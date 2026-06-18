@@ -4,7 +4,7 @@ import { authRoutes } from './routes/auth.js'
 import { tablesRoutes } from './routes/tables.js'
 import { companiesRoutes } from './routes/companies.js'
 import { usersRoutes } from './routes/users.js'
-import { workflowsRoutes } from './routes/workflows.js'
+import { workflowDesignsRoutes } from './routes/workflow-designs.js'
 import { triggersRoutes } from './routes/triggers.js'
 import { adminWorkflowsRoutes } from './routes/admin-workflows.js'
 import { adminTriggersRoutes } from './routes/admin-triggers.js'
@@ -21,7 +21,7 @@ export function createApp() {
   app.route('/api', tablesRoutes())
   app.route('/api', companiesRoutes())
   app.route('/api', usersRoutes())
-  app.route('/api', workflowsRoutes())
+  app.route('/api/workflow-designs', workflowDesignsRoutes())
   app.route('/api', triggersRoutes())
   app.route('/api', adminWorkflowsRoutes())
   app.route('/api', adminTriggersRoutes())
