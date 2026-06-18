@@ -10,6 +10,14 @@ export interface ValidationError {
 const START_NODE_ID = '__start'
 const JS_ID = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
+function isEmptyExpression(value: unknown): boolean {
+  if (value === null || value === undefined) return true
+  if (typeof value === 'string') return value.trim().length === 0
+  if (Array.isArray(value)) return value.length === 0
+  if (typeof value === 'object') return Object.keys(value).length === 0
+  return false
+}
+
 export function useWorkflowValidator() {
   const { isEventAllowed } = useWorkflowRuntimeEvents()
 
@@ -65,7 +73,7 @@ export function useWorkflowValidator() {
       }
 
       if (node.type === 'condition' && node.data.kind === 'condition') {
-        if (node.data.expression === null || node.data.expression === undefined || JSON.stringify(node.data.expression) === '{}') {
+        if (isEmptyExpression(node.data.expression)) {
           errors.push({ id: node.id, path: `nodes.${node.id}.expression`, message: `Condition state "${node.id}" must have an expression` })
         }
       }
@@ -76,6 +84,9 @@ export function useWorkflowValidator() {
     }
 
     for (const edge of edges) {
+      if (!nodeMap.has(edge.source)) {
+        errors.push({ id: edge.id, path: `edges.${edge.id}.source`, message: `Transition sources missing state "${edge.source}"` })
+      }
       if (!nodeMap.has(edge.target)) {
         errors.push({ id: edge.id, path: `edges.${edge.id}.target`, message: `Transition targets missing state "${edge.target}"` })
       }
