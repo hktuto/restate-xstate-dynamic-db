@@ -126,20 +126,49 @@ export interface ActionMetadata {
   category?: string
   paramsSchema?: Record<string, ParamSchema>
   inputs?: Record<string, ActionInputMetadata>
+  tableInput?: string
 }
 ```
 
-Keys are context paths. For the first iteration, only `record.<field>` paths are supported. Example:
+`inputs` declares explicit context paths. For the first iteration, only `record.<field>` paths are supported.
+
+`tableInput` tells the form builder to derive inputs from a table schema instead. For example, `createRecord` can declare:
 
 ```ts
 {
   id: 'createRecord',
-  inputs: {
-    'record.name': { type: 'string', label: 'Name', required: true },
-    'record.status': { type: 'string', label: 'Status', default: 'active' }
+  tableInput: 'table'
+}
+```
+
+meaning: "read the `table` param, fetch that table's schema, and use its fields as the start form inputs." The submitted values become the synthetic `record`.
+
+### First-action form configuration
+
+When a workflow can be user-triggered, the first action's state may include a `form` override in `state.meta`:
+
+```ts
+meta: {
+  action: 'createRecord',
+  params: { table: 'members', fields: { ... } },
+  form: {
+    enabled: true,
+    fields: {
+      email: { required: true, default: '', events: { onChange: 'validateEmail' } },
+      role: { required: true, default: 'member', events: { onMount: 'prefillRole' } }
+    }
   }
 }
 ```
+
+- `form.enabled` toggles whether this action exposes a start form.
+- `form.fields` is keyed by table field name. Each field can override:
+  - `enabled` — show/hide the field in the start form.
+  - `required` — mark the field required.
+  - `default` — prefill value.
+  - `events` — hook names like `onChange`, `onMount` stored for future execution.
+
+If `form.fields` is omitted, the form is auto-populated from the table schema with sensible defaults. This keeps the common case zero-config while allowing per-field customization.
 
 ## API changes
 
@@ -196,10 +225,17 @@ A new helper `dispatchUserTrigger(namespace, workflowId, values, { companyId })`
 - For `db_trigger`, show the existing `tableName`/`event` form.
 - For `user_trigger`, show a minimal form (workflow only; permissions hidden/placeholder).
 
+### Action config panel
+
+- For actions that declare `tableInput`, add a "Start form" section.
+- The section lists fields from the selected table's schema.
+- The user can toggle fields on/off, set required/default, and attach hook names for `onChange`/`onMount`.
+- These overrides are saved in `state.meta.form`.
+
 ### Workflow list / detail page
 
 - For workflows that have a `user_trigger`, show a **Run** button.
-- Clicking it opens a modal whose form is generated from the first action's `inputs` metadata.
+- Clicking it opens a modal whose form is generated from the first action's `tableInput` schema, merged with `state.meta.form` overrides.
 - On submit, call `POST /api/workflow-instances` and show success/error feedback.
 
 ### Admin app
@@ -208,9 +244,9 @@ Mirror the same pages for platform workflows under `/admin/workflows`.
 
 ## Runtime impact
 
-No runtime changes are required if the synthetic record satisfies the `CreateWorkflowRequest` contract. The first action receives `context.record` as usual.
+No runtime changes are required. The `form` configuration is UI metadata only; the runtime still receives a synthetic `record` in `CreateWorkflowRequest`.
 
-If the first action's inputs are missing or the user submits an invalid value, the runtime action executor will fail normally and the instance will move to an error state. A future iteration can add client-side form validation from `ActionInputMetadata`.
+The first action receives `context.record` as usual. If the action's `params` reference `record.<field>` (e.g. `{ $context: 'record.name' }`), the submitted value is used. If a required value is missing or invalid, the action executor fails and the instance moves to an error state.
 
 ## Backwards compatibility
 
