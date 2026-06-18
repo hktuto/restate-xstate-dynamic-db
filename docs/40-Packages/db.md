@@ -79,18 +79,23 @@ Pool behavior is controlled by environment variables:
 - `getCompanyByNamespace(namespace)`
 - `createCompany(...)`
 
-### Workflows and triggers
+### Workflow designs
 
-- `listWorkflows(namespace)` / `listPlatformWorkflows()`
-- `createWorkflow(namespace, ...)` / `createPlatformWorkflow(...)`
-- `listTriggers(namespace)` / `listPlatformTriggers()`
+- `listWorkflowDesigns(namespace)` / `listPlatformWorkflowDesigns()`
+- `getWorkflowDesign(namespace, id)` / `getPlatformWorkflowDesign(namespace, id)`
+- `createWorkflowDesign(namespace, ...)` / `createPlatformWorkflowDesign(namespace, ...)`
+- `updateWorkflowDesign(namespace, id, ...)` / `updatePlatformWorkflowDesign(namespace, id, ...)`
+- `deleteWorkflowDesign(namespace, id)` / `deletePlatformWorkflowDesign(namespace, id)`
+
+Workflow designs store the XState config and an array of `StartRule` objects (`starts`). Each start rule has `type` (`db_trigger`, `user_trigger`, `cron`, `webhook`), `startState`, and `options`.
 
 ### Workflow instances
 
 - `listWorkflowInstances(namespace)` / `listPlatformWorkflowInstances()`
-- `findActiveWorkflowInstance(namespace, workflowId, tableName, recordId)`
-- `createWorkflowInstance(namespace, ...)` / `createPlatformWorkflowInstance(...)`
+- `createWorkflowInstance(namespace, ...)` / `createPlatformWorkflowInstance(namespace, ...)`
 - `updateWorkflowInstanceStatus(namespace, id, status)`
+
+Instances reference a `workflow_designs` record via `designId`, store the current XState state in `currentState`, the actor context in `context`, and the triggering rule summary in `triggerBy`.
 
 ### Workflow actions
 

@@ -67,8 +67,7 @@ export async function createTenantNamespace(namespace: string) {
       DEFINE DATABASE IF NOT EXISTS main;
       USE NS ${namespace} DB main;
       DEFINE TABLE IF NOT EXISTS members SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS workflows SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS triggers SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS workflow_designs SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
