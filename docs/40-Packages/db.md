@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-18
 package: db
 related:
   - [[Data Model]]
