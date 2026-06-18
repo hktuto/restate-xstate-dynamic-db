@@ -1119,19 +1119,25 @@ const flowEdges = computed({
   set: (value) => emit('update:edges', value)
 })
 
+// VueFlow does not expose a pane double-click event, so add-node is triggered
+// by a single pane click when the active tool is an add-* tool.
 function onPaneClick(event: MouseEvent) {
   if (props.tool.startsWith('add-')) {
+    if (props.readonly) return
     const type = props.tool.replace('add-', '') as EditorNode['type']
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    emit('add-node', type, {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
-    })
+    const position = vueFlowInstance.value
+      ? vueFlowInstance.value.screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+      : { x: event.offsetX, y: event.offsetY }
+    emit('add-node', type, position)
+    return
+  }
+  if (props.tool === 'select' || props.tool === 'pan') {
     emit('select', null)
   }
 }
 
 function onConnect(params: { source: string; target: string }) {
+  if (props.readonly) return
   emit('connect', params)
 }
 
@@ -1141,10 +1147,6 @@ function onNodeClick(_event: MouseEvent, node: EditorNode) {
 
 function onEdgeClick(_event: MouseEvent, edge: EditorEdge) {
   emit('select', edge.id)
-}
-
-function onPaneClickClear() {
-  if (props.tool === 'select') emit('select', null)
 }
 
 function fitView() {
@@ -1168,8 +1170,7 @@ defineExpose({ fitView })
       :delete-key-code="null"
       fit-view-on-init
       @init="onInit"
-      @pane-click="onPaneClickClear"
-      @dblclick="onPaneClick"
+      @pane-click="onPaneClick"
       @connect="onConnect"
       @node-click="onNodeClick"
       @edge-click="onEdgeClick"

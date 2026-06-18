@@ -54,20 +54,22 @@ const flowEdges = computed({
 })
 
 function onPaneClick(event: MouseEvent) {
-  if (props.readonly) return
   if (props.tool.startsWith('add-')) {
+    if (props.readonly) return
     const type = props.tool.replace('add-', '') as EditorNode['type']
     const position = vueFlowInstance.value
       ? vueFlowInstance.value.screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
       : { x: event.offsetX, y: event.offsetY }
     emit('add-node', type, position)
-    emit('select', null)
-  } else {
+    return
+  }
+  if (props.tool === 'select' || props.tool === 'pan') {
     emit('select', null)
   }
 }
 
 function onConnect(params: { source: string; target: string }) {
+  if (props.readonly) return
   emit('connect', params)
 }
 
@@ -98,6 +100,7 @@ defineExpose({ fitView })
       :nodes-connectable="tool === 'select' && !readonly"
       :edges-updatable="false"
       :delete-key-code="null"
+      :default-edge-options="{ type: 'transition' }"
       fit-view-on-init
       @init="onInit"
       @pane-click="onPaneClick"
