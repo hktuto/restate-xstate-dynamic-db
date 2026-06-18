@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import type { EditorTool } from '../composables/useWorkflowEditor'
+import type { EditorTool } from '../composables/useWorkflowEditor.js'
 
 const tool = defineModel<EditorTool>('tool', { required: true })
+const name = defineModel<string>('name')
 
 const props = defineProps<{
   readonly?: boolean
+  canSave?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -14,28 +16,28 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex items-center gap-2 px-3 py-2 bg-white border-b">
-    <button
-      class="px-2 py-1 text-sm rounded border"
-      :class="tool === 'select' ? 'bg-blue-100 border-blue-300' : 'border-gray-300'"
-      @click="tool = 'select'"
+  <div class="flex items-center gap-2 px-3 py-2 bg-white border-b flex-wrap">
+    <input
+      v-model="name"
+      type="text"
+      placeholder="Workflow name"
+      class="border rounded px-2 py-1 text-sm w-48"
+      :readonly="readonly"
+    />
+
+    <select
+      :value="tool"
+      class="border rounded px-2 py-1 text-sm"
+      :disabled="readonly"
+      @change="tool = ($event.target as HTMLSelectElement).value as EditorTool"
     >
-      Select
-    </button>
-    <button
-      class="px-2 py-1 text-sm rounded border"
-      :class="tool === 'pan' ? 'bg-blue-100 border-blue-300' : 'border-gray-300'"
-      @click="tool = 'pan'"
-    >
-      Pan
-    </button>
-    <button
-      class="px-2 py-1 text-sm rounded border"
-      :class="tool === 'add-state' ? 'bg-blue-100 border-blue-300' : 'border-gray-300'"
-      @click="tool = 'add-state'"
-    >
-      Add state
-    </button>
+      <option value="select">Select</option>
+      <option value="pan">Pan</option>
+      <option value="add-action">+ Action</option>
+      <option value="add-condition">+ Condition</option>
+      <option value="add-task">+ Task</option>
+      <option value="add-final">+ Final</option>
+    </select>
 
     <div class="flex-1" />
 
@@ -44,7 +46,8 @@ const emit = defineEmits<{
     </button>
     <button
       v-if="!readonly"
-      class="px-3 py-1 text-sm rounded bg-green-600 text-white hover:bg-green-700"
+      class="px-3 py-1 text-sm rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+      :disabled="!canSave"
       @click="emit('save')"
     >
       Save
