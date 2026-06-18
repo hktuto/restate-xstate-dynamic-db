@@ -5,7 +5,6 @@ import type { ActionMetadata } from 'shared'
 import ActionConfigPanel from './ActionConfigPanel.vue'
 import ConditionConfigPanel from './ConditionConfigPanel.vue'
 import TaskConfigPanel from './TaskConfigPanel.vue'
-import { useWorkflowRuntimeEvents } from '../composables/useWorkflowRuntimeEvents.js'
 
 const props = defineProps<{
   selectedNode?: EditorNode
@@ -21,7 +20,6 @@ const emit = defineEmits<{
   (e: 'select:node', id: string): void
 }>()
 
-const { getResultEvents, isEventAllowed } = useWorkflowRuntimeEvents()
 
 const nodeName = computed({
   get: () => props.selectedNode?.id ?? '',
@@ -32,14 +30,6 @@ const nodeName = computed({
   }
 })
 
-const allowedEvents = computed(() => {
-  if (!props.selectedEdge) return []
-  const source = props.selectedNode ? undefined : undefined
-  // Source node id comes from edge; parent passes only selected edge.
-  // We compute allowed events from edge source by looking it up via a prop if added later.
-  // For now, allow any event and let validation catch invalid ones.
-  return []
-})
 
 function updateActionConfig(config: { actionId: string; params: Record<string, unknown>; outputKey: string }) {
   if (!props.selectedNode) return
