@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
-import type { NodeMouseEvent, EdgeMouseEvent } from '@vue-flow/core'
+import type { NodeMouseEvent, EdgeMouseEvent, NodeTypesObject, VueFlowStore } from '@vue-flow/core'
 import type { EditorNode, EditorEdge } from '../composables/types.js'
 import type { EditorTool } from '../composables/useWorkflowEditor.js'
 import StartNode from './StartNode.vue'
@@ -27,9 +27,9 @@ const emit = defineEmits<{
   (e: 'connect', params: { source: string; target: string }): void
 }>()
 
-const vueFlowInstance = ref<any>(null)
+const vueFlowInstance = ref<VueFlowStore | null>(null)
 
-function onInit(instance: any) {
+function onInit(instance: VueFlowStore) {
   vueFlowInstance.value = instance
 }
 
@@ -39,7 +39,7 @@ const nodeTypes = {
   condition: ConditionNode,
   task: TaskNode,
   final: FinalNode
-}
+} as NodeTypesObject
 
 const edgeTypes = { transition: TransitionEdge }
 
@@ -56,10 +56,9 @@ const flowEdges = computed({
 function onPaneClick(event: MouseEvent) {
   if (props.tool.startsWith('add-')) {
     const type = props.tool.replace('add-', '') as EditorNode['type']
-    const position = vueFlowInstance.value?.screenToFlowCoordinate({
-      x: event.clientX,
-      y: event.clientY
-    }) ?? { x: event.clientX, y: event.clientY }
+    const position = vueFlowInstance.value
+      ? vueFlowInstance.value.screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+      : { x: event.offsetX, y: event.offsetY }
     emit('add-node', type, position)
     emit('select', null)
   } else {
