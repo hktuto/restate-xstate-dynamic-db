@@ -129,7 +129,7 @@ async function main() {
     'createPlatformWorkflowDesign',
     { name: 'Onboarding', xstateConfig: { id: 'onboarding', initial: 'idle', states: { idle: {} } }, starts: [{ type: 'db_trigger', startState: 'idle', options: { tableName: 'orders', event: 'created' } }] },
     () =>
-      platform.createPlatformWorkflowDesign('platform', {
+      platform.createPlatformWorkflowDesign({
         name: 'Onboarding',
         xstateConfig: { id: 'onboarding', initial: 'idle', states: { idle: {} } },
         starts: [{ type: 'db_trigger', startState: 'idle', options: { tableName: 'orders', event: 'created' } }],
@@ -137,26 +137,25 @@ async function main() {
   )
   if (pWorkflow) {
     await record('platform', 'getPlatformWorkflowDesign', pWorkflow.id, () =>
-      platform.getPlatformWorkflowDesign('platform', pWorkflow.id),
+      platform.getPlatformWorkflowDesign(pWorkflow.id),
     )
   }
-  await record('platform', 'listPlatformWorkflowDesigns', {}, () => platform.listPlatformWorkflowDesigns('platform'))
+  await record('platform', 'listPlatformWorkflowDesigns', {}, () => platform.listPlatformWorkflowDesigns())
 
   const pInstance = await record(
     'platform',
     'createPlatformWorkflowInstance',
-    { designId: pWorkflow?.id, status: 'running', namespace: 'platform', triggerBy: { type: 'user_trigger', startState: 'idle' } },
+    { designId: pWorkflow?.id, status: 'running', triggerBy: { type: 'user_trigger', startState: 'idle' } },
     () =>
-      platform.createPlatformWorkflowInstance('platform', {
+      platform.createPlatformWorkflowInstance({
         designId: pWorkflow!.id,
         status: 'running',
-        namespace: 'platform',
         triggerBy: { type: 'user_trigger', startState: 'idle' },
       }),
   )
   if (pInstance) {
     await record('platform', 'getPlatformWorkflowInstance', pInstance.id, () =>
-      platform.getPlatformWorkflowInstance('platform', pInstance.id),
+      platform.getPlatformWorkflowInstance(pInstance.id),
     )
   }
 

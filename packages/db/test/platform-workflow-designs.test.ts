@@ -13,24 +13,23 @@ describe('platform workflow designs', () => {
   })
 
   it('stores starts array', async () => {
-    const design = await createPlatformWorkflowDesign('platform', {
+    const design = await createPlatformWorkflowDesign({
       name: 'Onboarding',
       xstateConfig: { id: 'onboarding', initial: 'start', states: { start: { type: 'final' } } },
       starts: [{ type: 'user_trigger', startState: 'start', options: {} }]
     })
-    const loaded = await getPlatformWorkflowDesign('platform', design.id)
+    const loaded = await getPlatformWorkflowDesign(design.id)
     expect(loaded?.starts).toHaveLength(1)
     expect(loaded?.starts?.[0].type).toBe('user_trigger')
   })
 
   it('creates instance with designId and triggerBy', async () => {
-    const design = await createPlatformWorkflowDesign('platform', {
+    const design = await createPlatformWorkflowDesign({
       name: 'Onboarding',
       xstateConfig: { id: 'onboarding', initial: 'start', states: { start: { type: 'final' } } }
     })
-    const instance = await createPlatformWorkflowInstance('platform', {
+    const instance = await createPlatformWorkflowInstance({
       designId: design.id,
-      namespace: 'platform',
       triggerBy: { type: 'user_trigger', startState: 'start' }
     })
     expect(instance.designId).toBe(design.id)

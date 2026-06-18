@@ -118,26 +118,26 @@ describe('platform', () => {
 
   describe('platform workflow designs', () => {
     it('creates, lists, gets, updates and deletes a workflow design', async () => {
-      const created = await createPlatformWorkflowDesign('test', sampleWorkflow)
+      const created = await createPlatformWorkflowDesign(sampleWorkflow)
       expect(created.id).toMatch(/^workflow_designs:/)
 
-      const list = await listPlatformWorkflowDesigns('test')
+      const list = await listPlatformWorkflowDesigns()
       expect(list).toHaveLength(1)
 
-      const found = await getPlatformWorkflowDesign('test', created.id)
+      const found = await getPlatformWorkflowDesign(created.id)
       expect(found?.id).toBe(created.id)
 
-      const updated = await updatePlatformWorkflowDesign('test', created.id, { name: 'Renamed' })
+      const updated = await updatePlatformWorkflowDesign(created.id, { name: 'Renamed' })
       expect(updated?.name).toBe('Renamed')
 
-      await deletePlatformWorkflowDesign('test', created.id)
-      const after = await listPlatformWorkflowDesigns('test')
+      await deletePlatformWorkflowDesign(created.id)
+      const after = await listPlatformWorkflowDesigns()
       expect(after).toHaveLength(0)
     })
 
     it('stores db_trigger starts inside a workflow design', async () => {
-      const created = await createPlatformWorkflowDesign('test', sampleWorkflowWithTrigger)
-      const found = await getPlatformWorkflowDesign('test', created.id)
+      const created = await createPlatformWorkflowDesign(sampleWorkflowWithTrigger)
+      const found = await getPlatformWorkflowDesign(created.id)
       expect(found?.starts).toHaveLength(1)
       expect(found?.starts?.[0].type).toBe('db_trigger')
       expect(found?.starts?.[0].startState).toBe('idle')
@@ -146,33 +146,31 @@ describe('platform', () => {
 
   describe('platform workflow instances', () => {
     it('creates, gets, updates status and deletes', async () => {
-      const design = await createPlatformWorkflowDesign('test', sampleWorkflow)
-      const instance = await createPlatformWorkflowInstance('test', {
+      const design = await createPlatformWorkflowDesign(sampleWorkflow)
+      const instance = await createPlatformWorkflowInstance({
         designId: design.id,
-        namespace: 'test',
         status: 'running',
         triggerBy: { type: 'user_trigger', startState: 'idle' },
       })
       expect(instance.id).toMatch(/^workflow_instances:/)
 
-      const found = await getPlatformWorkflowInstance('test', instance.id)
+      const found = await getPlatformWorkflowInstance(instance.id)
       expect(found?.id).toBe(instance.id)
 
-      const updated = await updatePlatformWorkflowInstanceStatus('test', instance.id, 'done')
+      const updated = await updatePlatformWorkflowInstanceStatus(instance.id, 'done')
       expect(updated?.status).toBe('done')
 
-      await deletePlatformWorkflowInstance('test', instance.id)
-      const after = await listPlatformWorkflowInstances('test')
+      await deletePlatformWorkflowInstance(instance.id)
+      const after = await listPlatformWorkflowInstances()
       expect(after).toHaveLength(0)
     })
   })
 
   describe('platform user tasks', () => {
     it('creates, gets, updates status and deletes a task', async () => {
-      const design = await createPlatformWorkflowDesign('test', sampleWorkflow)
-      const instance = await createPlatformWorkflowInstance('test', {
+      const design = await createPlatformWorkflowDesign(sampleWorkflow)
+      const instance = await createPlatformWorkflowInstance({
         designId: design.id,
-        namespace: 'test',
         status: 'running',
       })
       const task = await createPlatformUserTask({

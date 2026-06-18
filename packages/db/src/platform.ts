@@ -30,7 +30,7 @@ export interface PlatformWorkflowDesignInput {
   starts?: StartRule[]
 }
 
-export async function listPlatformWorkflowDesigns(namespace: string): Promise<PlatformWorkflowDesignRecord[]> {
+export async function listPlatformWorkflowDesigns(): Promise<PlatformWorkflowDesignRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [designs] = await surreal.query<[PlatformWorkflowDesignRecord[]]>('SELECT * FROM workflow_designs')
@@ -40,7 +40,7 @@ export async function listPlatformWorkflowDesigns(namespace: string): Promise<Pl
   }
 }
 
-export async function createPlatformWorkflowDesign(namespace: string, input: PlatformWorkflowDesignInput): Promise<PlatformWorkflowDesignRecord> {
+export async function createPlatformWorkflowDesign(input: PlatformWorkflowDesignInput): Promise<PlatformWorkflowDesignRecord> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const data = {
@@ -58,7 +58,7 @@ export async function createPlatformWorkflowDesign(namespace: string, input: Pla
   }
 }
 
-export async function getPlatformWorkflowDesign(namespace: string, id: string): Promise<PlatformWorkflowDesignRecord | undefined> {
+export async function getPlatformWorkflowDesign(id: string): Promise<PlatformWorkflowDesignRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
@@ -71,7 +71,7 @@ export async function getPlatformWorkflowDesign(namespace: string, id: string): 
   }
 }
 
-export async function updatePlatformWorkflowDesign(namespace: string, id: string, input: Partial<PlatformWorkflowDesignInput>): Promise<PlatformWorkflowDesignRecord | undefined> {
+export async function updatePlatformWorkflowDesign(id: string, input: Partial<PlatformWorkflowDesignInput>): Promise<PlatformWorkflowDesignRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [updated] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
@@ -84,7 +84,7 @@ export async function updatePlatformWorkflowDesign(namespace: string, id: string
   }
 }
 
-export async function deletePlatformWorkflowDesign(namespace: string, id: string): Promise<void> {
+export async function deletePlatformWorkflowDesign(id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     await surreal.query('DELETE type::record($id)', { id })
@@ -113,11 +113,11 @@ export interface PlatformWorkflowInstanceInput {
   currentState?: string
   context?: Record<string, unknown>
   triggerBy?: TriggerBy
-  namespace: string
+  namespace?: string
   companyId?: string
 }
 
-export async function listPlatformWorkflowInstances(namespace: string): Promise<PlatformWorkflowInstanceRecord[]> {
+export async function listPlatformWorkflowInstances(): Promise<PlatformWorkflowInstanceRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [instances] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>('SELECT * FROM workflow_instances ORDER BY createdAt DESC')
@@ -127,7 +127,7 @@ export async function listPlatformWorkflowInstances(namespace: string): Promise<
   }
 }
 
-export async function getPlatformWorkflowInstance(namespace: string, id: string): Promise<PlatformWorkflowInstanceRecord | undefined> {
+export async function getPlatformWorkflowInstance(id: string): Promise<PlatformWorkflowInstanceRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
@@ -140,7 +140,7 @@ export async function getPlatformWorkflowInstance(namespace: string, id: string)
   }
 }
 
-export async function createPlatformWorkflowInstance(namespace: string, input: PlatformWorkflowInstanceInput): Promise<PlatformWorkflowInstanceRecord> {
+export async function createPlatformWorkflowInstance(input: PlatformWorkflowInstanceInput): Promise<PlatformWorkflowInstanceRecord> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const now = new Date().toISOString()
@@ -150,7 +150,7 @@ export async function createPlatformWorkflowInstance(namespace: string, input: P
       currentState: input.currentState,
       context: input.context,
       triggerBy: input.triggerBy,
-      namespace: input.namespace,
+      namespace: 'platform',
       companyId: input.companyId,
       createdAt: now,
       updatedAt: now
@@ -166,7 +166,6 @@ export async function createPlatformWorkflowInstance(namespace: string, input: P
 }
 
 export async function updatePlatformWorkflowInstanceStatus(
-  namespace: string,
   id: string,
   status: WorkflowInstanceStatus
 ): Promise<PlatformWorkflowInstanceRecord | undefined> {
@@ -182,7 +181,7 @@ export async function updatePlatformWorkflowInstanceStatus(
   }
 }
 
-export async function deletePlatformWorkflowInstance(namespace: string, id: string): Promise<void> {
+export async function deletePlatformWorkflowInstance(id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     await surreal.query('DELETE type::record($id)', { id })

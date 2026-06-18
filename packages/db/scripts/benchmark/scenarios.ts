@@ -56,14 +56,13 @@ async function setupPlatform(): Promise<PlatformSetup> {
     slug: 'bench-co',
     namespace: 'bench_co',
   })
-  const workflow = await platform.createPlatformWorkflowDesign(company.namespace, {
+  const workflow = await platform.createPlatformWorkflowDesign({
     name: uniqueWorkflowName(),
     xstateConfig: sampleWorkflow,
   })
-  const instance = await platform.createPlatformWorkflowInstance(company.namespace, {
+  const instance = await platform.createPlatformWorkflowInstance({
     designId: workflow.id,
     status: 'running',
-    namespace: company.namespace,
     triggerBy: { type: 'user_trigger', startState: 'idle' },
   })
   const task = await platform.createPlatformUserTask({
@@ -103,7 +102,7 @@ async function setupTenant(namespace: string): Promise<TenantSetup> {
     instanceId: instance.id,
     type: 'approval',
     tableName: 'orders',
-    recordId: 'orders:1',
+    recordId: `orders:${randomUUID()}`,
     workflowId: design.id,
   })
   return { member, design, instance, task }
@@ -154,7 +153,7 @@ export const platformScenarios = [
       await resetPlatformTables()
     },
     fn: async () => {
-      await platform.createPlatformWorkflowDesign('bench_co', {
+      await platform.createPlatformWorkflowDesign({
         name: uniqueWorkflowName(),
         xstateConfig: sampleWorkflow,
       })
@@ -172,7 +171,7 @@ export const platformScenarios = [
     },
     fn: async (id) => {
       if (!id) throw new Error('getPlatformWorkflowDesign scenario state missing')
-      await platform.getPlatformWorkflowDesign('bench_co', id)
+      await platform.getPlatformWorkflowDesign(id)
     },
   } satisfies Scenario<string>,
   {
@@ -187,10 +186,9 @@ export const platformScenarios = [
     },
     fn: async (designId) => {
       if (!designId) throw new Error('createPlatformWorkflowInstance scenario state missing')
-      await platform.createPlatformWorkflowInstance('bench_co', {
+      await platform.createPlatformWorkflowInstance({
         designId,
         status: 'running',
-        namespace: 'bench_co',
         triggerBy: { type: 'user_trigger', startState: 'idle' },
       })
     },
@@ -207,7 +205,7 @@ export const platformScenarios = [
     },
     fn: async (id) => {
       if (!id) throw new Error('getPlatformWorkflowInstance scenario state missing')
-      await platform.getPlatformWorkflowInstance('bench_co', id)
+      await platform.getPlatformWorkflowInstance(id)
     },
   } satisfies Scenario<string>,
   {
