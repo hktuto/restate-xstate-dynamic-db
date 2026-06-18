@@ -19,8 +19,7 @@ export async function ensurePlatformNamespace() {
       DEFINE TABLE IF NOT EXISTS platform_users SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS accounts SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS user_profiles SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS workflows SCHEMALESS;
-      DEFINE TABLE IF NOT EXISTS triggers SCHEMALESS;
+      DEFINE TABLE IF NOT EXISTS workflow_designs SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS workflow_instances SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
       DEFINE TABLE IF NOT EXISTS health_checks SCHEMALESS;
@@ -43,7 +42,6 @@ export async function resetPlatformTables() {
       DELETE accounts;
       DELETE user_profiles;
       DELETE workflow_designs;
-      DELETE triggers;
       DELETE workflow_instances;
       DELETE user_tasks;
       DELETE health_checks;

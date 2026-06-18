@@ -1,5 +1,6 @@
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
+import type { WorkflowInstanceStatus } from './tenant.js'
 import type { WorkflowDefinition, StartRule, TriggerBy } from 'shared'
 
 export interface CompanyInput {
@@ -138,12 +139,10 @@ export async function deletePlatformTrigger(id: string): Promise<void> {
   }
 }
 
-export type PlatformWorkflowInstanceStatus = 'pending' | 'running' | 'waiting' | 'done' | 'error'
-
 export interface PlatformWorkflowInstanceRecord {
   id: string
   designId: string
-  status: PlatformWorkflowInstanceStatus
+  status: WorkflowInstanceStatus
   currentState?: string
   context?: Record<string, unknown>
   triggerBy?: TriggerBy
@@ -156,7 +155,7 @@ export interface PlatformWorkflowInstanceRecord {
 
 export interface PlatformWorkflowInstanceInput {
   designId: string
-  status?: PlatformWorkflowInstanceStatus
+  status?: WorkflowInstanceStatus
   currentState?: string
   context?: Record<string, unknown>
   triggerBy?: TriggerBy
@@ -215,7 +214,7 @@ export async function createPlatformWorkflowInstance(namespace: string, input: P
 export async function updatePlatformWorkflowInstanceStatus(
   namespace: string,
   id: string,
-  status: PlatformWorkflowInstanceStatus
+  status: WorkflowInstanceStatus
 ): Promise<PlatformWorkflowInstanceRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
