@@ -31,3 +31,6 @@ web-dev.pid
 
 # Worktrees
 .worktrees/
+
+# Superpowers
+.superpowers/

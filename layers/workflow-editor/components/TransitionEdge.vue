@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useVueFlow, type EdgeProps } from '@vue-flow/core'
 import type { EditorEdge } from '../composables/types.js'
 
-const props = defineProps<EdgeProps<EditorEdge>>()
+const props = defineProps<EdgeProps<EditorEdge['data']>>()
 
 const { removeEdges } = useVueFlow()
 

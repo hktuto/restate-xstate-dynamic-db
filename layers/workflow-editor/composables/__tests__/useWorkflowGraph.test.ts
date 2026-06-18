@@ -42,9 +42,9 @@ describe('useWorkflowGraph', () => {
     const { nodes, edges } = definitionToGraph(sample)
     const rebuilt = graphToDefinition(nodes, edges, sample)
     expect(rebuilt.initial).toBe('getCompany')
-    expect(rebuilt.states.getCompany.meta).toEqual(sample.states.getCompany.meta)
-    expect(rebuilt.states.approveProvision.tags).toEqual(['waiting'])
-    expect(rebuilt.states.done.type).toBe('final')
+    expect(rebuilt.states.getCompany!.meta).toEqual(sample.states.getCompany!.meta)
+    expect(rebuilt.states.approveProvision!.tags).toEqual(['waiting'])
+    expect(rebuilt.states.done!.type).toBe('final')
   })
 
   it('drops legacy entry/exit and transition actions, keeping meta.action', () => {
@@ -64,20 +64,24 @@ describe('useWorkflowGraph', () => {
     const { nodes, edges } = definitionToGraph(legacy)
     const a = nodes.find(n => n.id === 'a')
     expect(a?.type).toBe('action')
-    if (a?.type !== 'action') throw new Error('expected action node')
+    if (!a || a.type !== 'action') throw new Error('expected action node')
+    if (a.data.kind !== 'action') throw new Error('expected action data')
     expect(a.data.actionId).toBe('getRecord')
 
     const rebuilt = graphToDefinition(nodes, edges, legacy)
-    expect(rebuilt.states.a).not.toHaveProperty('entry')
-    expect(rebuilt.states.a).not.toHaveProperty('exit')
-    expect(rebuilt.states.a.on?.ok).not.toHaveProperty('actions')
-    expect(rebuilt.states.a.meta?.action).toBe('getRecord')
+    expect(rebuilt.states.a!).not.toHaveProperty('entry')
+    expect(rebuilt.states.a!).not.toHaveProperty('exit')
+    expect(rebuilt.states.a!.on?.ok).not.toHaveProperty('actions')
+    expect(rebuilt.states.a!.meta?.action).toBe('getRecord')
   })
 
   it('preserves editor positions through a round-trip', () => {
     const { nodes, edges } = definitionToGraph(sample)
     const rebuilt = graphToDefinition(nodes, edges, sample)
-    expect(rebuilt.meta?.editorPositions?.getCompany).toEqual(sample.meta?.editorPositions?.getCompany)
+    const rebuiltPositions = rebuilt.meta?.editorPositions as Record<string, { x: number; y: number }> | undefined
+    const samplePositions = sample.meta?.editorPositions as Record<string, { x: number; y: number }> | undefined
+    expect(rebuiltPositions?.getCompany).toEqual(samplePositions?.getCompany)
+    expect(rebuiltPositions?.getCompany).toEqual({ x: 10, y: 20 })
   })
 
   it('produces only a start node for an empty definition', () => {

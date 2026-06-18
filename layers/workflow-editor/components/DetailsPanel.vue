@@ -48,7 +48,7 @@ function updateConditionExpression(expression: unknown) {
 
 function updateTask(patch: Partial<{ taskType: 'approval' | 'review' | 'manual'; taskInstructions: string }>) {
   if (!props.selectedNode || props.selectedNode.data.kind !== 'task') return
-  emit('update:node', props.selectedNode.id, { kind: 'task', ...props.selectedNode.data, ...patch } as Partial<EditorNode['data']>)
+  emit('update:node', props.selectedNode.id, { ...props.selectedNode.data, ...patch } as Partial<EditorNode['data']>)
 }
 </script>
 

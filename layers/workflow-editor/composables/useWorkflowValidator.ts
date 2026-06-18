@@ -44,8 +44,11 @@ export function useWorkflowValidator() {
     const startEdges = edges.filter(e => e.source === START_NODE_ID)
     if (startEdges.length !== 1) {
       errors.push({ id: START_NODE_ID, path: 'start.edge', message: 'Start node must have exactly one outgoing transition' })
-    } else if (!nodeMap.has(startEdges[0].target)) {
-      errors.push({ id: startEdges[0].id, path: 'start.edge.target', message: 'Start transition points to a missing state' })
+    } else {
+      const startEdge = startEdges[0]!
+      if (!nodeMap.has(startEdge.target)) {
+        errors.push({ id: startEdge.id, path: 'start.edge.target', message: 'Start transition points to a missing state' })
+      }
     }
 
     const hasFinal = nodes.some(n => n.type === 'final')
