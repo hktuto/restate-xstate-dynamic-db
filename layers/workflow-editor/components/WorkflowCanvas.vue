@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import type { EditorNode, EditorEdge } from '../composables/types.js'
-import type { EditorTool } from '../composables/useWorkflowEditor'
-import StateNode from './StateNode.vue'
+import type { EditorTool } from '../composables/useWorkflowEditor.js'
+import StartNode from './StartNode.vue'
+import ActionNode from './ActionNode.vue'
+import ConditionNode from './ConditionNode.vue'
+import TaskNode from './TaskNode.vue'
+import FinalNode from './FinalNode.vue'
 import TransitionEdge from './TransitionEdge.vue'
 
 const props = defineProps<{
@@ -18,10 +22,8 @@ const emit = defineEmits<{
   (e: 'update:nodes', nodes: EditorNode[]): void
   (e: 'update:edges', edges: EditorEdge[]): void
   (e: 'select', id: string | null): void
-  (e: 'add-state', position: { x: number; y: number }): void
+  (e: 'add-node', type: EditorNode['type'], position: { x: number; y: number }): void
   (e: 'connect', params: { source: string; target: string }): void
-  (e: 'rename:node', oldId: string, newId: string): void
-  (e: 'delete:edge', id: string): void
 }>()
 
 const vueFlowInstance = ref<any>(null)
@@ -30,7 +32,14 @@ function onInit(instance: any) {
   vueFlowInstance.value = instance
 }
 
-const nodeTypes = { state: StateNode }
+const nodeTypes = {
+  start: StartNode,
+  action: ActionNode,
+  condition: ConditionNode,
+  task: TaskNode,
+  final: FinalNode
+}
+
 const edgeTypes = { transition: TransitionEdge }
 
 const flowNodes = computed({
@@ -44,12 +53,14 @@ const flowEdges = computed({
 })
 
 function onPaneClick(event: MouseEvent) {
-  if (props.tool === 'add-state') {
+  if (props.tool.startsWith('add-')) {
+    const type = props.tool.replace('add-', '') as EditorNode['type']
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    emit('add-state', {
+    emit('add-node', type, {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top
     })
+    emit('select', null)
   }
 }
 
@@ -66,24 +77,14 @@ function onEdgeClick(_event: MouseEvent, edge: EditorEdge) {
 }
 
 function onPaneClickClear() {
-  if (props.tool === 'select') {
-    emit('select', null)
-  }
+  if (props.tool === 'select') emit('select', null)
 }
 
-function onRename(oldId: string, newId: string) {
-  emit('rename:node', oldId, newId)
-}
-
-function onDeleteEdge(id: string) {
-  emit('delete:edge', id)
-}
-
-function fit() {
+function fitView() {
   vueFlowInstance.value?.fitView()
 }
 
-defineExpose({ fitView: fit })
+defineExpose({ fitView })
 </script>
 
 <template>
@@ -107,14 +108,6 @@ defineExpose({ fitView: fit })
       @edge-click="onEdgeClick"
     >
       <Background />
-
-      <template #node-state="nodeProps">
-        <StateNode v-bind="nodeProps" :readonly="readonly" @rename="onRename" />
-      </template>
-
-      <template #edge-transition="edgeProps">
-        <TransitionEdge v-bind="edgeProps" :readonly="readonly" @delete="onDeleteEdge" />
-      </template>
     </VueFlow>
   </div>
 </template>

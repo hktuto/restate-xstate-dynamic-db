@@ -18,8 +18,6 @@ const path = computed(() => getBezierPath({
   sourcePosition: props.sourcePosition,
   targetPosition: props.targetPosition
 }))
-
-const hasGuard = computed(() => !!props.data?.guard?.type)
 </script>
 
 <template>
@@ -34,8 +32,7 @@ const hasGuard = computed(() => !!props.data?.guard?.type)
       class="absolute nodrag nopan flex items-center gap-1 px-2 py-0.5 bg-white border rounded text-xs shadow-sm"
       :class="selected ? 'border-blue-500' : 'border-gray-300'"
     >
-      <span>{{ data?.label ?? label }}</span>
-      <span v-if="hasGuard" class="text-blue-600" title="Guard condition">🛡</span>
+      <span>{{ label }}</span>
       <button
         v-if="!readonly"
         class="ml-1 text-gray-400 hover:text-red-600"
