@@ -47,7 +47,7 @@ describe('useWorkflowGraph', () => {
     expect(rebuilt.states.done.type).toBe('final')
   })
 
-  it('normalizes a legacy entry/exit definition', () => {
+  it('drops legacy entry/exit and transition actions, keeping meta.action', () => {
     const legacy: WorkflowDefinition = {
       id: 'legacy',
       initial: 'a',
@@ -61,9 +61,43 @@ describe('useWorkflowGraph', () => {
         b: { type: 'final' }
       }
     }
-    const { nodes } = definitionToGraph(legacy)
+    const { nodes, edges } = definitionToGraph(legacy)
     const a = nodes.find(n => n.id === 'a')
     expect(a?.type).toBe('action')
-    expect((a?.data as any).actionId).toBe('getRecord')
+    if (a?.type !== 'action') throw new Error('expected action node')
+    expect(a.data.actionId).toBe('getRecord')
+
+    const rebuilt = graphToDefinition(nodes, edges, legacy)
+    expect(rebuilt.states.a).not.toHaveProperty('entry')
+    expect(rebuilt.states.a).not.toHaveProperty('exit')
+    expect(rebuilt.states.a.on?.ok).not.toHaveProperty('actions')
+    expect(rebuilt.states.a.meta?.action).toBe('getRecord')
+  })
+
+  it('preserves editor positions through a round-trip', () => {
+    const { nodes, edges } = definitionToGraph(sample)
+    const rebuilt = graphToDefinition(nodes, edges, sample)
+    expect(rebuilt.meta?.editorPositions?.getCompany).toEqual(sample.meta?.editorPositions?.getCompany)
+  })
+
+  it('produces only a start node for an empty definition', () => {
+    const empty: WorkflowDefinition = { id: 'empty', initial: '', states: {}, context: {} }
+    const { nodes, edges } = definitionToGraph(empty)
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0]?.id).toBe(START_NODE_ID)
+    expect(edges).toHaveLength(0)
+  })
+
+  it('turns a state tagged with waiting into a task node', () => {
+    const def: WorkflowDefinition = {
+      id: 'task',
+      initial: 't',
+      states: {
+        t: { tags: ['waiting'], meta: { taskType: 'review' } }
+      },
+      context: {}
+    }
+    const { nodes } = definitionToGraph(def)
+    expect(nodes.find(n => n.id === 't')?.type).toBe('task')
   })
 })

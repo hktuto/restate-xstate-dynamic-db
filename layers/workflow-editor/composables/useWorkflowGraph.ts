@@ -7,10 +7,19 @@ function emptyDefinition(id: string): WorkflowDefinition {
   return { id, initial: '', states: {} }
 }
 
+function getMetaAction(state: WorkflowState): string | undefined {
+  const value = state.meta?.action
+  return typeof value === 'string' ? value : undefined
+}
+
+function isTaskType(value: unknown): value is 'approval' | 'review' | 'manual' {
+  return value === 'approval' || value === 'review' || value === 'manual'
+}
+
 function inferNodeType(state: WorkflowState): EditorNodeType {
   if (state.type === 'final') return 'final'
   if (state.tags?.includes('waiting')) return 'task'
-  const action = state.meta?.action as string | undefined
+  const action = getMetaAction(state)
   if (action === CONDITION_ACTION_ID) return 'condition'
   if (action) return 'action'
   return 'action'
@@ -22,7 +31,7 @@ function stateToData(state: WorkflowState): EditorNode['data'] {
   if (type === 'task') {
     return {
       kind: 'task',
-      taskType: (state.meta?.taskType as 'approval' | 'review' | 'manual') ?? 'manual',
+      taskType: isTaskType(state.meta?.taskType) ? state.meta.taskType : 'manual',
       taskInstructions: (state.meta?.taskInstructions as string) ?? ''
     }
   }
@@ -32,7 +41,7 @@ function stateToData(state: WorkflowState): EditorNode['data'] {
       expression: (state.meta?.params as Record<string, unknown> | undefined)?.expression ?? null
     }
   }
-  const actionId = (state.meta?.action as string) ?? ''
+  const actionId = getMetaAction(state) ?? ''
   return {
     kind: 'action',
     actionId,
@@ -146,6 +155,8 @@ export function useWorkflowGraph() {
       const state = states[edge.source]
       if (!state) continue
       if (!state.on) state.on = {}
+      // If two edges share the same source+label but point to different targets,
+      // keep the last one. The workflow validator will flag ambiguous transitions.
       state.on[edge.label] = { target: edge.target }
     }
 

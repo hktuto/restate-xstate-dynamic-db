@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
 import type { WorkflowDefinition } from 'shared'
-import type { EditorNode, EditorEdge } from './useWorkflowGraph'
+import type { EditorNode, EditorEdge } from './types.js'
 import { useWorkflowGraph } from './useWorkflowGraph'
 
 export type EditorTool = 'select' | 'pan' | 'add-state'

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@vue-flow/core'
-import type { EditorEdge } from '../composables/useWorkflowGraph'
+import type { EditorEdge } from '../composables/types.js'
 
 const props = defineProps<EdgeProps<EditorEdge> & {
   readonly?: boolean

@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
-import type { EditorNode, EditorEdge } from '../composables/useWorkflowGraph'
+import type { EditorNode, EditorEdge } from '../composables/types.js'
 import type { EditorTool } from '../composables/useWorkflowEditor'
 import StateNode from './StateNode.vue'
 import TransitionEdge from './TransitionEdge.vue'

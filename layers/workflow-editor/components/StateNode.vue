@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
-import type { EditorNode } from '../composables/useWorkflowGraph'
+import type { EditorNode } from '../composables/types.js'
 
 const props = defineProps<{
   id: string

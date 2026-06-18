@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
-import type { EditorNode, EditorEdge } from '../composables/useWorkflowGraph'
+import type { EditorNode, EditorEdge } from '../composables/types.js'
 import type { ActionMetadata, GuardMetadata } from 'shared'
 import ActionConfigPanel from './ActionConfigPanel.vue'
 
