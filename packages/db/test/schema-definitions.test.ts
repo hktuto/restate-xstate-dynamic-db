@@ -20,6 +20,7 @@ const VALID_DISPLAY_TYPES = [
   'checkbox',
   'date',
   'number',
+  'json',
   'relation',
   'formula',
   'richText',
