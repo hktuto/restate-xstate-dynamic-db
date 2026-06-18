@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 import {
-  listPlatformWorkflows,
-  listPlatformTriggers,
+  listPlatformWorkflowDesigns,
   listCompanies,
 } from 'db/platform'
 import { listLatestHealthChecks, listHealthCheckHistoryForService, type HealthCheckService } from 'db/health-checks'
@@ -41,15 +40,13 @@ export function adminRoutes() {
 
   // Dashboard
   app.get('/dashboard', async (c) => {
-    const [companies, workflows, triggers] = await Promise.all([
+    const [companies, workflowDesigns] = await Promise.all([
       listCompanies(),
-      listPlatformWorkflows(),
-      listPlatformTriggers(),
+      listPlatformWorkflowDesigns(),
     ])
     return c.json({
       companies: companies.length,
-      workflows: workflows.length,
-      triggers: triggers.length,
+      workflowDesigns: workflowDesigns.length,
     })
   })
 

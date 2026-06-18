@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-15
-updated: 2026-06-18
+updated: 2026-06-19
 related:
   - [[40-Packages/db]]
   - [[30-Apps/web]]
@@ -58,14 +58,13 @@ Auth endpoints are served by `apps/api` so the Nuxt frontends can call a single 
 - `POST /api/users` — invite a member
 - `PATCH /api/users/:id` — update a member
 - `DELETE /api/users/:id` — delete a member
-- `GET /api/workflows` — list workflows
-- `POST /api/workflows` — create a workflow
-- `GET /api/workflows/:id` — get a workflow
-- `PATCH /api/workflows/:id` — update a workflow
-- `DELETE /api/workflows/:id` — delete a workflow
-- `GET /api/triggers` — list triggers
-- `POST /api/triggers` — create a trigger
-- `DELETE /api/triggers/:id` — delete a trigger
+### Workflow designs
+
+- `GET /api/workflow-designs` — list workflow designs
+- `POST /api/workflow-designs` — create a workflow design
+- `GET /api/workflow-designs/:id` — get a workflow design
+- `PATCH /api/workflow-designs/:id` — update a workflow design
+- `DELETE /api/workflow-designs/:id` — delete a workflow design
 - `GET /api/user-tasks` — list pending user tasks
 - `POST /api/user-tasks/:id/approve` — approve a user task
 - `POST /api/user-tasks/:id/reject` — reject a user task
@@ -80,14 +79,11 @@ Auth endpoints are served by `apps/api` so the Nuxt frontends can call a single 
 
 ### Admin
 
-- `GET /api/admin/workflows` — list platform workflows
-- `POST /api/admin/workflows` — create a platform workflow
-- `GET /api/admin/workflows/:id` — get a platform workflow
-- `PATCH /api/admin/workflows/:id` — update a platform workflow
-- `DELETE /api/admin/workflows/:id` — delete a platform workflow
-- `GET /api/admin/triggers` — list platform triggers
-- `POST /api/admin/triggers` — create a platform trigger
-- `DELETE /api/admin/triggers/:id` — delete a platform trigger
+- `GET /api/admin/workflow-designs` — list platform workflow designs
+- `POST /api/admin/workflow-designs` — create a platform workflow design
+- `GET /api/admin/workflow-designs/:id` — get a platform workflow design
+- `PATCH /api/admin/workflow-designs/:id` — update a platform workflow design
+- `DELETE /api/admin/workflow-designs/:id` — delete a platform workflow design
 - `GET /api/admin/health-checks` — latest health checks
 - `GET /api/admin/health-checks/history` — health check history for a service
 - `GET /api/admin/dashboard` — dashboard stats
