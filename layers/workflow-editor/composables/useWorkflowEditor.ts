@@ -12,21 +12,21 @@ export interface UseWorkflowEditorOptions {
 }
 
 const START_NODE_ID = '__start'
-let idCounter = 0
-
-function uniqueId(prefix: string, nodes: EditorNode[]): string {
-  let n = ++idCounter
-  let candidate = `${prefix}${n}`
-  while (nodes.some(node => node.id === candidate)) {
-    candidate = `${prefix}${++n}`
-  }
-  return candidate
-}
 
 export function useWorkflowEditor(options: UseWorkflowEditorOptions) {
   const { definition, readonly } = options
   const { definitionToGraph, graphToDefinition } = useWorkflowGraph()
   const { defaultEvent } = useWorkflowRuntimeEvents()
+
+  let idCounter = 0
+  function uniqueId(prefix: string, nodes: EditorNode[]): string {
+    let n = ++idCounter
+    let candidate = `${prefix}${n}`
+    while (nodes.some(node => node.id === candidate)) {
+      candidate = `${prefix}${++n}`
+    }
+    return candidate
+  }
 
   const nodes = ref<EditorNode[]>([])
   const edges = ref<EditorEdge[]>([])
@@ -38,6 +38,8 @@ export function useWorkflowEditor(options: UseWorkflowEditorOptions) {
     nodes.value = graph.nodes
     edges.value = graph.edges
   }
+
+  load(definition.value)
 
   function build(): WorkflowDefinition {
     return graphToDefinition(nodes.value, edges.value, definition.value)
@@ -119,6 +121,7 @@ export function useWorkflowEditor(options: UseWorkflowEditorOptions) {
     if (!edge) return
     edge.label = event
     edge.id = `${edge.source}->${edge.target}:${event}`
+    if (selectedId.value === id) selectedId.value = edge.id
   }
 
   return {
