@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { WorkflowDefinition } from 'shared'
+import type { EditorNode } from '../composables/types.js'
 import { useWorkflowEditor } from '../composables/useWorkflowEditor.js'
 import { useWorkflowActions } from '../composables/useWorkflowActions.js'
 import { useWorkflowValidator } from '../composables/useWorkflowValidator.js'
