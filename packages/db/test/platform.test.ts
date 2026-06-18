@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
-  listPlatformWorkflows, createPlatformWorkflow, getPlatformWorkflow, updatePlatformWorkflow, deletePlatformWorkflow,
-  listPlatformTriggers, createPlatformTrigger, deletePlatformTrigger,
+  listPlatformWorkflowDesigns, createPlatformWorkflowDesign, getPlatformWorkflowDesign, updatePlatformWorkflowDesign, deletePlatformWorkflowDesign,
   listPlatformWorkflowInstances, createPlatformWorkflowInstance, getPlatformWorkflowInstance,
-  findActivePlatformWorkflowInstance, updatePlatformWorkflowInstanceStatus, deletePlatformWorkflowInstance,
+  updatePlatformWorkflowInstanceStatus, deletePlatformWorkflowInstance,
   listPlatformUserTasks, createPlatformUserTask, getPlatformUserTaskById, updatePlatformUserTaskStatus, deletePlatformUserTask,
   listCompanies, createCompany, getCompanyBySlug, getCompanyByNamespace, listCompaniesForProfile,
   createUserProfile, getUserProfileById, getUserProfilesByIds, updateUserProfile,
@@ -15,6 +14,12 @@ import { createMember } from '../src/tenant.js'
 const sampleWorkflow = {
   name: 'Test Workflow',
   xstateConfig: { id: 'test', initial: 'idle', states: { idle: {} } },
+}
+
+const sampleWorkflowWithTrigger = {
+  name: 'Triggered Workflow',
+  xstateConfig: { id: 'triggered', initial: 'idle', states: { idle: {} } },
+  starts: [{ type: 'db_trigger' as const, startState: 'idle', options: { tableName: 'orders', event: 'created' } }],
 }
 
 describe('platform', () => {
@@ -111,79 +116,62 @@ describe('platform', () => {
     })
   })
 
-  describe('platform workflows', () => {
-    it('creates, lists, gets, updates and deletes a workflow', async () => {
-      const created = await createPlatformWorkflow(sampleWorkflow)
-      expect(created.id).toMatch(/^workflows:/)
+  describe('platform workflow designs', () => {
+    it('creates, lists, gets, updates and deletes a workflow design', async () => {
+      const created = await createPlatformWorkflowDesign('test', sampleWorkflow)
+      expect(created.id).toMatch(/^workflow_designs:/)
 
-      const list = await listPlatformWorkflows()
+      const list = await listPlatformWorkflowDesigns('test')
       expect(list).toHaveLength(1)
 
-      const found = await getPlatformWorkflow(created.id)
+      const found = await getPlatformWorkflowDesign('test', created.id)
       expect(found?.id).toBe(created.id)
 
-      const updated = await updatePlatformWorkflow(created.id, { name: 'Renamed' })
+      const updated = await updatePlatformWorkflowDesign('test', created.id, { name: 'Renamed' })
       expect(updated?.name).toBe('Renamed')
 
-      await deletePlatformWorkflow(created.id)
-      const after = await listPlatformWorkflows()
+      await deletePlatformWorkflowDesign('test', created.id)
+      const after = await listPlatformWorkflowDesigns('test')
       expect(after).toHaveLength(0)
     })
-  })
 
-  describe('platform triggers', () => {
-    it('creates, lists and deletes a trigger', async () => {
-      const workflow = await createPlatformWorkflow(sampleWorkflow)
-      const trigger = await createPlatformTrigger({
-        workflowId: workflow.id,
-        tableName: 'orders',
-        event: 'created',
-      })
-      expect(trigger.id).toMatch(/^triggers:/)
-
-      const list = await listPlatformTriggers()
-      expect(list).toHaveLength(1)
-
-      await deletePlatformTrigger(trigger.id)
-      const after = await listPlatformTriggers()
-      expect(after).toHaveLength(0)
+    it('stores db_trigger starts inside a workflow design', async () => {
+      const created = await createPlatformWorkflowDesign('test', sampleWorkflowWithTrigger)
+      const found = await getPlatformWorkflowDesign('test', created.id)
+      expect(found?.starts).toHaveLength(1)
+      expect(found?.starts?.[0].type).toBe('db_trigger')
+      expect(found?.starts?.[0].startState).toBe('idle')
     })
   })
 
   describe('platform workflow instances', () => {
-    it('creates, gets, finds active, updates status and deletes', async () => {
-      const workflow = await createPlatformWorkflow(sampleWorkflow)
-      const instance = await createPlatformWorkflowInstance({
-        workflowId: workflow.id,
-        tableName: 'orders',
-        recordId: 'orders:2',
+    it('creates, gets, updates status and deletes', async () => {
+      const design = await createPlatformWorkflowDesign('test', sampleWorkflow)
+      const instance = await createPlatformWorkflowInstance('test', {
+        designId: design.id,
         namespace: 'test',
         status: 'running',
+        triggerBy: { type: 'user_trigger', startState: 'idle' },
       })
       expect(instance.id).toMatch(/^workflow_instances:/)
 
-      const found = await getPlatformWorkflowInstance(instance.id)
+      const found = await getPlatformWorkflowInstance('test', instance.id)
       expect(found?.id).toBe(instance.id)
 
-      const active = await findActivePlatformWorkflowInstance(workflow.id, 'orders', 'orders:1')
-      expect(active).toBeUndefined()
-
-      const updated = await updatePlatformWorkflowInstanceStatus(instance.id, 'done')
+      const updated = await updatePlatformWorkflowInstanceStatus('test', instance.id, 'done')
       expect(updated?.status).toBe('done')
 
-      await deletePlatformWorkflowInstance(instance.id)
-      const after = await listPlatformWorkflowInstances()
+      await deletePlatformWorkflowInstance('test', instance.id)
+      const after = await listPlatformWorkflowInstances('test')
       expect(after).toHaveLength(0)
     })
   })
 
   describe('platform user tasks', () => {
     it('creates, gets, updates status and deletes a task', async () => {
-      const workflow = await createPlatformWorkflow(sampleWorkflow)
-      const instance = await createPlatformWorkflowInstance({
-        workflowId: workflow.id,
-        tableName: 'orders',
-        recordId: 'orders:2',
+      const design = await createPlatformWorkflowDesign('test', sampleWorkflow)
+      const instance = await createPlatformWorkflowInstance('test', {
+        designId: design.id,
         namespace: 'test',
         status: 'running',
       })
@@ -192,7 +180,7 @@ describe('platform', () => {
         type: 'approval',
         tableName: 'orders',
         recordId: 'orders:2',
-        workflowId: workflow.id,
+        workflowId: design.id,
       })
       expect(task.id).toMatch(/^user_tasks:/)
 

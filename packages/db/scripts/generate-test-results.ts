@@ -126,52 +126,37 @@ async function main() {
 
   const pWorkflow = await record(
     'platform',
-    'createPlatformWorkflow',
-    { name: 'Onboarding', xstateConfig: { id: 'onboarding', initial: 'idle', states: { idle: {} } } },
+    'createPlatformWorkflowDesign',
+    { name: 'Onboarding', xstateConfig: { id: 'onboarding', initial: 'idle', states: { idle: {} } }, starts: [{ type: 'db_trigger', startState: 'idle', options: { tableName: 'orders', event: 'created' } }] },
     () =>
-      platform.createPlatformWorkflow({
+      platform.createPlatformWorkflowDesign('platform', {
         name: 'Onboarding',
         xstateConfig: { id: 'onboarding', initial: 'idle', states: { idle: {} } },
+        starts: [{ type: 'db_trigger', startState: 'idle', options: { tableName: 'orders', event: 'created' } }],
       }),
   )
   if (pWorkflow) {
-    await record('platform', 'getPlatformWorkflow', pWorkflow.id, () =>
-      platform.getPlatformWorkflow(pWorkflow.id),
+    await record('platform', 'getPlatformWorkflowDesign', pWorkflow.id, () =>
+      platform.getPlatformWorkflowDesign('platform', pWorkflow.id),
     )
   }
-  await record('platform', 'listPlatformWorkflows', {}, () => platform.listPlatformWorkflows())
-
-  const pTrigger = await record(
-    'platform',
-    'createPlatformTrigger',
-    { workflowId: pWorkflow?.id, tableName: 'orders', event: 'created' },
-    () =>
-      platform.createPlatformTrigger({
-        workflowId: pWorkflow!.id,
-        tableName: 'orders',
-        event: 'created',
-      }),
-  )
-  if (pTrigger) {
-    await record('platform', 'listPlatformTriggers', {}, () => platform.listPlatformTriggers())
-  }
+  await record('platform', 'listPlatformWorkflowDesigns', {}, () => platform.listPlatformWorkflowDesigns('platform'))
 
   const pInstance = await record(
     'platform',
     'createPlatformWorkflowInstance',
-    { workflowId: pWorkflow?.id, status: 'running', tableName: 'orders', recordId: 'orders:1' },
+    { designId: pWorkflow?.id, status: 'running', namespace: 'platform', triggerBy: { type: 'user_trigger', startState: 'idle' } },
     () =>
-      platform.createPlatformWorkflowInstance({
-        workflowId: pWorkflow!.id,
+      platform.createPlatformWorkflowInstance('platform', {
+        designId: pWorkflow!.id,
         status: 'running',
-        tableName: 'orders',
-        recordId: 'orders:1',
-        namespace: 'platform'
+        namespace: 'platform',
+        triggerBy: { type: 'user_trigger', startState: 'idle' },
       }),
   )
   if (pInstance) {
     await record('platform', 'getPlatformWorkflowInstance', pInstance.id, () =>
-      platform.getPlatformWorkflowInstance(pInstance.id),
+      platform.getPlatformWorkflowInstance('platform', pInstance.id),
     )
   }
 

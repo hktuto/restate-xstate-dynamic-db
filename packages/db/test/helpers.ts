@@ -42,7 +42,7 @@ export async function resetPlatformTables() {
       DELETE platform_users;
       DELETE accounts;
       DELETE user_profiles;
-      DELETE workflows;
+      DELETE workflow_designs;
       DELETE triggers;
       DELETE workflow_instances;
       DELETE user_tasks;
