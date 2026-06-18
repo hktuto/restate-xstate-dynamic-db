@@ -54,6 +54,7 @@ const flowEdges = computed({
 })
 
 function onPaneClick(event: MouseEvent) {
+  if (props.readonly) return
   if (props.tool.startsWith('add-')) {
     const type = props.tool.replace('add-', '') as EditorNode['type']
     const position = vueFlowInstance.value
