@@ -22,19 +22,25 @@ const assignError = assign(({ event }: any) => ({
 
 export function compileWorkflow(
   definition: WorkflowDefinition,
+  designId: string,
   context: RuntimeContext,
   objectCtx: Pick<ObjectContext, 'run'>
 ): { machine: AnyStateMachine; promises: Promise<unknown>[] } {
-  const registryContext: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace' | 'config'> = {
+  const runtime = {
+    designId,
     config: definition,
     tableName: context.tableName,
-    record: context.record,
     companyId: context.companyId,
     namespace: context.namespace
   }
 
   const promises: Promise<unknown>[] = []
-  const { actors } = createActionActors(objectCtx, registryContext, promises)
+  const { actors } = createActionActors(objectCtx, runtime, promises)
+
+  const registryContext: { record?: Record<string, unknown>; config?: { id: string } } = {
+    config: definition,
+    record: context.record
+  }
   const guardRegistry = createGuardRegistry(registryContext)
 
   const states: Record<string, Record<string, unknown>> = {}

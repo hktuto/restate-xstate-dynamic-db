@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-18
 package: workflow-actions
 related:
   - [[50-Features/Workflow Actions Catalog]]
@@ -37,7 +37,7 @@ pnpm --filter workflow-actions typecheck
 
 ## Runtime registries
 
-- `createActionActors(objectCtx, context, promises?)` returns XState `invoke` actor logic for every catalog action. Each actor runs inside `objectCtx.run` so side effects are durable and retried.
+- `createActionActors(objectCtx, runtime, promises?)` returns XState `invoke` actor logic for every catalog action. `runtime` is `{ designId, tableName?, companyId?, namespace?, config: { id } }`. Each actor runs inside `objectCtx.run` so side effects are durable and retried.
 - `createGuardRegistry(context)` returns XState guard implementations.
 
 ## Adding an action or guard

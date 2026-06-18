@@ -4,7 +4,7 @@ type: feature
 status: planned
 area: workflow
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-18
 app:
   - web
   - admin
@@ -52,7 +52,7 @@ Results: `ok`, `error`.
 
 ### `createRecord`
 
-Insert a new record.
+Insert a new record. `tableInput: 'table'` lets the UI auto-populate inputs from the chosen table schema.
 
 ```ts
 params: {
@@ -66,7 +66,7 @@ Results: `ok`, `error`.
 
 ### `updateRecord`
 
-Update an existing record. `id` defaults to `context.record.id`.
+Update an existing record. `id` defaults to `context.id`.
 
 ```ts
 params: {
@@ -81,7 +81,7 @@ Results: `ok`, `error`.
 
 ### `deleteRecord`
 
-Delete a record. `id` defaults to `context.record.id`; `mode` defaults to `soft`.
+Delete a record. `id` defaults to `context.id`; `mode` defaults to `soft`.
 
 ```ts
 params: {
