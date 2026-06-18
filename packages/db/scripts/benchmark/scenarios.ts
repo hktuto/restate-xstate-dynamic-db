@@ -79,7 +79,7 @@ async function setupPlatform(): Promise<PlatformSetup> {
 
 interface TenantSetup {
   member: tenant.MemberRecord
-  workflow: tenant.WorkflowRecord
+  design: tenant.WorkflowDesignRecord
   instance: tenant.WorkflowInstanceRecord
   task: tenant.UserTaskRecord
 }
@@ -90,25 +90,24 @@ async function setupTenant(namespace: string): Promise<TenantSetup> {
     email: uniqueEmail(),
     role: 'admin',
   })
-  const workflow = await tenant.createWorkflow(namespace, {
+  const design = await tenant.createWorkflowDesign(namespace, {
     name: uniqueWorkflowName(),
     xstateConfig: sampleWorkflow,
   })
   const instance = await tenant.createWorkflowInstance(namespace, {
-    workflowId: workflow.id,
+    designId: design.id,
     status: 'running',
-    tableName: 'orders',
-    recordId: 'orders:1',
     namespace,
+    triggerBy: { type: 'user_trigger', startState: 'idle' },
   })
   const task = await tenant.createUserTask(namespace, {
     instanceId: instance.id,
     type: 'approval',
     tableName: 'orders',
     recordId: 'orders:1',
-    workflowId: workflow.id,
+    workflowId: design.id,
   })
-  return { member, workflow, instance, task }
+  return { member, design, instance, task }
 }
 
 export const platformScenarios = [
@@ -298,14 +297,14 @@ interface TenantMemberState {
   id: string
 }
 
-interface TenantWorkflowState {
+interface TenantWorkflowDesignState {
   namespace: string
   id: string
 }
 
 interface TenantWorkflowInstanceCreateState {
   namespace: string
-  workflowId: string
+  designId: string
 }
 
 interface TenantWorkflowInstanceGetState {
@@ -315,7 +314,7 @@ interface TenantWorkflowInstanceGetState {
 
 interface TenantUserTaskCreateState {
   namespace: string
-  workflowId: string
+  designId: string
   instanceId: string
 }
 
@@ -364,7 +363,7 @@ export const tenantScenarios = [
     },
   } satisfies Scenario<TenantMemberState>,
   {
-    name: 'createWorkflow',
+    name: 'createWorkflowDesign',
     group: 'tenant',
     setup: async () => {
       const namespace = uniqueTenantNamespace()
@@ -376,38 +375,38 @@ export const tenantScenarios = [
       await removeTenantNamespace(namespace)
     },
     fn: async (namespace) => {
-      if (!namespace) throw new Error('createWorkflow scenario state missing')
-      await tenant.createWorkflow(namespace, {
+      if (!namespace) throw new Error('createWorkflowDesign scenario state missing')
+      await tenant.createWorkflowDesign(namespace, {
         name: uniqueWorkflowName(),
         xstateConfig: sampleWorkflow,
       })
     },
   } satisfies Scenario<string>,
   {
-    name: 'getWorkflow',
+    name: 'getWorkflowDesign',
     group: 'tenant',
     setup: async () => {
       const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
-      return { namespace, id: state.workflow.id }
+      return { namespace, id: state.design.id }
     },
     teardown: async (state) => {
       if (!state) return
       await removeTenantNamespace(state.namespace)
     },
     fn: async (state) => {
-      if (!state) throw new Error('getWorkflow scenario state missing')
+      if (!state) throw new Error('getWorkflowDesign scenario state missing')
       const { namespace, id } = state
-      await tenant.getWorkflow(namespace, id)
+      await tenant.getWorkflowDesign(namespace, id)
     },
-  } satisfies Scenario<TenantWorkflowState>,
+  } satisfies Scenario<TenantWorkflowDesignState>,
   {
     name: 'createWorkflowInstance',
     group: 'tenant',
     setup: async () => {
       const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
-      return { namespace, workflowId: state.workflow.id }
+      return { namespace, designId: state.design.id }
     },
     teardown: async (state) => {
       if (!state) return
@@ -415,13 +414,12 @@ export const tenantScenarios = [
     },
     fn: async (state) => {
       if (!state) throw new Error('createWorkflowInstance scenario state missing')
-      const { namespace, workflowId } = state
+      const { namespace, designId } = state
       await tenant.createWorkflowInstance(namespace, {
-        workflowId,
+        designId,
         status: 'running',
-        tableName: 'orders',
-        recordId: `orders:${randomUUID()}`,
         namespace,
+        triggerBy: { type: 'user_trigger', startState: 'idle' },
       })
     },
   } satisfies Scenario<TenantWorkflowInstanceCreateState>,
@@ -449,7 +447,7 @@ export const tenantScenarios = [
     setup: async () => {
       const namespace = uniqueTenantNamespace()
       const state = await setupTenant(namespace)
-      return { namespace, workflowId: state.workflow.id, instanceId: state.instance.id }
+      return { namespace, designId: state.design.id, instanceId: state.instance.id }
     },
     teardown: async (state) => {
       if (!state) return
@@ -457,13 +455,13 @@ export const tenantScenarios = [
     },
     fn: async (state) => {
       if (!state) throw new Error('createUserTask scenario state missing')
-      const { namespace, workflowId, instanceId } = state
+      const { namespace, designId, instanceId } = state
       await tenant.createUserTask(namespace, {
         instanceId,
         type: 'approval',
         tableName: 'orders',
         recordId: `orders:${randomUUID()}`,
-        workflowId,
+        workflowId: designId,
       })
     },
   } satisfies Scenario<TenantUserTaskCreateState>,

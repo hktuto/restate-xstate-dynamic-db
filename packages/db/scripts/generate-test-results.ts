@@ -210,49 +210,34 @@ async function main() {
   }
   await record('tenant', 'listMembers', ns, () => tenant.listMembers(ns))
 
-  const tWorkflow = await record(
+  const tDesign = await record(
     'tenant',
-    'createWorkflow',
+    'createWorkflowDesign',
     { namespace: ns, name: 'Approval', xstateConfig: { id: 'approval', initial: 'idle', states: { idle: {} } } },
     () =>
-      tenant.createWorkflow(ns, {
+      tenant.createWorkflowDesign(ns, {
         name: 'Approval',
         xstateConfig: { id: 'approval', initial: 'idle', states: { idle: {} } },
+        starts: [{ type: 'db_trigger', startState: 'idle', options: { tableName: 'orders', event: 'created' } }],
       }),
   )
-  if (tWorkflow) {
-    await record('tenant', 'getWorkflow', { namespace: ns, id: tWorkflow.id }, () =>
-      tenant.getWorkflow(ns, tWorkflow.id),
+  if (tDesign) {
+    await record('tenant', 'getWorkflowDesign', { namespace: ns, id: tDesign.id }, () =>
+      tenant.getWorkflowDesign(ns, tDesign.id),
     )
   }
-  await record('tenant', 'listWorkflows', ns, () => tenant.listWorkflows(ns))
-
-  const tTrigger = await record(
-    'tenant',
-    'createTrigger',
-    { namespace: ns, workflowId: tWorkflow?.id, tableName: 'orders', event: 'created' },
-    () =>
-      tenant.createTrigger(ns, {
-        workflowId: tWorkflow!.id,
-        tableName: 'orders',
-        event: 'created',
-      }),
-  )
-  if (tTrigger) {
-    await record('tenant', 'listTriggers', ns, () => tenant.listTriggers(ns))
-  }
+  await record('tenant', 'listWorkflowDesigns', ns, () => tenant.listWorkflowDesigns(ns))
 
   const tInstance = await record(
     'tenant',
     'createWorkflowInstance',
-    { namespace: ns, workflowId: tWorkflow?.id, status: 'running', tableName: 'orders', recordId: 'orders:1' },
+    { namespace: ns, designId: tDesign?.id, status: 'running' },
     () =>
       tenant.createWorkflowInstance(ns, {
-        workflowId: tWorkflow!.id,
+        designId: tDesign!.id,
         status: 'running',
-        tableName: 'orders',
-        recordId: 'orders:1',
-        namespace: ns
+        namespace: ns,
+        triggerBy: { type: 'user_trigger', startState: 'idle' },
       }),
   )
   if (tInstance) {
@@ -264,14 +249,14 @@ async function main() {
   const tTask = await record(
     'tenant',
     'createUserTask',
-    { namespace: ns, instanceId: tInstance?.id, type: 'approval', tableName: 'orders', recordId: 'orders:1', workflowId: tWorkflow?.id },
+    { namespace: ns, instanceId: tInstance?.id, type: 'approval', tableName: 'orders', recordId: 'orders:1', designId: tDesign?.id },
     () =>
       tenant.createUserTask(ns, {
         instanceId: tInstance!.id,
         type: 'approval',
         tableName: 'orders',
         recordId: 'orders:1',
-        workflowId: tWorkflow!.id,
+        workflowId: tDesign!.id,
       }),
   )
   if (tTask) {

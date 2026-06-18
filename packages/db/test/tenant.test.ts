@@ -1,15 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   listMembers, createMember, getMemberById, getMemberByProfileId, getMemberByInviteCode, updateMember, deleteMember,
-  listWorkflows, createWorkflow, getWorkflow, updateWorkflow, deleteWorkflow,
-  listTriggers, createTrigger, deleteTrigger,
-  listWorkflowInstances, createWorkflowInstance, getWorkflowInstance, findActiveWorkflowInstance, updateWorkflowInstanceStatus, deleteWorkflowInstance,
+  listWorkflowDesigns, createWorkflowDesign, getWorkflowDesign, updateWorkflowDesign, deleteWorkflowDesign,
+  listWorkflowInstances, createWorkflowInstance, getWorkflowInstance, updateWorkflowInstanceStatus, deleteWorkflowInstance,
   listUserTasks, createUserTask, getUserTaskById, updateUserTaskStatus, deleteUserTask,
 } from '../src/tenant.js'
 import { createTenantNamespace, removeTenantNamespace, uniqueTenantName } from './helpers.js'
 
-const sampleWorkflow = {
-  name: 'Tenant Workflow',
+const sampleWorkflowDesign = {
+  name: 'Tenant Workflow Design',
   xstateConfig: { id: 'wf', initial: 'idle', states: { idle: {} } },
 }
 
@@ -68,52 +67,49 @@ describe('tenant', () => {
     })
   })
 
-  describe('workflows', () => {
-    it('creates, lists, gets, updates and deletes a workflow', async () => {
-      const created = await createWorkflow(namespace, sampleWorkflow)
-      expect(created.id).toMatch(/^workflows:/)
+  describe('workflow designs', () => {
+    it('creates, lists, gets, updates and deletes a workflow design', async () => {
+      const created = await createWorkflowDesign(namespace, sampleWorkflowDesign)
+      expect(created.id).toMatch(/^workflow_designs:/)
 
-      const list = await listWorkflows(namespace)
+      const list = await listWorkflowDesigns(namespace)
       expect(list).toHaveLength(1)
 
-      const found = await getWorkflow(namespace, created.id)
+      const found = await getWorkflowDesign(namespace, created.id)
       expect(found?.id).toBe(created.id)
 
-      const updated = await updateWorkflow(namespace, created.id, { name: 'Renamed' })
+      const updated = await updateWorkflowDesign(namespace, created.id, { name: 'Renamed' })
       expect(updated?.name).toBe('Renamed')
 
-      await deleteWorkflow(namespace, created.id)
-      const after = await listWorkflows(namespace)
+      await deleteWorkflowDesign(namespace, created.id)
+      const after = await listWorkflowDesigns(namespace)
       expect(after).toHaveLength(0)
     })
-  })
 
-  describe('triggers', () => {
-    it('creates, lists and deletes a trigger', async () => {
-      const workflow = await createWorkflow(namespace, sampleWorkflow)
-      const trigger = await createTrigger(namespace, { workflowId: workflow.id, tableName: 'orders', event: 'created' })
-      expect(trigger.id).toMatch(/^triggers:/)
-
-      const list = await listTriggers(namespace)
-      expect(list).toHaveLength(1)
-
-      await deleteTrigger(namespace, trigger.id)
-      const after = await listTriggers(namespace)
-      expect(after).toHaveLength(0)
+    it('stores db_trigger start rules on a workflow design', async () => {
+      const design = await createWorkflowDesign(namespace, {
+        ...sampleWorkflowDesign,
+        starts: [{ type: 'db_trigger', startState: 'idle', options: { tableName: 'orders', event: 'created' } }],
+      })
+      const found = await getWorkflowDesign(namespace, design.id)
+      expect(found?.starts).toHaveLength(1)
+      expect(found?.starts?.[0].type).toBe('db_trigger')
     })
   })
 
   describe('workflow instances', () => {
-    it('creates, gets, finds active, updates status and deletes', async () => {
-      const workflow = await createWorkflow(namespace, sampleWorkflow)
-      const instance = await createWorkflowInstance(namespace, { workflowId: workflow.id, status: 'running', tableName: 'orders', recordId: 'orders:1', namespace })
+    it('creates, gets, updates status and deletes', async () => {
+      const design = await createWorkflowDesign(namespace, sampleWorkflowDesign)
+      const instance = await createWorkflowInstance(namespace, {
+        designId: design.id,
+        status: 'running',
+        namespace,
+        triggerBy: { type: 'user_trigger', startState: 'idle' },
+      })
       expect(instance.id).toMatch(/^workflow_instances:/)
 
       const found = await getWorkflowInstance(namespace, instance.id)
       expect(found?.id).toBe(instance.id)
-
-      const active = await findActiveWorkflowInstance(namespace, workflow.id, 'orders', 'orders:1')
-      expect(active?.id).toBe(instance.id)
 
       const updated = await updateWorkflowInstanceStatus(namespace, instance.id, 'done')
       expect(updated?.status).toBe('done')
@@ -122,26 +118,23 @@ describe('tenant', () => {
       const after = await listWorkflowInstances(namespace)
       expect(after).toHaveLength(0)
     })
-
-    it('does not find an active instance for a different record', async () => {
-      const workflow = await createWorkflow(namespace, sampleWorkflow)
-      await createWorkflowInstance(namespace, { workflowId: workflow.id, status: 'running', tableName: 'other', recordId: 'other:1', namespace })
-
-      const active = await findActiveWorkflowInstance(namespace, workflow.id, 'orders', 'orders:1')
-      expect(active).toBeUndefined()
-    })
   })
 
   describe('user tasks', () => {
     it('creates, gets, updates status and deletes a task', async () => {
-      const workflow = await createWorkflow(namespace, sampleWorkflow)
-      const instance = await createWorkflowInstance(namespace, { workflowId: workflow.id, status: 'running', tableName: 'orders', recordId: 'orders:1', namespace })
+      const design = await createWorkflowDesign(namespace, sampleWorkflowDesign)
+      const instance = await createWorkflowInstance(namespace, {
+        designId: design.id,
+        status: 'running',
+        namespace,
+        triggerBy: { type: 'user_trigger', startState: 'idle' },
+      })
       const task = await createUserTask(namespace, {
         instanceId: instance.id,
         type: 'approval',
         tableName: 'orders',
         recordId: 'orders:1',
-        workflowId: workflow.id,
+        workflowId: design.id,
       })
       expect(task.id).toMatch(/^user_tasks:/)
 
