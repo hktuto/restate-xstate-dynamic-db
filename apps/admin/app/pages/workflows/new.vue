@@ -8,8 +8,15 @@ const config = ref<WorkflowDefinition>({
   states: {}
 })
 
+const api = useApi()
+const toast = useToast()
+
+function onError(message: string) {
+  toast.add({ title: 'Workflow editor', description: message, color: 'red' })
+}
+
 async function save() {
-  await $fetch('/api/workflows', {
+  await api.fetch('/api/admin/workflows', {
     method: 'POST',
     body: { name: name.value, xstateConfig: config.value }
   })
@@ -27,6 +34,7 @@ async function save() {
         :name="name"
         @update:name="name = $event"
         @save="save"
+        @error="onError"
       />
     </ClientOnly>
   </div>

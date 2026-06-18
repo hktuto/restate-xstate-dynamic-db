@@ -8,8 +8,14 @@ const config = ref<WorkflowDefinition>({
   states: {}
 })
 
+const api = useApi()
+
+function onError(message: string) {
+  console.error(message)
+}
+
 async function save() {
-  await $fetch('/api/workflows', {
+  await api.fetch('/api/workflows', {
     method: 'POST',
     body: { name: name.value, xstateConfig: config.value }
   })
@@ -25,6 +31,7 @@ async function save() {
         :name="name"
         @update:name="name = $event"
         @save="save"
+        @error="onError"
       />
     </ClientOnly>
   </div>

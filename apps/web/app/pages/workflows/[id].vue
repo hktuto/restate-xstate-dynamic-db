@@ -4,13 +4,18 @@ import type { WorkflowDefinition } from 'shared'
 const route = useRoute()
 const id = route.params.id as string
 
-const { data: workflow } = await useFetch(`/api/workflows/${id}`)
+const workflow = ref<{ name: string; xstateConfig: WorkflowDefinition } | null>(null)
+const api = useApi()
 
 const name = ref('')
 const config = ref<WorkflowDefinition>({
   id: 'workflow',
   initial: '',
   states: {}
+})
+
+onMounted(async () => {
+  workflow.value = await api.fetch(`/api/workflows/${id}`)
 })
 
 watchEffect(() => {
@@ -20,8 +25,12 @@ watchEffect(() => {
   }
 })
 
+function onError(message: string) {
+  console.error(message)
+}
+
 async function save() {
-  await $fetch(`/api/workflows/${id}`, {
+  await api.fetch(`/api/workflows/${id}`, {
     method: 'PATCH',
     body: { name: name.value, xstateConfig: config.value }
   })
@@ -38,6 +47,7 @@ async function save() {
         :name="name"
         @update:name="name = $event"
         @save="save"
+        @error="onError"
       />
     </ClientOnly>
   </div>
