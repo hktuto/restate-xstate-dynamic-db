@@ -243,7 +243,7 @@ const STATUS_OVERRIDES = {
   '50-Features/User Management.md': 'planned',
   '50-Features/Company Management.md': 'done',
   '50-Features/Tenant Authentication & Authorization.md': 'in-progress',
-  '50-Features/Workflow Designer.md': 'planned',
+  '50-Features/Workflow Designer.md': 'done',
   '50-Features/Workflow Engine.md': 'planned',
   '50-Features/Workflow Actions Catalog.md': 'planned',
   '50-Features/Guards & Conditions.md': 'planned',

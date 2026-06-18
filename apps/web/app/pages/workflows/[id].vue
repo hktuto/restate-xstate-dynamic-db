@@ -32,7 +32,7 @@ function onError(message: string) {
 async function save() {
   await api.fetch(`/api/workflows/${id}`, {
     method: 'PATCH',
-    body: { name: name.value, xstateConfig: config.value }
+    body: JSON.stringify({ name: name.value, xstateConfig: config.value })
   })
   await navigateTo('/workflows')
 }

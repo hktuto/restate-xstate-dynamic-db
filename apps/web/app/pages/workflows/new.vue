@@ -17,7 +17,7 @@ function onError(message: string) {
 async function save() {
   await api.fetch('/api/workflows', {
     method: 'POST',
-    body: { name: name.value, xstateConfig: config.value }
+    body: JSON.stringify({ name: name.value, xstateConfig: config.value })
   })
   await navigateTo('/workflows')
 }

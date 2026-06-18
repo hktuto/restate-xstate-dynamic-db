@@ -27,13 +27,13 @@ watchEffect(() => {
 })
 
 function onError(message: string) {
-  toast.add({ title: 'Workflow editor', description: message, color: 'red' })
+  toast.add({ title: 'Workflow editor', description: message, color: 'error' })
 }
 
 async function save() {
   await api.fetch(`/api/admin/workflows/${id}`, {
     method: 'PATCH',
-    body: { name: name.value, xstateConfig: config.value }
+    body: JSON.stringify({ name: name.value, xstateConfig: config.value })
   })
   await navigateTo('/workflows')
 }
