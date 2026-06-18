@@ -18,12 +18,26 @@ export interface ParamSchema {
   default?: unknown
 }
 
+export interface ActionInputMetadata {
+  name: string
+  label: string
+  dbType: 'string' | 'number' | 'boolean' | 'datetime' | 'record' | 'object' | 'array'
+  displayType: 'text' | 'email' | 'url' | 'number' | 'select' | 'checkbox' | 'date' | 'json' | 'richText'
+  description?: string
+  required?: boolean
+  hidden?: boolean
+  defaultValue?: unknown
+  config?: Record<string, unknown>
+}
+
 export interface ActionMetadata {
   id: string
   label: string
   description?: string
   category?: string
   paramsSchema?: Record<string, ParamSchema>
+  inputs?: ActionInputMetadata[]
+  tableInput?: string
 }
 
 export interface GuardMetadata {
@@ -59,12 +73,22 @@ export interface WorkflowDefinition {
   meta?: Record<string, unknown>
 }
 
+export interface StartRule {
+  type: 'db_trigger' | 'user_trigger' | 'cron' | 'webhook'
+  startState: string
+  options: Record<string, unknown>
+}
+
+export interface TriggerBy {
+  type: 'db_trigger' | 'user_trigger' | 'cron' | 'webhook'
+  startState: string
+}
+
 export interface CreateWorkflowRequest {
-  config: WorkflowDefinition
-  event?: string
-  tableName: string
-  record: Record<string, unknown>
-  workflowId: string
+  designId: string
+  trigger: TriggerBy
+  context?: Record<string, unknown>
+  createdBy: string
   companyId?: string
   namespace?: string
 }
