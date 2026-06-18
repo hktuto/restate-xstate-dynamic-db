@@ -1,7 +1,7 @@
 ---
 title: Workflow Actions Catalog
 type: feature
-status: planned
+status: done
 area: workflow
 created: 2026-06-14
 updated: 2026-06-18

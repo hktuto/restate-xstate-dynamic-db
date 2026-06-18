@@ -16,8 +16,7 @@ function mockSurreal(queryResult: unknown) {
 
 const baseCtx = {
   event: { type: 'create' },
-  context: { record: { id: 'rec-1' }, id: 'rec-1', tableName: 'members', namespace: 'ns-1' },
-  record: { id: 'rec-1' },
+  context: { id: 'rec-1', tableName: 'members', namespace: 'ns-1' },
   tableName: 'members',
   namespace: 'ns-1',
   companyId: 'co-1'
@@ -32,26 +31,24 @@ describe('error handling', () => {
     ).rejects.toThrow('namespace is required for CRUD actions')
   })
 
-  it('throws when updateRecord has no id and no context.record.id', async () => {
+  it('throws when updateRecord has no id and no context.id', async () => {
     await expect(
       runtimeActions.updateRecord.execute({
         ...baseCtx,
         context: {},
-        record: undefined as any,
         params: { table: 'members', fields: { status: 'active' } }
       })
-    ).rejects.toThrow('updateRecord requires an id or context.record.id')
+    ).rejects.toThrow('updateRecord requires an id or context.id')
   })
 
-  it('throws when deleteRecord has no id and no context.record.id', async () => {
+  it('throws when deleteRecord has no id and no context.id', async () => {
     await expect(
       runtimeActions.deleteRecord.execute({
         ...baseCtx,
         context: {},
-        record: undefined as any,
         params: { table: 'members' }
       })
-    ).rejects.toThrow('deleteRecord requires an id or context.record.id')
+    ).rejects.toThrow('deleteRecord requires an id or context.id')
   })
 })
 
@@ -139,7 +136,7 @@ describe('updateRecord', () => {
     expect(result).toEqual({ id: 'members:1', status: 'active' })
   })
 
-  it('falls back to context.record.id', async () => {
+  it('falls back to context.id', async () => {
     const query = mockSurreal([[{ id: 'rec-1', status: 'active' }]])
     const result = await runtimeActions.updateRecord.execute({
       ...baseCtx,
@@ -203,7 +200,7 @@ describe('condition', () => {
   it('returns true when expression matches context', () => {
     const result = runtimeActions.condition.execute({
       ...baseCtx,
-      params: { expression: { $eq: ['$context.record.id', 'rec-1'] } }
+      params: { expression: { $eq: ['$context.id', 'rec-1'] } }
     })
     expect(result).toBe(true)
   })
@@ -211,7 +208,7 @@ describe('condition', () => {
   it('returns false when expression does not match', () => {
     const result = runtimeActions.condition.execute({
       ...baseCtx,
-      params: { expression: { $eq: ['$context.record.id', 'other'] } }
+      params: { expression: { $eq: ['$context.id', 'other'] } }
     })
     expect(result).toBe(false)
   })

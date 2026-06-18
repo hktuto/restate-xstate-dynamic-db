@@ -54,7 +54,7 @@ const createRecord: ActionExecutor = async (ctx) => {
 const updateRecord: ActionExecutor = async (ctx) => {
   const namespace = requireNamespace(ctx)
   const id = resolveRecordId(ctx)
-  if (!id) throw new Error('updateRecord requires an id or context.record.id')
+  if (!id) throw new Error('updateRecord requires an id or context.id')
   const fields = (ctx.params?.fields as Record<string, unknown>) ?? {}
 
   const surreal = await getSurreal(namespace, 'main')
@@ -72,7 +72,7 @@ const updateRecord: ActionExecutor = async (ctx) => {
 const deleteRecord: ActionExecutor = async (ctx) => {
   const namespace = requireNamespace(ctx)
   const id = resolveRecordId(ctx)
-  if (!id) throw new Error('deleteRecord requires an id or context.record.id')
+  if (!id) throw new Error('deleteRecord requires an id or context.id')
   const mode = String(ctx.params?.mode ?? 'soft')
 
   const surreal = await getSurreal(namespace, 'main')
