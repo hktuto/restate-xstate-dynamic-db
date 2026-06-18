@@ -37,6 +37,7 @@ const canvasRef = ref<InstanceType<typeof WorkflowCanvas> | null>(null)
 const sidebarOpen = ref(true)
 const activeTab = ref<'context' | 'details'>('details')
 const validationOpen = ref(true)
+const lastEmitted = ref<WorkflowDefinition | null>(null)
 
 const selectedNode = computed(() => editor.nodes.value.find(n => n.id === editor.selectedId.value))
 const selectedEdge = computed(() => editor.edges.value.find(e => e.id === editor.selectedId.value))
@@ -71,15 +72,22 @@ function onFocusError(id: string) {
 let isInternalUpdate = false
 
 watch([editor.nodes, editor.edges], () => {
+  const id = editor.selectedId.value
+  if (id && !editor.nodes.value.some(n => n.id === id) && !editor.edges.value.some(e => e.id === id)) {
+    editor.selectedId.value = null
+  }
+
   isInternalUpdate = true
-  emit('update:modelValue', editor.build())
+  const emitted = editor.build()
+  lastEmitted.value = emitted
+  emit('update:modelValue', emitted)
   nextTick(() => { isInternalUpdate = false })
 }, { deep: true })
 
 watch(() => props.modelValue, (def) => {
-  if (def && !isInternalUpdate) {
-    editor.load(def)
-  }
+  if (!def || isInternalUpdate) return
+  if (JSON.stringify(def) === JSON.stringify(lastEmitted.value)) return
+  editor.load(def)
 }, { deep: false })
 
 onMounted(() => {
