@@ -56,12 +56,16 @@ function fitView() {
   canvasRef.value?.fitView()
 }
 
+function onUpdateName(value: string | undefined) {
+  emit('update:name', value ?? '')
+}
+
 function onSave() {
   if (!canSave.value) {
     emit('error', 'Please fix validation errors before saving.')
     return
   }
-  emit('save', props.modelValue)
+  emit('save', editor.build())
 }
 
 function onFocusError(id: string) {
@@ -89,10 +93,6 @@ watch(() => props.modelValue, (def) => {
   if (JSON.stringify(def) === JSON.stringify(lastEmitted.value)) return
   editor.load(def)
 }, { deep: false })
-
-onMounted(() => {
-  editor.load(props.modelValue)
-})
 </script>
 
 <template>
@@ -102,7 +102,7 @@ onMounted(() => {
       :name="name"
       :readonly="readonly"
       :can-save="canSave"
-      @update:name="emit('update:name', $event)"
+      @update:name="onUpdateName"
       @fit-view="fitView"
       @save="onSave"
     />
