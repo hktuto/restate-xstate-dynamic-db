@@ -16,7 +16,7 @@ function mockSurreal(queryResult: unknown) {
 
 const baseCtx = {
   event: { type: 'create' },
-  context: { record: { id: 'rec-1' }, tableName: 'members', namespace: 'ns-1' },
+  context: { record: { id: 'rec-1' }, id: 'rec-1', tableName: 'members', namespace: 'ns-1' },
   record: { id: 'rec-1' },
   tableName: 'members',
   namespace: 'ns-1',

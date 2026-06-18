@@ -3,7 +3,7 @@ import { getSurreal, closeSurreal } from './client.js'
 export interface WorkflowActionRecord {
   id: string
   instanceId: string
-  workflowId: string
+  designId: string
   stateId: string
   action: string
   params?: Record<string, unknown>

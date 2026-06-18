@@ -1,7 +1,6 @@
 import type { ObjectContext } from '@restatedev/restate-sdk'
 import { fromPromise } from 'xstate'
 import type { PromiseActorLogic } from 'xstate'
-import type { CreateWorkflowRequest } from 'shared'
 import type { ActionExecutorContext } from '../types.js'
 import { upsertWorkflowAction } from 'db/workflow-actions'
 import { runtimeActions } from './actions.js'
@@ -29,20 +28,24 @@ export interface ActionActors {
 
 export function createActionActors(
   objectCtx: Pick<ObjectContext, 'run'>,
-  req: Pick<CreateWorkflowRequest, 'record' | 'tableName' | 'companyId' | 'namespace' | 'config'>,
+  runtime: { designId: string; tableName?: string; companyId?: string; namespace?: string; config: { id: string } },
   promises: Promise<unknown>[] = []
 ): ActionActors {
   const actors: Record<string, PromiseActorLogic<ActionActorOutput, ActionActorInput>> = {}
 
   for (const [actionId, runtimeAction] of Object.entries(runtimeActions)) {
     actors[actionId] = fromPromise(async ({ input }: { input: ActionActorInput }) => {
+      const runtimeMeta = (input.context as any).__runtime as
+        | { tableName?: string; companyId?: string; namespace?: string }
+        | undefined
+
       const executorCtx: ActionExecutorContext = {
         event: input.event,
         context: input.context,
-        record: (input.context.record ?? req.record) as Record<string, unknown>,
-        tableName: (input.context.tableName ?? req.tableName) as string,
-        companyId: (input.context.companyId ?? req.companyId) as string | undefined,
-        namespace: (input.context.namespace ?? req.namespace) as string | undefined,
+        record: input.context as Record<string, unknown>,
+        tableName: (runtimeMeta?.tableName ?? runtime.tableName) as string,
+        companyId: (runtimeMeta?.companyId ?? runtime.companyId) as string | undefined,
+        namespace: (runtimeMeta?.namespace ?? runtime.namespace) as string | undefined,
         instanceId: input.instanceId,
         params: input.params
       }
@@ -59,7 +62,7 @@ export function createActionActors(
 
         await audit({
           instanceId: input.instanceId,
-          workflowId: req.config?.id ?? '',
+          designId: runtime.designId,
           stateId: input.stateId,
           action: actionId,
           params: input.params,
@@ -81,7 +84,7 @@ export function createActionActors(
 
           await audit({
             instanceId: input.instanceId,
-            workflowId: req.config?.id ?? '',
+            designId: runtime.designId,
             stateId: input.stateId,
             action: actionId,
             params: input.params,
@@ -99,7 +102,7 @@ export function createActionActors(
           const message = error instanceof Error ? error.message : String(error)
           await audit({
             instanceId: input.instanceId,
-            workflowId: req.config?.id ?? '',
+            designId: runtime.designId,
             stateId: input.stateId,
             action: actionId,
             params: input.params,
@@ -131,7 +134,7 @@ export interface GuardRegistry {
 }
 
 export function createGuardRegistry(
-  req: Pick<CreateWorkflowRequest, 'record' | 'config'>
+  req: { record?: Record<string, unknown>; config?: { id: string } }
 ): GuardRegistry {
   const guards: GuardRegistry['guards'] = {}
 
