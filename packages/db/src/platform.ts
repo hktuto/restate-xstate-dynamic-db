@@ -1,6 +1,6 @@
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
-import type { WorkflowDefinition } from 'shared'
+import type { WorkflowDefinition, StartRule, TriggerBy } from 'shared'
 
 export interface CompanyInput {
   name: string
@@ -15,34 +15,41 @@ export interface CompanyRecord extends CompanyInput {
   [key: string]: unknown
 }
 
-export interface PlatformWorkflowRecord {
+export interface PlatformWorkflowDesignRecord {
   id: string
   name: string
   xstateConfig: WorkflowDefinition
+  starts?: StartRule[]
   [key: string]: unknown
 }
 
-export interface PlatformWorkflowInput {
+export interface PlatformWorkflowDesignInput {
   name: string
   xstateConfig: WorkflowDefinition
+  starts?: StartRule[]
 }
 
-export async function listPlatformWorkflows(): Promise<PlatformWorkflowRecord[]> {
+export async function listPlatformWorkflowDesigns(namespace: string): Promise<PlatformWorkflowDesignRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    const [workflows] = await surreal.query<[PlatformWorkflowRecord[]]>('SELECT * FROM workflows')
-    return normalizeIds(workflows)
+    const [designs] = await surreal.query<[PlatformWorkflowDesignRecord[]]>('SELECT * FROM workflow_designs')
+    return normalizeIds(designs)
   } finally {
     await closeSurreal(surreal)
   }
 }
 
-export async function createPlatformWorkflow(input: PlatformWorkflowInput): Promise<PlatformWorkflowRecord> {
+export async function createPlatformWorkflowDesign(namespace: string, input: PlatformWorkflowDesignInput): Promise<PlatformWorkflowDesignRecord> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    const [created] = await surreal.query<[PlatformWorkflowRecord[]]>(
-      'CREATE workflows CONTENT $data',
-      { data: input }
+    const data = {
+      name: input.name,
+      xstateConfig: input.xstateConfig,
+      starts: input.starts
+    }
+    const [created] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
+      'CREATE workflow_designs CONTENT $data',
+      { data }
     )
     return normalizeId(created[0])!
   } finally {
@@ -50,10 +57,10 @@ export async function createPlatformWorkflow(input: PlatformWorkflowInput): Prom
   }
 }
 
-export async function getPlatformWorkflow(id: string): Promise<PlatformWorkflowRecord | undefined> {
+export async function getPlatformWorkflowDesign(namespace: string, id: string): Promise<PlatformWorkflowDesignRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    const [result] = await surreal.query<[PlatformWorkflowRecord[]]>(
+    const [result] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
       'SELECT * FROM type::record($id)',
       { id }
     )
@@ -63,10 +70,10 @@ export async function getPlatformWorkflow(id: string): Promise<PlatformWorkflowR
   }
 }
 
-export async function updatePlatformWorkflow(id: string, input: Partial<PlatformWorkflowInput>): Promise<PlatformWorkflowRecord | undefined> {
+export async function updatePlatformWorkflowDesign(namespace: string, id: string, input: Partial<PlatformWorkflowDesignInput>): Promise<PlatformWorkflowDesignRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    const [updated] = await surreal.query<[PlatformWorkflowRecord[]]>(
+    const [updated] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
       'UPDATE type::record($id) MERGE $data',
       { id, data: input }
     )
@@ -76,7 +83,7 @@ export async function updatePlatformWorkflow(id: string, input: Partial<Platform
   }
 }
 
-export async function deletePlatformWorkflow(id: string): Promise<void> {
+export async function deletePlatformWorkflowDesign(namespace: string, id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     await surreal.query('DELETE type::record($id)', { id })
@@ -135,27 +142,29 @@ export type PlatformWorkflowInstanceStatus = 'pending' | 'running' | 'waiting' |
 
 export interface PlatformWorkflowInstanceRecord {
   id: string
-  workflowId: string
-  tableName: string
-  recordId: string
+  designId: string
+  status: PlatformWorkflowInstanceStatus
+  currentState?: string
+  context?: Record<string, unknown>
+  triggerBy?: TriggerBy
   namespace: string
   companyId?: string
-  status: PlatformWorkflowInstanceStatus
   createdAt: string
   updatedAt: string
   [key: string]: unknown
 }
 
 export interface PlatformWorkflowInstanceInput {
-  workflowId: string
-  tableName: string
-  recordId: string
+  designId: string
+  status?: PlatformWorkflowInstanceStatus
+  currentState?: string
+  context?: Record<string, unknown>
+  triggerBy?: TriggerBy
   namespace: string
   companyId?: string
-  status?: PlatformWorkflowInstanceStatus
 }
 
-export async function listPlatformWorkflowInstances(): Promise<PlatformWorkflowInstanceRecord[]> {
+export async function listPlatformWorkflowInstances(namespace: string): Promise<PlatformWorkflowInstanceRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [instances] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>('SELECT * FROM workflow_instances ORDER BY createdAt DESC')
@@ -165,7 +174,7 @@ export async function listPlatformWorkflowInstances(): Promise<PlatformWorkflowI
   }
 }
 
-export async function getPlatformWorkflowInstance(id: string): Promise<PlatformWorkflowInstanceRecord | undefined> {
+export async function getPlatformWorkflowInstance(namespace: string, id: string): Promise<PlatformWorkflowInstanceRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const [result] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
@@ -178,34 +187,18 @@ export async function getPlatformWorkflowInstance(id: string): Promise<PlatformW
   }
 }
 
-export async function findActivePlatformWorkflowInstance(
-  workflowId: string,
-  tableName: string,
-  recordId: string
-): Promise<PlatformWorkflowInstanceRecord | undefined> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [result] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
-      `SELECT * FROM workflow_instances
-       WHERE workflowId = $workflowId AND tableName = $tableName AND recordId = $recordId
-       AND status IN ['pending', 'running', 'waiting']
-       ORDER BY createdAt DESC
-       LIMIT 1`,
-      { workflowId, tableName, recordId }
-    )
-    return normalizeId(result[0])
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export async function createPlatformWorkflowInstance(input: PlatformWorkflowInstanceInput): Promise<PlatformWorkflowInstanceRecord> {
+export async function createPlatformWorkflowInstance(namespace: string, input: PlatformWorkflowInstanceInput): Promise<PlatformWorkflowInstanceRecord> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     const now = new Date().toISOString()
     const data = {
-      ...input,
+      designId: input.designId,
       status: input.status ?? 'pending',
+      currentState: input.currentState,
+      context: input.context,
+      triggerBy: input.triggerBy,
+      namespace: input.namespace,
+      companyId: input.companyId,
       createdAt: now,
       updatedAt: now
     }
@@ -220,6 +213,7 @@ export async function createPlatformWorkflowInstance(input: PlatformWorkflowInst
 }
 
 export async function updatePlatformWorkflowInstanceStatus(
+  namespace: string,
   id: string,
   status: PlatformWorkflowInstanceStatus
 ): Promise<PlatformWorkflowInstanceRecord | undefined> {
@@ -235,7 +229,7 @@ export async function updatePlatformWorkflowInstanceStatus(
   }
 }
 
-export async function deletePlatformWorkflowInstance(id: string): Promise<void> {
+export async function deletePlatformWorkflowInstance(namespace: string, id: string): Promise<void> {
   const surreal = await getSurreal('platform', 'admin')
   try {
     await surreal.query('DELETE type::record($id)', { id })
