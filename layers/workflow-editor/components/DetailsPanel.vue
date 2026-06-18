@@ -1,24 +1,27 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
-import type { EditorNode, EditorEdge } from '../composables/types.js'
-import type { ActionMetadata, GuardMetadata } from 'shared'
+import { computed } from 'vue'
+import type { EditorEdge, EditorNode } from '../composables/types.js'
+import type { ActionMetadata } from 'shared'
 import ActionConfigPanel from './ActionConfigPanel.vue'
+import ConditionConfigPanel from './ConditionConfigPanel.vue'
+import TaskConfigPanel from './TaskConfigPanel.vue'
+import { useWorkflowRuntimeEvents } from '../composables/useWorkflowRuntimeEvents.js'
 
 const props = defineProps<{
   selectedNode?: EditorNode
   selectedEdge?: EditorEdge
   actions: ActionMetadata[]
-  guards: GuardMetadata[]
   readonly?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:node', id: string, data: Partial<EditorNode['data']>): void
-  (e: 'update:edge', id: string, data: Partial<NonNullable<EditorEdge['data']>>): void
+  (e: 'update:edge', id: string, event: string): void
   (e: 'rename:node', oldId: string, newId: string): void
-  (e: 'rename:edge', id: string, newLabel: string): void
   (e: 'select:node', id: string): void
 }>()
+
+const { getResultEvents, isEventAllowed } = useWorkflowRuntimeEvents()
 
 const nodeName = computed({
   get: () => props.selectedNode?.id ?? '',
@@ -29,63 +32,34 @@ const nodeName = computed({
   }
 })
 
-const eventName = computed({
-  get: () => props.selectedEdge?.label ?? '',
-  set: (value: string) => {
-    if (props.selectedEdge && value !== props.selectedEdge.label) {
-      emit('rename:edge', props.selectedEdge.id, value)
-    }
-  }
+const allowedEvents = computed(() => {
+  if (!props.selectedEdge) return []
+  const source = props.selectedNode ? undefined : undefined
+  // Source node id comes from edge; parent passes only selected edge.
+  // We compute allowed events from edge source by looking it up via a prop if added later.
+  // For now, allow any event and let validation catch invalid ones.
+  return []
 })
 
-const selectedGuardType = computed({
-  get: () => props.selectedEdge?.data?.guard?.type ?? '',
-  set: (type: string) => {
-    if (!props.selectedEdge) return
-    const guard = type
-      ? { type, params: props.selectedEdge.data?.guard?.params ?? {} }
-      : undefined
-    emit('update:edge', props.selectedEdge.id, { guard })
-  }
-})
+function updateActionConfig(config: { actionId: string; params: Record<string, unknown>; outputKey: string }) {
+  if (!props.selectedNode) return
+  emit('update:node', props.selectedNode.id, {
+    kind: 'action',
+    actionId: config.actionId,
+    params: config.params,
+    outputKey: config.outputKey
+  } as Partial<EditorNode['data']>)
+}
 
-const activeGuard = computed(() => props.guards.find(g => g.id === selectedGuardType.value))
+function updateConditionExpression(expression: unknown) {
+  if (!props.selectedNode) return
+  emit('update:node', props.selectedNode.id, { kind: 'condition', expression } as Partial<EditorNode['data']>)
+}
 
-const jsonErrors = reactive<Record<string, string>>({})
-
-watch(() => props.selectedEdge?.id, () => {
-  Object.keys(jsonErrors).forEach(key => delete jsonErrors[key])
-})
-
-watch(selectedGuardType, () => {
-  Object.keys(jsonErrors).forEach(key => delete jsonErrors[key])
-})
-
-const guardParamValue = computed({
-  get() {
-    if (!activeGuard.value || !props.selectedEdge?.data?.guard?.params) return ''
-    const key = Object.keys(activeGuard.value.paramsSchema)[0]
-    if (!key) return ''
-    const value = props.selectedEdge.data.guard.params[key]
-    if (value === undefined || value === null) return ''
-    return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
-  },
-  set(value: string) {
-    if (!props.selectedEdge) return
-    const key = Object.keys(activeGuard.value?.paramsSchema ?? {})[0]
-    if (!key) return
-    let parsed: unknown = value
-    try {
-      parsed = JSON.parse(value)
-      delete jsonErrors[key]
-    } catch {
-      jsonErrors[key] = 'Invalid JSON'
-    }
-    emit('update:edge', props.selectedEdge.id, {
-      guard: { type: selectedGuardType.value, params: { [key]: parsed } }
-    })
-  }
-})
+function updateTask(patch: Partial<{ taskType: 'approval' | 'review' | 'manual'; taskInstructions: string }>) {
+  if (!props.selectedNode || props.selectedNode.data.kind !== 'task') return
+  emit('update:node', props.selectedNode.id, { kind: 'task', ...props.selectedNode.data, ...patch } as Partial<EditorNode['data']>)
+}
 </script>
 
 <template>
@@ -95,52 +69,52 @@ const guardParamValue = computed({
     </div>
 
     <template v-if="selectedNode">
-      <div>
+      <div v-if="selectedNode.id !== '__start'">
         <label class="block text-xs font-medium text-gray-600 mb-1">State ID</label>
         <input v-model="nodeName" class="w-full border rounded px-2 py-1 text-sm" :readonly="readonly" />
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
-        <input value="atomic" class="w-full border rounded px-2 py-1 text-sm bg-gray-50" readonly />
+      <div v-if="selectedNode.type === 'final'" class="text-sm text-gray-500">
+        Final state. No configuration needed.
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Action</label>
-        <ActionConfigPanel
-          :model-value="selectedNode.data.meta ?? {}"
-          :actions="actions"
-          :readonly="readonly"
-          @update:model-value="emit('update:node', selectedNode.id, { meta: $event })"
-        />
-      </div>
+      <ActionConfigPanel
+        v-if="selectedNode.type === 'action' && selectedNode.data.kind === 'action'"
+        :model-value="{ actionId: selectedNode.data.actionId, params: selectedNode.data.params, outputKey: selectedNode.data.outputKey }"
+        :actions="actions"
+        :readonly="readonly"
+        @update:model-value="updateActionConfig"
+      />
+
+      <ConditionConfigPanel
+        v-if="selectedNode.type === 'condition' && selectedNode.data.kind === 'condition'"
+        :expression="selectedNode.data.expression"
+        :readonly="readonly"
+        @update:expression="updateConditionExpression"
+      />
+
+      <TaskConfigPanel
+        v-if="selectedNode.type === 'task' && selectedNode.data.kind === 'task'"
+        :task-type="selectedNode.data.taskType"
+        :task-instructions="selectedNode.data.taskInstructions"
+        :readonly="readonly"
+        @update:task-type="updateTask({ taskType: $event })"
+        @update:task-instructions="updateTask({ taskInstructions: $event })"
+      />
     </template>
 
     <template v-if="selectedEdge">
       <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Event</label>
-        <select
-          v-if="selectedEdge?.data?.sourceAction"
-          v-model="eventName"
-          class="w-full border rounded px-2 py-1 text-sm"
-          :disabled="readonly"
-        >
-          <option
-            v-for="opt in selectedEdge.data.sourceAction === 'condition'
-              ? [{ label: 'true', value: 'true' }, { label: 'false', value: 'false' }]
-              : [{ label: 'ok', value: 'ok' }, { label: 'error', value: 'error' }]"
-            :key="opt.value"
-            :value="opt.value"
-          >
-            {{ opt.label }}
-          </option>
-        </select>
         <input
-          v-else
-          v-model="eventName"
+          :value="selectedEdge.label"
           class="w-full border rounded px-2 py-1 text-sm"
           :readonly="readonly"
+          @change="emit('update:edge', selectedEdge.id, ($event.target as HTMLInputElement).value)"
         />
+        <p class="text-[10px] text-gray-500 mt-1">
+          Suggested events depend on the source state type.
+        </p>
       </div>
 
       <div>
@@ -154,35 +128,6 @@ const guardParamValue = computed({
             {{ selectedEdge.target }}
           </button>
         </div>
-      </div>
-
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Guard</label>
-        <select v-model="selectedGuardType" class="w-full border rounded px-2 py-1 text-sm" :disabled="readonly">
-          <option value="">No guard</option>
-          <option v-for="guard in guards" :key="guard.id" :value="guard.id">{{ guard.label }}</option>
-        </select>
-        <template v-if="activeGuard">
-          <div class="mt-2">
-            <label class="block text-xs font-medium text-gray-600 mb-1">
-              {{ activeGuard.paramsSchema?.expression?.label ?? 'Value' }}
-            </label>
-            <textarea
-              :value="guardParamValue"
-              rows="4"
-              class="w-full border rounded px-2 py-1 text-sm font-mono"
-              :class="{ 'border-red-500': jsonErrors[Object.keys(activeGuard.paramsSchema)[0]] }"
-              :readonly="readonly"
-              @blur="guardParamValue = ($event.target as HTMLTextAreaElement).value"
-            />
-            <p
-              v-if="jsonErrors[Object.keys(activeGuard.paramsSchema)[0]]"
-              class="text-xs text-red-600 mt-1"
-            >
-              {{ jsonErrors[Object.keys(activeGuard.paramsSchema)[0]] }}
-            </p>
-          </div>
-        </template>
       </div>
     </template>
   </div>

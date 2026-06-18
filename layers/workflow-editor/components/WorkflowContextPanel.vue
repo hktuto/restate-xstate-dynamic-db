@@ -43,19 +43,6 @@ const contextJson = computed({
     </div>
 
     <div>
-      <label class="block text-xs font-medium text-gray-600 mb-1">Initial state</label>
-      <select
-        :value="definition.initial"
-        class="w-full border rounded px-2 py-1 text-sm"
-        :disabled="readonly"
-        @change="emit('update:definition', { ...definition, initial: ($event.target as HTMLSelectElement).value })"
-      >
-        <option value="">-- select --</option>
-        <option v-for="state in Object.keys(definition.states)" :key="state" :value="state">{{ state }}</option>
-      </select>
-    </div>
-
-    <div>
       <label class="block text-xs font-medium text-gray-600 mb-1">Context (JSON)</label>
       <textarea
         v-model="contextJson"

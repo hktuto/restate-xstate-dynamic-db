@@ -3,9 +3,9 @@ import { computed, reactive, watch } from 'vue'
 import type { ActionMetadata, ParamSchema } from 'shared'
 
 export interface ActionConfig {
-  action?: string
-  params?: Record<string, unknown>
-  outputKey?: string
+  actionId: string
+  params: Record<string, unknown>
+  outputKey: string
 }
 
 const props = defineProps<{
@@ -18,7 +18,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: ActionConfig): void
 }>()
 
-const activeAction = computed(() => props.actions.find((a) => a.id === props.modelValue.action))
+const activeAction = computed(() => props.actions.find(a => a.id === props.modelValue.actionId))
 const jsonErrors = reactive<Record<string, string>>({})
 
 function update(patch: Partial<ActionConfig>) {
@@ -27,7 +27,7 @@ function update(patch: Partial<ActionConfig>) {
 
 function updateParam(key: string, value: unknown) {
   const next = { ...(props.modelValue.params ?? {}), [key]: value }
-  emit('update:modelValue', { ...props.modelValue, params: next })
+  update({ params: next })
 }
 
 function formatJson(value: unknown): string {
@@ -65,18 +65,16 @@ function autoOutputKey(actionId: string, params?: Record<string, unknown>): stri
 }
 
 function onSelectAction(actionId: string) {
-  for (const key of Object.keys(jsonErrors)) {
-    delete jsonErrors[key]
-  }
-  const action = props.actions.find((a) => a.id === actionId)
+  for (const key of Object.keys(jsonErrors)) delete jsonErrors[key]
+  const action = props.actions.find(a => a.id === actionId)
   const params: Record<string, unknown> = {}
   for (const [key, schema] of Object.entries(action?.paramsSchema ?? {})) {
     params[key] = defaultValue(schema)
   }
   update({
-    action: actionId,
+    actionId,
     params,
-    outputKey: actionId === 'condition' ? undefined : autoOutputKey(actionId, params)
+    outputKey: autoOutputKey(actionId, params)
   })
 }
 
@@ -93,9 +91,9 @@ function onJsonBlur(key: string, raw: string) {
 watch(
   () => props.modelValue.params,
   (newParams, oldParams) => {
-    if (!props.modelValue.action || props.modelValue.action === 'condition') return
-    const newAuto = autoOutputKey(props.modelValue.action, newParams)
-    const oldAuto = autoOutputKey(props.modelValue.action, oldParams)
+    if (!props.modelValue.actionId) return
+    const newAuto = autoOutputKey(props.modelValue.actionId, newParams)
+    const oldAuto = autoOutputKey(props.modelValue.actionId, oldParams)
     const current = props.modelValue.outputKey
     if (!current || current === oldAuto) {
       update({ outputKey: newAuto })
@@ -110,7 +108,7 @@ watch(
     <div>
       <label class="block text-xs font-medium text-gray-600 mb-1">Action</label>
       <select
-        :value="modelValue.action"
+        :value="modelValue.actionId"
         class="w-full border rounded px-2 py-1 text-sm"
         :disabled="readonly"
         @change="onSelectAction(($event.target as HTMLSelectElement).value)"
@@ -173,10 +171,10 @@ watch(
         </template>
       </div>
 
-      <div v-if="modelValue.action !== 'condition'">
+      <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Output key</label>
         <input
-          :value="modelValue.outputKey ?? ''"
+          :value="modelValue.outputKey"
           type="text"
           class="w-full border rounded px-2 py-1 text-sm"
           :readonly="readonly"
