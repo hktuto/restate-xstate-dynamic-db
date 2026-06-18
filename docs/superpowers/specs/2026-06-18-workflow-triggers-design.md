@@ -51,6 +51,7 @@ The runtime expects every start request to include a `record` object with at lea
 ```ts
 export interface CreateWorkflowRequest {
   config: WorkflowDefinition
+  startState: string
   event?: string
   tableName: string
   record: Record<string, unknown>
@@ -71,6 +72,7 @@ A user trigger must satisfy this contract by building a synthetic `record` from 
 5. **User-trigger start form is derived from the first action.** When a user triggers a workflow, the system reads the first state, finds its action metadata, and renders inputs from the table schema or explicit `inputs`.
 6. **Synthetic record for user triggers.** The submitted values are placed under a synthetic `record` object with `id` set to the new `workflow_instances` id. This keeps the existing runtime contract intact.
 7. **Permissions deferred.** User triggers are open to any logged-in tenant user in this iteration. The `user_trigger` options object reserves a `permissions` field for later enforcement.
+8. **Add `json` displayType.** `object` and `array` columns can use `displayType: 'json'` so the UI renders raw JSON today and can later switch to a structured nested editor.
 
 ## Data model changes
 
@@ -87,11 +89,14 @@ export interface WorkflowDesignInput {
 
 export interface StartRule {
   type: 'db_trigger' | 'user_trigger' | 'cron' | 'webhook'
+  startState: string
   options: Record<string, unknown>
 }
 ```
 
-`starts` is a JSON array. It replaces the old `triggers` table entirely.
+`starts` is stored as a JSON object column (`dbType: 'object'`, `displayType: 'json'`). It replaces the old `triggers` table entirely.
+
+To support this, the column schema gains a new `displayType: 'json'` for `object` and `array` fields. This lets the UI render raw JSON for now and later upgrade to a structured nested editor.
 
 `options` shapes:
 
@@ -222,7 +227,7 @@ Behavior:
 1. Look up the design and confirm it has at least one `user_trigger` start rule.
 2. Build a synthetic record: `{ id: <new instance id>, ...values }`.
 3. Create a `workflow_instances` row with `tableName = '_user_trigger'` and `recordId = instance.id`.
-4. Call Restate ingress `/workflow/{instanceId}/create` with the full `CreateWorkflowRequest`.
+4. Call Restate ingress `/workflow/{instanceId}/create` with the full `CreateWorkflowRequest`, including `startState` from the matched start rule.
 
 A matching admin route `POST /api/admin/workflow-instances` handles platform designs.
 
@@ -238,7 +243,9 @@ const matching = designs.filter((d) =>
 )
 ```
 
-A new helper `dispatchUserTrigger(namespace, designId, values, { companyId })` creates the instance and calls Restate. It is invoked from `POST /api/workflow-instances`, not from DB CRUD hooks.
+Each match produces a start request that includes the rule's `startState`.
+
+A new helper `dispatchUserTrigger(namespace, designId, startState, values, { companyId })` creates the instance and calls Restate. It is invoked from `POST /api/workflow-instances`, not from DB CRUD hooks.
 
 ## UI changes
 
@@ -246,7 +253,8 @@ A new helper `dispatchUserTrigger(namespace, designId, values, { companyId })` c
 
 - Rename routes/pages from `/workflows` → `/workflow-designs` (and `/admin/workflows` → `/admin/workflow-designs`).
 - Add a **Start rules** section on the design detail page.
-- Each rule shows its type and key options (table/event for db_trigger, permissions placeholder for user_trigger).
+- Each rule shows its type, `startState`, and key options (table/event for db_trigger, permissions placeholder for user_trigger).
+- The UI selects a sensible default `startState` when a rule is created (e.g. the design's `initial` state).
 - For designs with a `user_trigger`, show a **Run** button.
 
 ### Action config panel
@@ -263,9 +271,9 @@ A new helper `dispatchUserTrigger(namespace, designId, values, { companyId })` c
 
 ## Runtime impact
 
-No runtime changes are required. The `form` configuration is UI metadata only; the runtime still receives a synthetic `record` in `CreateWorkflowRequest`.
+The runtime must honor `CreateWorkflowRequest.startState`. When starting the actor, the runtime compiles a one-off `WorkflowDefinition` whose `initial` property is replaced by `startState`. The rest of the machine is unchanged.
 
-The first action receives `context.record` as usual. If the action's `params` reference `record.<field>` (e.g. `{ $context: 'record.name' }`), the submitted value is used. If a required value is missing or invalid, the action executor fails and the instance moves to an error state.
+The `form` configuration is UI metadata only; the runtime still receives a synthetic `record` in `CreateWorkflowRequest`. The first action receives `context.record` as usual. If the action's `params` reference `record.<field>` (e.g. `{ $context: 'record.name' }`), the submitted value is used.
 
 ## Migration
 
@@ -273,7 +281,7 @@ This is a breaking schema change. A one-time migration is required:
 
 1. Rename table `workflows` → `workflow_designs`.
 2. For each existing workflow, read its related `triggers` rows.
-3. Build `starts: [{ type: 'db_trigger', options: { tableName, event } }]` and store it on the design.
+3. Build `starts: [{ type: 'db_trigger', startState: definition.initial, options: { tableName, event } }]` and store it on the design.
 4. Delete the `triggers` table.
 5. Rename `workflow_instances.workflowId` → `designId`.
 6. Update `workflow_actions`, `user_tasks`, and any other tables that reference `workflowId` to use `designId`.
