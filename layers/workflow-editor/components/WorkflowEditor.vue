@@ -36,7 +36,7 @@ const { validate } = useWorkflowValidator()
 const canvasRef = ref<InstanceType<typeof WorkflowCanvas> | null>(null)
 const sidebarOpen = ref(true)
 const activeTab = ref<'context' | 'details'>('details')
-const validationOpen = ref(true)
+const validationOpen = ref(false)
 const lastEmitted = ref<WorkflowDefinition | null>(null)
 
 const selectedNode = computed(() => editor.nodes.value.find(n => n.id === editor.selectedId.value))
@@ -74,11 +74,17 @@ function onFocusError(id: string) {
 }
 
 let isInternalUpdate = false
+let isInitialLoad = true
 
 watch([editor.nodes, editor.edges], () => {
   const id = editor.selectedId.value
   if (id && !editor.nodes.value.some(n => n.id === id) && !editor.edges.value.some(e => e.id === id)) {
     editor.selectedId.value = null
+  }
+
+  if (isInitialLoad) {
+    isInitialLoad = false
+    return
   }
 
   isInternalUpdate = true
@@ -92,7 +98,7 @@ watch(() => props.modelValue, (def) => {
   if (!def || isInternalUpdate) return
   if (JSON.stringify(def) === JSON.stringify(lastEmitted.value)) return
   editor.load(def)
-}, { deep: false })
+}, { deep: false, immediate: true })
 </script>
 
 <template>
