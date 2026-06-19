@@ -511,7 +511,8 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
         } finally {
           await closeSurreal(surreal)
         }
-      } catch {
+      } catch (err) {
+        console.warn(`listCompaniesForProfile: skipping company ${company.id} (${company.namespace}):`, err)
         return null
       }
     })

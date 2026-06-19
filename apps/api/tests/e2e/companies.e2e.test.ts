@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { seedE2E, cleanupE2E, cleanupCompanyNamespace, loginTenant, tenantRequest, json } from './fixtures.js'
+import { seedE2E, cleanupE2E, cleanupTestNamespace, loginTenant, tenantRequest, json } from './fixtures.js'
 import type { TestFixture } from './fixtures.js'
 
 let fixture: TestFixture
@@ -13,7 +13,7 @@ describe('E2E companies', () => {
   afterAll(async () => {
     await cleanupE2E(fixture)
     if (createdCompany) {
-      await cleanupCompanyNamespace(createdCompany.namespace)
+      await cleanupTestNamespace(createdCompany.namespace)
     }
   })
 
@@ -24,8 +24,8 @@ describe('E2E companies', () => {
     })
     expect(res.status).toBe(200)
     const body = await json<{ id: string; name: string; slug: string; namespace: string }>(res)
-    expect(body.name).toBe('New E2E Company')
     createdCompany = { id: body.id, slug: body.slug, namespace: body.namespace }
+    expect(body.name).toBe('New E2E Company')
   })
 
   it('lists companies for the current profile', async () => {

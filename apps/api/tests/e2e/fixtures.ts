@@ -8,9 +8,18 @@ import { provisionCompanyNamespace } from 'db/provision'
 import { createUserGroup, addUserGroupMember } from 'db/user-groups'
 import { createApp } from '../../src/app.js'
 
+const RESERVED_NAMESPACES = new Set(['platform'])
+
 function assertValidNamespace(namespace: string): void {
   if (!/^[a-z_][a-z0-9_]*$/.test(namespace)) {
     throw new Error(`Invalid namespace: ${namespace}`)
+  }
+}
+
+function assertSafeNamespace(namespace: string): void {
+  assertValidNamespace(namespace)
+  if (RESERVED_NAMESPACES.has(namespace)) {
+    throw new Error(`Refusing to remove reserved namespace: ${namespace}`)
   }
 }
 
@@ -63,7 +72,7 @@ export async function seedE2E(): Promise<TestFixture> {
 
   async function cleanupPartial(namespace: string | undefined) {
     if (!namespace) return
-    assertValidNamespace(namespace)
+    assertSafeNamespace(namespace)
     const root = await getSurreal()
     try {
       await root.query(`REMOVE NAMESPACE IF EXISTS ${namespace}`)
@@ -179,10 +188,9 @@ async function deleteCompanyByNamespace(namespace: string) {
   }
 }
 
-export async function cleanupCompanyNamespace(namespace: string | undefined | null) {
+export async function cleanupTestNamespace(namespace: string | undefined | null) {
   if (!namespace) return
-  assertValidNamespace(namespace)
-  await deleteCompanyByNamespace(namespace)
+  assertSafeNamespace(namespace)
   try {
     const root = await getSurreal()
     try {
@@ -191,29 +199,14 @@ export async function cleanupCompanyNamespace(namespace: string | undefined | nu
       await closeSurreal(root)
     }
   } catch (err) {
-    console.warn('cleanupCompanyNamespace failed:', err)
+    console.warn('cleanupTestNamespace failed:', err)
   }
 }
 
 export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   if (!fixture) return
-
-  try {
-    const platform = await getSurreal('platform', 'admin')
-    try {
-      await platform.query('DELETE type::record($id)', { id: fixture.company.id })
-    } catch (err) {
-      console.warn('cleanupE2E: failed to delete company record:', err)
-    } finally {
-      await closeSurreal(platform)
-    }
-  } catch (err) {
-    console.warn('cleanupE2E: failed to connect to platform admin DB:', err)
-  }
-
-  await deleteCompanyByNamespace(fixture.namespace)
-
-  await cleanupCompanyNamespace(fixture.namespace)
+  await deleteCompanyByNamespace(fixture.company.namespace)
+  await cleanupTestNamespace(fixture.namespace)
 }
 
 function parseCookieValue(raw: string): { name: string; value: string; cleared: boolean } | undefined {
