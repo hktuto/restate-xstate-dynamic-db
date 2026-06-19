@@ -197,6 +197,8 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('accessTokenJti', 'string', 'text'),
     column('memberId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:memberId:members:id⟩' } }),
     column('profileId', 'string', 'text'),
+    column('email', 'string', 'text'),
+    column('companyId', 'string', 'text'),
     column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['user', 'impersonation']) } }),
     column('impersonatorId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:impersonatorId:members:id⟩' } }),
     column('deviceFingerprint', 'string', 'text'),
