@@ -37,3 +37,50 @@ export function unsignObject<T extends object>(signedValue: string, secret: stri
     return null
   }
 }
+
+export interface AccessTokenPayload {
+  sessionId: string
+  accountId: string
+  profileId: string
+  email?: string
+  companyId?: string
+  type: 'user' | 'impersonation'
+  impersonatorId?: string
+  jti: string
+  exp: number
+  iat: number
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === 'string'
+}
+
+function isAccessTokenPayload(obj: unknown): obj is AccessTokenPayload {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return false
+  }
+  const payload = obj as Record<string, unknown>
+  if (typeof payload.sessionId !== 'string') return false
+  if (typeof payload.accountId !== 'string') return false
+  if (typeof payload.profileId !== 'string') return false
+  if (typeof payload.jti !== 'string') return false
+  if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp)) return false
+  if (typeof payload.iat !== 'number' || !Number.isFinite(payload.iat)) return false
+  if (payload.type !== 'user' && payload.type !== 'impersonation') return false
+  if (!isOptionalString(payload.email)) return false
+  if (!isOptionalString(payload.companyId)) return false
+  if (!isOptionalString(payload.impersonatorId)) return false
+  return true
+}
+
+export function signAccessToken(payload: Omit<AccessTokenPayload, 'iat'>, secret: string): string {
+  return signObject({ ...payload, iat: Date.now() }, secret)
+}
+
+export function verifyAccessToken(token: string, secret: string): AccessTokenPayload | null {
+  const obj = unsignObject<AccessTokenPayload>(token, secret)
+  if (!obj) return null
+  if (!isAccessTokenPayload(obj)) return null
+  if (obj.exp < Date.now()) return null
+  return obj
+}
