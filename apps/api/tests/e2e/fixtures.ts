@@ -79,7 +79,7 @@ export async function seedE2E(): Promise<TestFixture> {
         'CREATE platform_users CONTENT $data RETURN id',
         { data: { email: `platform-admin-${suffix}@test.co`, password: await hashPassword(password) } }
       )
-      platformAdminId = rows[0].id
+      platformAdminId = String(rows[0].id)
     } finally {
       await closeSurreal(adminSurreal)
     }
@@ -157,6 +157,13 @@ export async function cleanupE2E(fixture: TestFixture | undefined | null) {
     await root.query(`REMOVE NAMESPACE IF EXISTS ${fixture.namespace}`)
   } finally {
     await closeSurreal(root)
+  }
+
+  const platform = await getSurreal('platform', 'admin')
+  try {
+    await platform.query('DELETE type::record($id)', { id: fixture.company.id })
+  } finally {
+    await closeSurreal(platform)
   }
 }
 
