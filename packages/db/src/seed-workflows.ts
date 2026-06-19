@@ -3,18 +3,12 @@ import { getSurreal, closeSurreal } from './client.js'
 async function seed() {
   const surreal = await getSurreal('platform', 'admin')
   try {
-    await surreal.query('DELETE triggers WHERE tableName = "companies" AND event = "create"')
-    await surreal.query('DELETE workflows WHERE name = "provisionCompany"')
+    await surreal.query('DELETE workflow_designs WHERE name = "provisionCompany"')
 
     const workflowConfig = {
       id: 'provisionCompany',
-      initial: 'idle',
+      initial: 'activating',
       states: {
-        idle: {
-          on: {
-            create: { target: 'activating' }
-          }
-        },
         activating: {
           meta: {
             action: 'updateRecord',
@@ -34,24 +28,26 @@ async function seed() {
       }
     }
 
-    const [workflows] = await surreal.query<[any[]]>(
-      'CREATE workflows CONTENT $data RETURN id',
-      { data: { name: 'provisionCompany', xstateConfig: workflowConfig } }
-    )
-    const workflow = workflows[0]
-
     await surreal.query(
-      'CREATE triggers CONTENT $data',
-      { data: { tableName: 'companies', event: 'create', workflowId: workflow.id } }
+      'CREATE workflow_designs CONTENT $data',
+      {
+        data: {
+          name: 'provisionCompany',
+          xstateConfig: workflowConfig,
+          starts: [
+            { type: 'db_trigger', startState: 'activating', options: { tableName: 'companies', event: 'create' } }
+          ]
+        }
+      }
     )
 
-    console.log('Workflow and trigger seeded')
+    console.log('Workflow design seeded')
   } finally {
     await closeSurreal(surreal)
   }
 }
 
 seed().catch((err) => {
-  console.error('Workflow seed failed:', err)
+  console.error('Workflow design seed failed:', err)
   process.exit(1)
 })

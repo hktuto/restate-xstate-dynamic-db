@@ -1,10 +1,10 @@
 ---
 title: Workflow Engine
 type: feature
-status: planned
+status: done
 area: workflow
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-18
 app:
   - runtime
 related:
@@ -47,7 +47,7 @@ The Restate Virtual Object `workflow` exposes:
 
 Each action state writes a `workflow_actions` row when entered and updates it when the action completes or fails. The row captures:
 
-- `instanceId`, `workflowId`, `stateId`, `action`
+- `instanceId`, `designId`, `stateId`, `action`
 - `params` passed to the action
 - `status` (`started`, `completed`, or `failed`) and `startedAt` / `completedAt` timestamps
 - `inputContext` on entry

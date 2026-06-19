@@ -3,7 +3,7 @@ interface UserTask {
   id: string
   tableName: string
   recordId: string
-  workflowId: string
+  designId: string
   status: 'pending' | 'completed' | 'cancelled' | 'rejected'
   member?: {
     name?: string

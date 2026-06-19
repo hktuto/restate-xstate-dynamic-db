@@ -1,6 +1,8 @@
+import type { TriggerBy } from 'shared'
+
 export interface RuntimeCreatePayload {
   designId: string
-  trigger: { type: string; startState: string }
+  trigger: TriggerBy
   context: Record<string, unknown>
   createdBy: string
   companyId?: string

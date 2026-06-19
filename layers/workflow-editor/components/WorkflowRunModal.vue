@@ -11,6 +11,7 @@ const props = defineProps<{
   starts: StartRule[]
   namespace: string
   apiBasePath: string
+  database?: string
   errorHandler?: (message: string) => void
 }>()
 
@@ -114,7 +115,7 @@ async function loadInputs() {
   }
 
   try {
-    const { visibleInputs } = await useWorkflowRun(props.namespace, props.definition, rule.startState)
+    const { visibleInputs } = await useWorkflowRun(props.namespace, props.definition, rule.startState, props.database)
     inputs.value = visibleInputs.value
     initFormValues(inputs.value)
   } catch (err) {

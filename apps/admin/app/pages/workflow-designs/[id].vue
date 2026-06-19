@@ -73,6 +73,7 @@ async function save() {
       :starts="starts"
       :namespace="ADMIN_NAMESPACE"
       :api-base-path="ADMIN_API_BASE_PATH"
+      database="admin"
       :error-handler="(message: string) => toast.add({ title: 'Run workflow', description: message, color: 'error' })"
     />
   </div>

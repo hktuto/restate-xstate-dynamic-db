@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-18
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
@@ -19,9 +19,8 @@ related:
 |--------|---------|
 | `platform_users` | Superadmin accounts. |
 | `companies` | Tenant companies with slug and namespace. |
-| `workflows` | Workflow templates available to all tenants. |
-| `triggers` | Platform trigger configurations. |
-| `workflow_instances` | Running and historical platform workflow instances. |
+| `workflow_designs` | Workflow templates available to all tenants. Each design contains an XState config and a `starts` array of start rules (`db_trigger`, `user_trigger`, `cron`, `webhook`). |
+| `workflow_instances` | Running and historical platform workflow instances. Stores `designId`, `status`, `currentState`, `context`, and `triggerBy`. |
 | `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`, with `status` (`started` / `completed` / `failed`) and timestamps. |
 | `user_tasks` | Manual tasks created by platform workflow instances. |
 | `health_checks` | Service health check records. |
@@ -30,12 +29,10 @@ related:
 
 | Record | Purpose |
 |--------|---------|
-| `workflows` | Company-specific workflow definitions. |
-| `triggers` | Trigger configurations. |
-| `workflow_instances` | Running and historical workflow instances. |
+| `workflow_designs` | Company-specific workflow designs. Each design contains an XState config and a `starts` array of start rules (`db_trigger`, `user_trigger`, `cron`, `webhook`). |
+| `workflow_instances` | Running and historical workflow instances. Stores `designId`, `status`, `currentState`, `context`, and `triggerBy`. |
 | `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`, with `status` (`started` / `completed` / `failed`) and timestamps. |
 | `user_tasks` | Manual tasks created by workflow instances. |
-| `triggers` | Trigger configurations. |
 | `members` | Company membership, role, invite status. |
 
 ## Schema registry
