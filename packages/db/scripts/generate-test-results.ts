@@ -184,8 +184,8 @@ async function main() {
   const member = await record(
     'tenant',
     'createMember',
-    { namespace: ns, email: 'admin@example.com', role: 'admin' },
-    () => tenant.createMember(ns, { email: 'admin@example.com', role: 'admin' }),
+    { namespace: ns, email: 'admin@example.com', role: 'member' },
+    () => tenant.createMember(ns, { email: 'admin@example.com', role: 'member' }),
   )
   if (member) {
     await record('tenant', 'getMemberById', { namespace: ns, id: member.id }, () =>

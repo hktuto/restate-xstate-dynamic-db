@@ -2,26 +2,20 @@ import { Hono } from 'hono'
 import { getUserProfilesByIds, updateUserProfile } from 'db/platform'
 import { listMembers, createMember, updateMember, getMemberById, deleteMember } from 'db/tenant'
 import { tenantAuth } from '../middleware/tenant.js'
+import { requirePermission } from '../middleware/permission.js'
 import { dispatchTrigger } from '../lib/dispatch.js'
 import type { TenantScope } from '../types.js'
 import crypto from 'node:crypto'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const VALID_ROLES = new Set(['owner', 'admin', 'member'])
+const VALID_ROLES = new Set(['owner', 'member'])
 const VALID_STATUSES = new Set(['active', 'inactive', 'pending'])
-
-function requireRole(scope: TenantScope, roles: Array<'owner' | 'admin' | 'member'>) {
-  if (!roles.includes(scope.role)) {
-    return { error: 'Forbidden', status: 403 } as const
-  }
-  return null
-}
 
 export function usersRoutes() {
   const app = new Hono()
   app.use(tenantAuth)
 
-  app.get('/', async (c) => {
+  app.get('/', requirePermission('company', 'view'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const members = await listMembers(scope.namespace)
     const profileIds = [...new Set(members.map((m) => m.profileId).filter((id): id is string => Boolean(id)))]
@@ -39,10 +33,8 @@ export function usersRoutes() {
     )
   })
 
-  app.post('/', async (c) => {
+  app.post('/', requirePermission('company', 'invite_member'), async (c) => {
     const scope = c.get('scope') as TenantScope
-    const forbidden = requireRole(scope, ['owner', 'admin'])
-    if (forbidden) return c.json({ error: forbidden.error }, forbidden.status)
 
     let body: Record<string, unknown>
     try {
@@ -56,8 +48,8 @@ export function usersRoutes() {
       return c.json({ error: 'Role required' }, 400)
     }
 
-    const validRoles: Array<'owner' | 'admin' | 'member'> = ['owner', 'admin', 'member']
-    if (!validRoles.includes(role as 'owner' | 'admin' | 'member')) {
+    const validRoles: Array<'owner' | 'member'> = ['owner', 'member']
+    if (!validRoles.includes(role as 'owner' | 'member')) {
       return c.json({ error: 'Invalid role' }, 400)
     }
 
@@ -82,7 +74,7 @@ export function usersRoutes() {
     const inviteCode = crypto.randomBytes(32).toString('hex')
     const member = await createMember(scope.namespace, {
       email: normalizedEmail,
-      role: role as 'owner' | 'admin' | 'member',
+      role: role as 'owner' | 'member',
       status: 'pending',
       inviteCode,
       invitedBy: scope.memberId,
@@ -95,10 +87,8 @@ export function usersRoutes() {
     return c.json(safeMember)
   })
 
-  app.patch('/:id', async (c) => {
+  app.patch('/:id', requirePermission('company', 'manage_permissions'), async (c) => {
     const scope = c.get('scope') as TenantScope
-    const forbidden = requireRole(scope, ['owner', 'admin'])
-    if (forbidden) return c.json({ error: forbidden.error }, forbidden.status)
 
     const id = c.req.param('id')
     if (!id) {
@@ -118,7 +108,7 @@ export function usersRoutes() {
     }
 
     const memberUpdate: Partial<{
-      role: 'owner' | 'admin' | 'member'
+      role: 'owner' | 'member'
       status: 'pending' | 'active' | 'inactive'
     }> = {}
 
@@ -132,7 +122,7 @@ export function usersRoutes() {
       if (id === scope.memberId && body.role !== 'owner') {
         return c.json({ error: 'Owners cannot demote themselves' }, 403)
       }
-      memberUpdate.role = body.role as 'owner' | 'admin' | 'member'
+      memberUpdate.role = body.role as 'owner' | 'member'
     }
 
     if (body.status !== undefined) {
@@ -183,10 +173,8 @@ export function usersRoutes() {
     return c.json({ ok: true })
   })
 
-  app.delete('/:id', async (c) => {
+  app.delete('/:id', requirePermission('company', 'remove_member'), async (c) => {
     const scope = c.get('scope') as TenantScope
-    const forbidden = requireRole(scope, ['owner', 'admin'])
-    if (forbidden) return c.json({ error: forbidden.error }, forbidden.status)
 
     const id = c.req.param('id')
     if (!id) {

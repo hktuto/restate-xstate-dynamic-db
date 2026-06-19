@@ -26,7 +26,7 @@ describe('tenant', () => {
 
   describe('members', () => {
     it('creates, lists, gets, updates and deletes a member', async () => {
-      const member = await createMember(namespace, { email: 'a@example.com', role: 'admin' })
+      const member = await createMember(namespace, { email: 'a@example.com', role: 'member' })
       expect(member.id).toMatch(/^members:/)
 
       const list = await listMembers(namespace)

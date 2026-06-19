@@ -86,7 +86,7 @@ async function setupTenant(namespace: string): Promise<TenantSetup> {
   await createTenantNamespace(namespace)
   const member = await tenant.createMember(namespace, {
     email: uniqueEmail(),
-    role: 'admin',
+    role: 'member',
   })
   const design = await tenant.createWorkflowDesign(namespace, {
     name: uniqueWorkflowName(),
@@ -336,7 +336,7 @@ export const tenantScenarios = [
       if (!namespace) throw new Error('createMember scenario state missing')
       await tenant.createMember(namespace, {
         email: uniqueEmail(),
-        role: 'admin',
+        role: 'member',
       })
     },
   } satisfies Scenario<string>,
