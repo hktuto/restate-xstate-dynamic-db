@@ -24,7 +24,7 @@ async function logout() {
         <div class="flex gap-6">
           <NuxtLink to="/" class="font-semibold hover:text-blue-600">Home</NuxtLink>
           <NuxtLink to="/users" class="hover:text-blue-600">Users</NuxtLink>
-          <NuxtLink to="/workflows" class="hover:text-blue-600">Workflows</NuxtLink>
+          <NuxtLink to="/workflow-designs" class="hover:text-blue-600">Workflows</NuxtLink>
           <NuxtLink to="/triggers" class="hover:text-blue-600">Triggers</NuxtLink>
           <NuxtLink to="/user-tasks" class="hover:text-blue-600">Tasks</NuxtLink>
         </div>

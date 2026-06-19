@@ -18,7 +18,7 @@ const api = useApi()
 
 async function refresh() {
   ;[workflows.value, triggers.value] = await Promise.all([
-    api.fetch<Workflow[]>('/api/workflows'),
+    api.fetch<Workflow[]>('/api/workflow-designs'),
     api.fetch<Trigger[]>('/api/triggers'),
   ])
 }
@@ -35,11 +35,11 @@ async function createTrigger() {
   if (!form.workflowId) return
   await api.fetch('/api/triggers', {
     method: 'POST',
-    body: {
+    body: JSON.stringify({
       tableName: form.tableName,
       event: form.event,
       workflowId: form.workflowId
-    }
+    })
   })
   form.workflowId = undefined
   await refresh()

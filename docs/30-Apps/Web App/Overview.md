@@ -4,7 +4,7 @@ type: app
 status: done
 area: web
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-19
 app:
   - web
 related:
@@ -33,8 +33,10 @@ The tenant-facing Nuxt application. Each user belongs to a company and manages w
 | Route | Purpose |
 |-------|---------|
 | `/` | Company selection / landing. |
-| `/workflows` | List company workflows. |
-| `/workflows/[id]` | Edit a workflow in the visual editor. |
+| `/workflow-designs` | List company workflow designs. |
+| `/workflow-designs/new` | Create a new workflow design. |
+| `/workflow-designs/[id]` | Edit a workflow design in the visual editor. |
+| `/triggers` | List and manage workflow-design start rules. |
 | `/maintenance` | Maintenance page shown when critical services are unhealthy. |
 | `/api/companies` | List companies (public within session). |
 | `/api/health` | Public health check. |
