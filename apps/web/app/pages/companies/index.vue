@@ -17,10 +17,14 @@ await loadCompanies()
 
 const router = useRouter()
 
-function enterCompany(company: Company) {
+async function enterCompany(company: Company) {
+  await api.fetch('/api/auth/company', {
+    method: 'POST',
+    body: { companyId: company.id, slug: company.slug }
+  })
   const companyCookie = useCookie('company')
   companyCookie.value = JSON.stringify({ id: company.id, slug: company.slug, namespace: company.namespace })
-  router.push('/')
+  await router.push('/')
 }
 </script>
 

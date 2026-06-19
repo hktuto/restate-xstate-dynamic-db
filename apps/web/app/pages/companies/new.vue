@@ -11,6 +11,10 @@ async function submit() {
       method: 'POST',
       body: { name: name.value }
     })
+    await api.fetch('/api/auth/company', {
+      method: 'POST',
+      body: { companyId: company.id, slug: company.slug }
+    })
     const companyCookie = useCookie('company')
     companyCookie.value = JSON.stringify({ id: company.id, slug: company.slug, namespace: company.namespace })
     await router.push('/')

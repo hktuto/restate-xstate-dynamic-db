@@ -23,6 +23,9 @@ export function useApi() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
+        if (res.status === 401 && import.meta.client) {
+          await navigateTo('/login')
+        }
         throw new Error(body.error ?? `API error ${res.status}`)
       }
       return res.json() as Promise<T>
