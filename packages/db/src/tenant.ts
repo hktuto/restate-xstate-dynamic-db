@@ -436,20 +436,17 @@ export async function ensureCompanyPolicy(namespace: string, companyId: string):
 
 export interface TenantSessionRecord {
   id: string
-  email: string
-  companyId?: string
-  refreshTokenHash: string
-  accessTokenJti: string
+  platformSessionId: string
   memberId: string
   profileId: string
+  email: string
+  companyId: string
   type: 'user' | 'impersonation'
   impersonatorId?: string
   deviceFingerprint?: string
   deviceName?: string
   ip?: string
   userAgent?: string
-  refreshExpiresAt: string
-  accessExpiresAt: string
   lastUsedAt: string
   revokedAt?: string
   revokeReason?: string
@@ -457,20 +454,17 @@ export interface TenantSessionRecord {
 }
 
 export interface CreateTenantSessionInput {
-  refreshTokenHash: string
-  accessTokenJti: string
+  platformSessionId: string
   memberId: string
   profileId: string
   email: string
-  companyId?: string
+  companyId: string
   type?: 'user' | 'impersonation'
   impersonatorId?: string
   deviceFingerprint?: string
   deviceName?: string
   ip?: string
   userAgent?: string
-  refreshExpiresAt: string
-  accessExpiresAt: string
 }
 
 export async function createTenantSession(namespace: string, input: CreateTenantSessionInput): Promise<TenantSessionRecord> {
@@ -486,12 +480,31 @@ export async function createTenantSession(namespace: string, input: CreateTenant
   }
 }
 
-export async function getTenantSessionByRefreshToken(namespace: string, refreshTokenHash: string): Promise<TenantSessionRecord | null> {
+export async function getTenantSessionById(namespace: string, sessionId: string): Promise<TenantSessionRecord | null> {
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<[TenantSessionRecord[]]>(
-      'SELECT * FROM sessions WHERE refreshTokenHash = $hash AND revokedAt IS NONE AND refreshExpiresAt > $now LIMIT 1',
-      { hash: refreshTokenHash, now: new Date().toISOString() }
+      'SELECT * FROM type::record($id)',
+      { id: sessionId }
+    )
+    const record = normalizeId(rows[0])
+    if (!record || record.revokedAt) return null
+    return record
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getActiveTenantSessionByPlatformSessionId(
+  namespace: string,
+  platformSessionId: string,
+  companyId: string
+): Promise<TenantSessionRecord | null> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    const [rows] = await surreal.query<[TenantSessionRecord[]]>(
+      'SELECT * FROM sessions WHERE platformSessionId = $platformSessionId AND companyId = $companyId AND revokedAt IS NONE LIMIT 1',
+      { platformSessionId, companyId }
     )
     return normalizeId(rows[0]) ?? null
   } finally {
@@ -499,16 +512,12 @@ export async function getTenantSessionByRefreshToken(namespace: string, refreshT
   }
 }
 
-export async function updateTenantSessionToken(
-  namespace: string,
-  sessionId: string,
-  updates: Partial<Pick<TenantSessionRecord, 'refreshTokenHash' | 'accessTokenJti' | 'accessExpiresAt' | 'refreshExpiresAt' | 'lastUsedAt'>>
-): Promise<void> {
+export async function touchTenantSession(namespace: string, sessionId: string): Promise<void> {
   const surreal = await getSurreal(namespace, 'main')
   try {
     await surreal.query(
-      'UPDATE type::record($id) MERGE $updates',
-      { id: sessionId, updates }
+      'UPDATE type::record($id) SET lastUsedAt = $now',
+      { id: sessionId, now: new Date().toISOString() }
     )
   } finally {
     await closeSurreal(surreal)
@@ -534,12 +543,31 @@ export async function revokeTenantSession(namespace: string, sessionId: string, 
   }
 }
 
+export async function revokeTenantSessionsByPlatformSessionId(namespace: string, platformSessionId: string, reason?: string): Promise<void> {
+  const surreal = await getSurreal(namespace, 'main')
+  try {
+    if (reason) {
+      await surreal.query(
+        'UPDATE sessions SET revokedAt = $now, revokeReason = $reason WHERE platformSessionId = $platformSessionId AND revokedAt IS NONE',
+        { platformSessionId, now: new Date().toISOString(), reason }
+      )
+    } else {
+      await surreal.query(
+        'UPDATE sessions SET revokedAt = $now WHERE platformSessionId = $platformSessionId AND revokedAt IS NONE',
+        { platformSessionId, now: new Date().toISOString() }
+      )
+    }
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
 export async function countActiveTenantSessions(namespace: string, memberId: string): Promise<number> {
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<[{ count: number }[]]>(
-      'SELECT count() FROM sessions WHERE memberId = $memberId AND revokedAt IS NONE AND refreshExpiresAt > $now GROUP ALL',
-      { memberId, now: new Date().toISOString() }
+      'SELECT count() FROM sessions WHERE memberId = $memberId AND revokedAt IS NONE GROUP ALL',
+      { memberId }
     )
     return Number(rows[0]?.count ?? 0)
   } finally {
@@ -551,8 +579,8 @@ export async function findOldestActiveTenantSession(namespace: string, memberId:
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<[TenantSessionRecord[]]>(
-      'SELECT * FROM sessions WHERE memberId = $memberId AND revokedAt IS NONE AND refreshExpiresAt > $now ORDER BY lastUsedAt ASC LIMIT 1',
-      { memberId, now: new Date().toISOString() }
+      'SELECT * FROM sessions WHERE memberId = $memberId AND revokedAt IS NONE ORDER BY lastUsedAt ASC LIMIT 1',
+      { memberId }
     )
     return normalizeId(rows[0]) ?? null
   } finally {

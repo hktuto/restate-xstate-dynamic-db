@@ -194,8 +194,7 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('invitedBy', 'record', 'relation', { config: { relationId: '_relations:⟨members:invitedBy:members:id⟩' } }),
   ], [relation('profileId', 'user_profiles'), relation('invitedBy', 'members', 'one-to-many')]),
   table('sessions', 'Sessions', [
-    column('refreshTokenHash', 'string', 'text', { unique: true }),
-    column('accessTokenJti', 'string', 'text'),
+    column('platformSessionId', 'string', 'text'),
     column('memberId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:memberId:members:id⟩' } }),
     column('profileId', 'string', 'text'),
     column('email', 'string', 'text'),
@@ -206,8 +205,6 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('deviceName', 'string', 'text'),
     column('ip', 'string', 'text'),
     column('userAgent', 'string', 'text'),
-    column('refreshExpiresAt', 'datetime', 'date'),
-    column('accessExpiresAt', 'datetime', 'date'),
     column('lastUsedAt', 'datetime', 'date'),
     column('revokedAt', 'datetime', 'date'),
     column('revokeReason', 'string', 'text'),

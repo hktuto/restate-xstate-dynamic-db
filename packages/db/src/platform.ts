@@ -58,6 +58,7 @@ export interface CreatePlatformSessionInput {
   accessTokenJti: string
   accountId: string
   profileId: string
+  platformUserId?: string
   email: string
   type?: 'user' | 'impersonation'
   impersonatorId?: string
@@ -91,6 +92,21 @@ export async function getPlatformSessionByRefreshToken(namespace: string, refres
       { hash: refreshTokenHash, now: new Date().toISOString() }
     )
     return normalizeId(rows[0]) ?? null
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getPlatformSessionById(namespace: string, sessionId: string): Promise<PlatformSessionRecord | null> {
+  const surreal = await getSurreal(namespace, 'admin')
+  try {
+    const [rows] = await surreal.query<[PlatformSessionRecord[]]>(
+      'SELECT * FROM type::record($id)',
+      { id: sessionId }
+    )
+    const record = normalizeId(rows[0])
+    if (!record || record.revokedAt) return null
+    return record
   } finally {
     await closeSurreal(surreal)
   }
