@@ -293,6 +293,15 @@ export async function deletePlatformUserTask(id: string): Promise<void> {
   }
 }
 
+export async function deleteCompanyBySlug(slug: string): Promise<void> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    await surreal.query('DELETE companies WHERE slug = $slug', { slug })
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
 export async function listCompanies(): Promise<CompanyRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
