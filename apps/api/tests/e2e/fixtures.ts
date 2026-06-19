@@ -73,6 +73,11 @@ export async function seedE2E(): Promise<TestFixture> {
   async function cleanupPartial(namespace: string | undefined) {
     if (!namespace) return
     assertSafeNamespace(namespace)
+    try {
+      await deleteCompanyByNamespace(namespace)
+    } catch {
+      // best-effort cleanup; ignore failures
+    }
     const root = await getSurreal()
     try {
       await root.query(`REMOVE NAMESPACE IF EXISTS ${namespace}`)
@@ -218,9 +223,24 @@ export async function cleanupTestNamespace(namespace: string | undefined | null)
   }
 }
 
+async function deletePlatformAdmin(userId: string | undefined | null) {
+  if (!userId) return
+  try {
+    const platform = await getSurreal('platform', 'admin')
+    try {
+      await platform.query('DELETE type::record($id)', { id: userId })
+    } finally {
+      await closeSurreal(platform)
+    }
+  } catch (err) {
+    console.warn('deletePlatformAdmin failed:', err)
+  }
+}
+
 export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   if (!fixture) return
   await deleteCompanyByNamespace(fixture.company.namespace)
+  await deletePlatformAdmin(fixture.platformAdmin.id)
   await cleanupTestNamespace(fixture.namespace)
 }
 

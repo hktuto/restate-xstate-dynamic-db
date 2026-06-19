@@ -529,6 +529,7 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
         }
       } catch (err) {
         if (isMissingNamespaceOrDatabase(err)) {
+          console.warn('listCompaniesForProfile: skipping company due to missing namespace/database', { companyId: company.id, namespace: company.namespace })
           return null
         }
         throw err
