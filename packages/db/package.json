@@ -62,6 +62,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/seed.ts",
+    "seed-company": "tsx scripts/seed-company.ts",
     "seed:workflows": "tsx src/seed-workflows.ts",
     "benchmark:schema": "tsx scripts/schema-benchmark.ts",
     "test": "vitest run",
