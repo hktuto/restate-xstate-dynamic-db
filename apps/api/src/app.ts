@@ -7,6 +7,7 @@ import { usersRoutes } from './routes/users.js'
 import { workflowDesignsRoutes } from './routes/workflow-designs.js'
 import { triggersRoutes } from './routes/triggers.js'
 import { adminWorkflowDesignsRoutes } from './routes/admin-workflow-designs.js'
+import { adminWorkflowInstancesRoutes } from './routes/admin-workflow-instances.js'
 import { workflowInstancesRoutes } from './routes/workflow-instances.js'
 import { userTasksRoutes } from './routes/user-tasks.js'
 import { platformRoutes } from './routes/platform.js'
@@ -23,7 +24,8 @@ export function createApp() {
   app.route('/api/workflow-designs', workflowDesignsRoutes())
   app.route('/api', triggersRoutes())
   app.route('/api/admin/workflow-designs', adminWorkflowDesignsRoutes())
-  app.route('/api', workflowInstancesRoutes())
+  app.route('/api/admin/workflow-instances', adminWorkflowInstancesRoutes())
+  app.route('/api/workflow-instances', workflowInstancesRoutes())
   app.route('/api', userTasksRoutes())
   app.route('/api', platformRoutes())
   app.route('/api', adminRoutes())

@@ -57,6 +57,9 @@ importers:
       shared:
         specifier: workspace:*
         version: link:../../packages/shared
+      workflow-actions:
+        specifier: workspace:*
+        version: link:../../packages/workflow-actions
     devDependencies:
       '@types/node':
         specifier: ^22.15.14

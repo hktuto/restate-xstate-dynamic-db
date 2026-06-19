@@ -13,6 +13,10 @@
     "./runtime": {
       "types": "./src/runtime/index.ts",
       "default": "./src/runtime/index.ts"
+    },
+    "./catalog/resolve-inputs": {
+      "types": "./src/catalog/resolve-inputs.ts",
+      "default": "./src/catalog/resolve-inputs.ts"
     }
   },
   "scripts": {
