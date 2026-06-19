@@ -30,6 +30,129 @@ export interface PlatformWorkflowDesignInput {
   starts?: StartRule[]
 }
 
+export interface PlatformSessionRecord {
+  id: string
+  refreshTokenHash: string
+  accessTokenJti: string
+  accountId?: string
+  profileId?: string
+  platformUserId?: string
+  email: string
+  type: 'user' | 'impersonation'
+  impersonatorId?: string
+  companyId?: string
+  deviceFingerprint?: string
+  deviceName?: string
+  ip?: string
+  userAgent?: string
+  refreshExpiresAt: string
+  accessExpiresAt: string
+  lastUsedAt: string
+  revokedAt?: string
+  revokeReason?: string
+  [key: string]: unknown
+}
+
+export interface CreatePlatformSessionInput {
+  refreshTokenHash: string
+  accessTokenJti: string
+  accountId: string
+  profileId: string
+  email: string
+  type?: 'user' | 'impersonation'
+  impersonatorId?: string
+  companyId?: string
+  deviceFingerprint?: string
+  deviceName?: string
+  ip?: string
+  userAgent?: string
+  refreshExpiresAt: string
+  accessExpiresAt: string
+}
+
+export async function createPlatformSession(namespace: string, input: CreatePlatformSessionInput): Promise<PlatformSessionRecord> {
+  const surreal = await getSurreal(namespace, 'admin')
+  try {
+    const [rows] = await surreal.query<[PlatformSessionRecord[]]>(
+      'CREATE sessions CONTENT $data RETURN *',
+      { data: { ...input, type: input.type ?? 'user', lastUsedAt: new Date().toISOString() } }
+    )
+    return normalizeId(rows[0])!
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getPlatformSessionByRefreshToken(namespace: string, refreshTokenHash: string): Promise<PlatformSessionRecord | null> {
+  const surreal = await getSurreal(namespace, 'admin')
+  try {
+    const [rows] = await surreal.query<[PlatformSessionRecord[]]>(
+      'SELECT * FROM sessions WHERE refreshTokenHash = $hash AND revokedAt IS NONE AND refreshExpiresAt > $now LIMIT 1',
+      { hash: refreshTokenHash, now: new Date().toISOString() }
+    )
+    return normalizeId(rows[0]) ?? null
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function updatePlatformSessionToken(namespace: string, sessionId: string, updates: Partial<Pick<PlatformSessionRecord, 'refreshTokenHash' | 'accessTokenJti' | 'accessExpiresAt' | 'refreshExpiresAt' | 'lastUsedAt'>>): Promise<void> {
+  const surreal = await getSurreal(namespace, 'admin')
+  try {
+    await surreal.query(
+      'UPDATE type::record($id) MERGE $updates',
+      { id: sessionId, updates }
+    )
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function revokePlatformSession(namespace: string, sessionId: string, reason?: string): Promise<void> {
+  const surreal = await getSurreal(namespace, 'admin')
+  try {
+    if (reason) {
+      await surreal.query(
+        'UPDATE type::record($id) SET revokedAt = $now, revokeReason = $reason',
+        { id: sessionId, now: new Date().toISOString(), reason }
+      )
+    } else {
+      await surreal.query(
+        'UPDATE type::record($id) SET revokedAt = $now',
+        { id: sessionId, now: new Date().toISOString() }
+      )
+    }
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function countActivePlatformSessions(namespace: string, accountId: string): Promise<number> {
+  const surreal = await getSurreal(namespace, 'admin')
+  try {
+    const [rows] = await surreal.query<[{ count: number }[]]>(
+      'SELECT count() FROM sessions WHERE accountId = $accountId AND revokedAt IS NONE AND refreshExpiresAt > $now GROUP ALL',
+      { accountId, now: new Date().toISOString() }
+    )
+    return Number(rows[0]?.count ?? 0)
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function findOldestActivePlatformSession(namespace: string, accountId: string): Promise<PlatformSessionRecord | null> {
+  const surreal = await getSurreal(namespace, 'admin')
+  try {
+    const [rows] = await surreal.query<[PlatformSessionRecord[]]>(
+      'SELECT * FROM sessions WHERE accountId = $accountId AND revokedAt IS NONE AND refreshExpiresAt > $now ORDER BY lastUsedAt ASC LIMIT 1',
+      { accountId, now: new Date().toISOString() }
+    )
+    return normalizeId(rows[0]) ?? null
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
 export async function listPlatformWorkflowDesigns(): Promise<PlatformWorkflowDesignRecord[]> {
   const surreal = await getSurreal('platform', 'admin')
   try {
