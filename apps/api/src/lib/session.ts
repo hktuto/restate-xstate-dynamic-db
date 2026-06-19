@@ -48,7 +48,7 @@ export interface AdminSession {
   email: string
 }
 
-export function createAccessToken(payload: Omit<AccessTokenPayload, 'iat' | 'jti'> & { jti?: string }): { token: string; jti: string; expiresAt: Date } {
+export function createAccessToken(payload: Omit<AccessTokenPayload, 'iat' | 'jti' | 'exp'> & { jti?: string }): { token: string; jti: string; expiresAt: Date } {
   const jti = payload.jti ?? generateToken('jti')
   const expiresAt = accessTokenExpiry()
   const token = signAccessToken(
