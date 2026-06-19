@@ -176,6 +176,7 @@ export async function seedE2E(): Promise<TestFixture> {
 }
 
 async function deleteCompanyByNamespace(namespace: string) {
+  assertSafeNamespace(namespace)
   try {
     const platform = await getSurreal('platform', 'admin')
     try {
@@ -185,6 +186,20 @@ async function deleteCompanyByNamespace(namespace: string) {
     }
   } catch (err) {
     console.warn('deleteCompanyByNamespace failed:', err)
+  }
+}
+
+export async function cleanupTestCompany(companyId: string | undefined | null) {
+  if (!companyId) return
+  try {
+    const platform = await getSurreal('platform', 'admin')
+    try {
+      await platform.query('DELETE type::record($id)', { id: companyId })
+    } finally {
+      await closeSurreal(platform)
+    }
+  } catch (err) {
+    console.warn('cleanupTestCompany failed:', err)
   }
 }
 

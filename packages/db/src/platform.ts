@@ -496,6 +496,22 @@ export async function getCompanyByNamespace(namespace: string): Promise<CompanyR
   }
 }
 
+function isMissingNamespaceOrDatabase(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'kind' in err && err.kind === 'NotFound') {
+    const details = (err as { details?: { kind?: string } }).details
+    if (details?.kind === 'Namespace' || details?.kind === 'Database') {
+      return true
+    }
+  }
+  const message = err instanceof Error ? err.message : String(err)
+  return (
+    message.includes('namespace does not exist') ||
+    message.includes('database does not exist') ||
+    message.includes('NS_NOT_FOUND') ||
+    message.includes('DB_NOT_FOUND')
+  )
+}
+
 export async function listCompaniesForProfile(profileId: string): Promise<CompanyRecord[]> {
   const companies = await listCompanies()
   const memberships = await Promise.all(
@@ -512,8 +528,10 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
           await closeSurreal(surreal)
         }
       } catch (err) {
-        console.warn(`listCompaniesForProfile: skipping company ${company.id} (${company.namespace}):`, err)
-        return null
+        if (isMissingNamespaceOrDatabase(err)) {
+          return null
+        }
+        throw err
       }
     })
   )

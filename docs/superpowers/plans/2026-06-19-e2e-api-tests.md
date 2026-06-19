@@ -389,7 +389,7 @@ Create `apps/api/tests/e2e/companies.e2e.test.ts`:
 
 ```ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { seedE2E, cleanupE2E, cleanupTestNamespace, loginTenant, tenantRequest, json } from './fixtures.js'
+import { seedE2E, cleanupE2E, cleanupTestNamespace, cleanupTestCompany, loginTenant, tenantRequest, json } from './fixtures.js'
 import type { TestFixture } from './fixtures.js'
 
 let fixture: TestFixture
@@ -403,6 +403,7 @@ describe('E2E companies', () => {
   afterAll(async () => {
     await cleanupE2E(fixture)
     if (createdCompany) {
+      await cleanupTestCompany(createdCompany.id)
       await cleanupTestNamespace(createdCompany.namespace)
     }
   })
