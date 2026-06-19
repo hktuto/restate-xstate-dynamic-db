@@ -6,6 +6,8 @@
 
 **Architecture:** `apps/api` issues short-lived access tokens and long-lived refresh tokens as httpOnly cookies. The browser never refreshes tokens itself; API middleware silently refreshes expired access tokens. Sessions are stored in SurrealDB with device fingerprints, enabling concurrency limits and audit. Login-as and API keys are out of scope for this plan.
 
+> **Implementation note:** The plan originally treated tenant `sessions` as token-holding sessions created at login. During implementation we corrected this: **platform `sessions` hold refresh tokens and authenticate the user**; **tenant `sessions` are per-company membership records** created when the user selects a company, used for company-scoped access and concurrency enforcement. `POST /api/auth/company` was added for company sign-in.
+
 **Tech Stack:** TypeScript, SurrealDB, Hono, `cookie-signature` via `packages/shared`, Vitest.
 
 ---

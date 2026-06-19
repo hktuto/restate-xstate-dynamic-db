@@ -1,7 +1,7 @@
 ---
 title: DB Session Auth Design
 type: spec
-status: planned
+status: done
 area: auth
 app:
   - api
@@ -73,21 +73,25 @@ table('sessions', 'Sessions', [
 ])
 ```
 
-Tenant `sessions` use `memberId` because `user_profiles` lives in the platform namespace:
+Tenant `sessions` are company-scoped membership records that reference the active platform session. They do **not** store refresh tokens; authentication is handled by the linked platform session.
 
 ```ts
 table('sessions', 'Sessions', [
-  column('refreshTokenHash', 'string', 'text', { unique: true }),
-  column('accessTokenJti', 'string', 'text'),
-  column('memberId', 'record', 'relation'),   // members.id
-  column('profileId', 'string', 'text'),      // user_profiles.id (plain string)
-  // ... device, expiry, revoke columns
+  column('platformSessionId', 'string', 'text'), // platform sessions:id
+  column('memberId', 'record', 'relation'),      // members.id
+  column('profileId', 'string', 'text'),         // user_profiles.id (plain string)
+  column('email', 'string', 'text'),
+  column('companyId', 'string', 'text'),         // companies.id (plain string)
+  column('type', 'string', 'select'),            // 'user' | 'impersonation'
+  column('impersonatorId', 'record', 'relation'),// members.id, nullable
+  // ... device, lastUsedAt, revokedAt, revokeReason
 ])
 ```
 
-- `refreshTokenHash` is unique-indexed in both platform and tenant `sessions`.
+- `refreshTokenHash` is unique-indexed only in platform `sessions`.
 - `company_policies.companyId` is unique.
-- Only the hash of tokens is persisted; raw tokens exist only in cookies.
+- Only the hash of refresh tokens is persisted; raw tokens exist only in cookies.
+- Tenant sessions are created lazily when a user selects a company.
 
 ### `company_policies`
 
@@ -175,32 +179,46 @@ The browser only talks to `apps/api`. The frontend never calls a `/refresh` endp
 1. Read `tenant_access_token` cookie.
 2. Unsign and parse; if valid and not expired, attach scope and continue.
 3. If access token expired/missing, read `tenant_refresh_token`.
-4. Hash refresh token and look up `sessions` row.
+4. Hash refresh token and look up the **platform** `sessions` row.
 5. If valid and not revoked/expired:
    - Generate new access token (new `jti`).
    - Rotate refresh token.
-   - Update `sessions` row.
+   - Update platform `sessions` row.
    - Set updated cookies.
    - Continue.
 6. If invalid/expired/revoked, return 401; frontend redirects to `/login`.
+
+### Company sign-in
+
+After login the user has a platform session. To access a company they must sign in to it:
+
+1. Frontend calls `POST /api/auth/company` with `{ companyId, slug }`.
+2. Server verifies the platform session.
+3. Looks up active `member` record for `profileId` in the company namespace.
+4. Checks `company_policies.maxSessions` for that member:
+   - If at/over limit, apply `sessionOverflowAction`.
+5. Creates a tenant `sessions` row linked to the platform session.
+6. Sets the `company` cookie.
+7. Subsequent `tenantAuth` routes verify the platform session **and** the active tenant session.
 
 ### Login flow
 
 1. Validate credentials.
 2. Build device fingerprint from headers + optional `X-Device-Id`.
-3. Check `company_policies.maxSessions`:
-   - Count active sessions for `accountId` + `companyId`.
-   - If at/over limit, apply `sessionOverflowAction`.
-4. Create `sessions` row.
-5. Set access/refresh cookies.
-6. Return user info.
+3. Create a **platform** `sessions` row.
+4. Set access/refresh cookies.
+5. Return the list of companies the user belongs to.
 
 ## Concurrency enforcement
 
+Concurrency is enforced per member per company using tenant sessions:
+
 - `maxSessions: null` → unlimited.
-- `maxSessions: 1` → single active session.
-- `sessionOverflowAction: 'revoke_oldest'` → revoke oldest active session(s).
-- `sessionOverflowAction: 'reject'` → return 429.
+- `maxSessions: 1` → single active company session for the member.
+- `sessionOverflowAction: 'revoke_oldest'` → revoke oldest active tenant session(s) for the member.
+- `sessionOverflowAction: 'reject'` → return 403.
+
+Global platform-session concurrency is not limited in Phase 1.
 
 ## Device fingerprint
 
@@ -243,20 +261,21 @@ API keys bypass session concurrency limits.
 ## Security considerations
 
 - Tokens hashed before DB storage.
-- Refresh-token rotation with reuse detection.
+- Refresh-token rotation on every use.
+- Refresh-token reuse detection is deferred to a future token-family design.
 - Short-lived access tokens (15 min).
 - HttpOnly cookies prevent XSS theft.
 - `SameSite=Lax` mitigates CSRF.
-- Rate limiting on login/register/refresh endpoints.
+- Rate limiting on login/register endpoints.
 - Impersonation always logged with `impersonatorId`.
 
 ## Migration
 
-1. Add `sessions`, `company_policies`, and `api_keys` tables.
-2. Update auth routes to create DB sessions.
-3. Update middleware to validate access/refresh tokens.
+1. Add platform and tenant `sessions` tables plus `company_policies`.
+2. Update auth routes to create platform sessions and company sign-in endpoint.
+3. Update middleware to validate access/refresh tokens and tenant session records.
 4. Old signed `tenant_session` / `admin_session` cookies become invalid; users log in once to obtain new DB-backed session.
-5. Remove old signed-cookie session code after rollout.
+5. `api_keys` table is deferred to Phase 3.
 
 ## Testing strategy
 
