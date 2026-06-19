@@ -1,5 +1,4 @@
 import type { Context } from 'hono'
-import { getPlatformSessionById } from 'db/platform'
 import {
   readTenantAccessToken,
   readTenantRefreshToken,
@@ -25,16 +24,13 @@ export async function tenantSessionMiddleware(c: Context, next: SessionNext) {
   if (accessToken) {
     const payload = verifyAccessTokenCookie(accessToken)
     if (payload) {
-      const record = await getPlatformSessionById('platform', payload.sessionId)
-      if (record) {
-        session = {
-          sessionId: payload.sessionId,
-          accountId: payload.accountId,
-          profileId: payload.profileId,
-          companyId: payload.companyId,
-          type: payload.type,
-          impersonatorId: payload.impersonatorId,
-        }
+      session = {
+        sessionId: payload.sessionId,
+        accountId: payload.accountId,
+        profileId: payload.profileId,
+        companyId: payload.companyId,
+        type: payload.type,
+        impersonatorId: payload.impersonatorId,
       }
     }
   }
@@ -67,13 +63,10 @@ export async function adminSessionMiddleware(c: Context, next: SessionNext) {
   if (accessToken) {
     const payload = verifyAccessTokenCookie(accessToken)
     if (payload) {
-      const record = await getPlatformSessionById('platform', payload.sessionId)
-      if (record) {
-        session = {
-          sessionId: payload.sessionId,
-          userId: payload.accountId,
-          email: payload.email ?? '',
-        }
+      session = {
+        sessionId: payload.sessionId,
+        userId: payload.accountId,
+        email: payload.email ?? '',
       }
     }
   }
