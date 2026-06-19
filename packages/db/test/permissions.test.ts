@@ -8,24 +8,11 @@ import {
   getEffectivePermissions,
   provisionDefaultCompanyGroups,
 } from '../src/permissions.js'
+import { createUserGroup } from '../src/user-groups.js'
 import { createMember } from '../src/tenant.js'
 import { getSurreal, closeSurreal } from '../src/client.js'
 import { normalizeId } from '../src/normalize.js'
 import { createTenantNamespace, removeTenantNamespace, uniqueTenantName } from './helpers.js'
-
-async function createUserGroup(namespace: string, name: string) {
-  const surreal = await getSurreal(namespace, 'main')
-  try {
-    const now = new Date().toISOString()
-    const [created] = await surreal.query<[Array<{ id: unknown; name: string }>]>(
-      'CREATE user_groups CONTENT $data',
-      { data: { name, createdAt: now, updatedAt: now } }
-    )
-    return normalizeId(created[0])!
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
 
 async function addUserGroupMember(namespace: string, memberId: string, userGroupId: string) {
   const surreal = await getSurreal(namespace, 'main')
@@ -82,7 +69,7 @@ describe('permissions', () => {
 
   it('inherits permissions from user-group membership', async () => {
     const member = await createMember(namespace, { email: 'group-member@example.com', role: 'member' })
-    const userGroup = await createUserGroup(namespace, 'Engineering')
+    const userGroup = await createUserGroup(namespace, { name: 'Engineering' })
     await addUserGroupMember(namespace, member.id, userGroup.id)
 
     const group = await createPermissionGroup(namespace, {
