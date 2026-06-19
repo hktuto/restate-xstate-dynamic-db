@@ -657,8 +657,8 @@ describe('E2E user groups', () => {
     expect(addRes.status).toBe(200)
 
     const listRes = await tenantRequest('GET', `/api/user-groups/${group.id}/members`, cookies, fixture.company)
-    const members = await json<string[]>(listRes)
-    expect(members).toContain(fixture.member.memberId)
+    const members = await json<{ id: string }[]>(listRes)
+    expect(members.map((m) => m.id)).toContain(fixture.member.memberId)
 
     const removeRes = await tenantRequest(
       'DELETE',
