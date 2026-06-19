@@ -1,10 +1,11 @@
-import { listTriggers, getWorkflow, findActiveWorkflowInstance, createWorkflowInstance } from 'db/tenant'
+import { listWorkflowDesigns, createWorkflowInstance } from 'db/tenant'
+import { buildContextFromInputs } from './build-context.js'
+import { resolveInputs } from 'workflow-actions/catalog/resolve-inputs'
 
-const RESTATE_INGRESS = process.env.RESTATE_INGRESS || 'http://localhost:8080'
-
-export interface DispatchOptions {
+export interface DispatchTriggerOptions {
   skip?: boolean
   companyId?: string
+  database?: string
 }
 
 export async function dispatchTrigger(
@@ -12,90 +13,85 @@ export async function dispatchTrigger(
   tableName: string,
   crudEvent: string,
   record: Record<string, unknown>,
-  options: DispatchOptions = {}
+  options: DispatchTriggerOptions = {}
 ) {
+  if (options.skip) return
+
+  let designs
   try {
-    if (options.skip) {
-      return
-    }
+    designs = await listWorkflowDesigns(namespace)
+  } catch (err) {
+    console.error('Failed to list workflow designs for trigger dispatch:', err)
+    return
+  }
 
-    const recordId = record.id
-    if (recordId === undefined || recordId === null || recordId === '') {
-      console.error('Cannot dispatch trigger: record has no id', { tableName, crudEvent, record })
-      return
-    }
+  const dispatches: Promise<void>[] = []
 
-    const companyId = options.companyId
+  for (const design of designs) {
+    const rules = design.starts?.filter(
+      (s) => s.type === 'db_trigger' && s.options.tableName === tableName && s.options.event === crudEvent
+    ) ?? []
 
-    const triggers = await listTriggers(namespace)
-    const matching = triggers.filter((t) => t.tableName === tableName && t.event === crudEvent)
-    if (!matching.length) return
-
-    const dispatches: Promise<void>[] = []
-
-    for (const trigger of matching) {
-      const workflow = await getWorkflow(namespace, trigger.workflowId)
-      if (!workflow) {
-        console.error(`Workflow ${trigger.workflowId} not found for trigger ${trigger.id}`)
+    for (const rule of rules) {
+      try {
+        const inputs = await resolveInputs(namespace, design.xstateConfig, rule.startState, options.database ?? 'main')
+        const context = buildContextFromInputs(inputs, record)
+        const instance = await createWorkflowInstance(namespace, {
+          designId: design.id,
+          namespace,
+          companyId: options.companyId,
+          triggerBy: { type: 'db_trigger', startState: rule.startState },
+          context,
+          status: 'pending'
+        })
+        dispatches.push(
+          notifyRuntimeCreate(instance.id, {
+            designId: design.id,
+            trigger: { type: 'db_trigger', startState: rule.startState },
+            context,
+            createdBy: 'system',
+            companyId: options.companyId,
+            namespace
+          })
+        )
+      } catch (err) {
+        console.error('Trigger rule dispatch failed:', err)
         continue
       }
-
-      let instance = await findActiveWorkflowInstance(namespace, trigger.workflowId, tableName, String(recordId))
-      let instanceId: string
-      let handler: 'create' | 'send' = 'create'
-
-      if (instance) {
-        instanceId = instance.id
-        handler = 'send'
-      } else {
-        instance = await createWorkflowInstance(namespace, {
-          workflowId: trigger.workflowId,
-          tableName,
-          recordId: String(recordId),
-          namespace,
-          companyId,
-        })
-        instanceId = instance.id
-      }
-
-      const payload =
-        handler === 'create'
-          ? {
-              config: workflow.xstateConfig,
-              event: crudEvent,
-              tableName,
-              record,
-              workflowId: trigger.workflowId,
-              companyId,
-              namespace,
-            }
-          : { event: crudEvent, record }
-
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 10000)
-
-      dispatches.push(
-        fetch(`${RESTATE_INGRESS}/workflow/${encodeURIComponent(instanceId)}/${handler}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        })
-          .then(async (res) => {
-            clearTimeout(timeout)
-            if (!res.ok) {
-              console.error(`Restate trigger dispatch failed: ${res.status} ${await res.text()}`)
-            }
-          })
-          .catch((err) => {
-            clearTimeout(timeout)
-            console.error('Restate trigger dispatch error:', err)
-          })
-      )
     }
+  }
 
-    await Promise.all(dispatches)
+  await Promise.all(dispatches)
+}
+
+async function notifyRuntimeCreate(
+  instanceId: string,
+  payload: {
+    designId: string
+    trigger: { type: 'db_trigger'; startState: string }
+    context: Record<string, unknown>
+    createdBy: string
+    companyId?: string
+    namespace: string
+  }
+) {
+  const RESTATE_INGRESS = process.env.RESTATE_INGRESS || 'http://localhost:8080'
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+  try {
+    const res = await fetch(`${RESTATE_INGRESS}/workflow/${encodeURIComponent(instanceId)}/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => 'unknown')
+      console.error(`Runtime create failed for instance ${instanceId}: ${res.status} ${text}`)
+    }
   } catch (err) {
-    console.error('Trigger dispatch failed:', err)
+    console.error(`Runtime create error for instance ${instanceId}:`, err)
+  } finally {
+    clearTimeout(timeout)
   }
 }
