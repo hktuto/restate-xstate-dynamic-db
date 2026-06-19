@@ -1,10 +1,9 @@
 import { assign, createMachine, raise } from 'xstate'
 import type { AnyEventObject, AnyStateMachine } from 'xstate'
 import type { ObjectContext } from '@restatedev/restate-sdk'
-import type { WorkflowDefinition, CreateWorkflowRequest } from 'shared'
+import type { WorkflowDefinition } from 'shared'
 import { createActionActors, createGuardRegistry } from 'workflow-actions/runtime'
 import type { ActionActorInput } from 'workflow-actions/runtime'
-import type { RuntimeContext } from './types.js'
 
 // Cast because the event carries a dynamic output key that cannot be typed statically.
 const assignOutput = assign(({ event }: any) => {
@@ -22,30 +21,47 @@ const assignError = assign(({ event }: any) => ({
 
 export function compileWorkflow(
   definition: WorkflowDefinition,
-  designId: string,
-  context: RuntimeContext,
+  startState: string,
+  userContext: Record<string, unknown>,
+  runtime: {
+    instanceId: string
+    designId: string
+    tableName?: string
+    companyId?: string
+    namespace?: string
+  },
   objectCtx: Pick<ObjectContext, 'run'>
 ): { machine: AnyStateMachine; promises: Promise<unknown>[] } {
-  const runtime = {
-    designId,
-    config: definition,
-    tableName: context.tableName,
-    companyId: context.companyId,
-    namespace: context.namespace
+  const effectiveDefinition = { ...definition, initial: startState }
+  const context = {
+    ...userContext,
+    __runtime: {
+      instanceId: runtime.instanceId,
+      designId: runtime.designId,
+      tableName: runtime.tableName,
+      companyId: runtime.companyId,
+      namespace: runtime.namespace
+    }
   }
 
   const promises: Promise<unknown>[] = []
-  const { actors } = createActionActors(objectCtx, runtime, promises)
+  const { actors } = createActionActors(objectCtx, {
+    designId: runtime.designId,
+    tableName: runtime.tableName,
+    companyId: runtime.companyId,
+    namespace: runtime.namespace,
+    config: effectiveDefinition
+  }, promises)
 
   const registryContext: { record?: Record<string, unknown>; config?: { id: string } } = {
-    config: definition,
-    record: context.record
+    config: effectiveDefinition,
+    record: userContext.record as Record<string, unknown> | undefined
   }
   const guardRegistry = createGuardRegistry(registryContext)
 
   const states: Record<string, Record<string, unknown>> = {}
 
-  for (const [stateId, stateDef] of Object.entries(definition.states)) {
+  for (const [stateId, stateDef] of Object.entries(effectiveDefinition.states)) {
     states[stateId] = {}
 
     if (stateDef.on) states[stateId].on = stateDef.on
@@ -64,7 +80,7 @@ export function compileWorkflow(
           outputKey: stateDef.meta?.outputKey as string | undefined,
           context: machineContext,
           event,
-          instanceId: (machineContext.instanceId ?? context.instanceId) as string,
+          instanceId: runtime.instanceId,
           stateId
         }),
         onDone: isCondition
@@ -102,8 +118,8 @@ export function compileWorkflow(
   return {
     machine: createMachine(
       {
-        ...definition,
-        context: { ...context },
+        ...effectiveDefinition,
+        context,
         states
       },
       {

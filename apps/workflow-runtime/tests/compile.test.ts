@@ -48,12 +48,13 @@ describe('compileWorkflow with meta actions', () => {
       }
     }
 
-    const { machine } = compileWorkflow(definition, {
-      instanceId: 'inst-1',
-      record: { id: '1', status: 'active' },
-      tableName: 'members',
-      namespace: 'ns-1'
-    }, fakeCtx())
+    const { machine } = compileWorkflow(
+      definition,
+      definition.initial,
+      { record: { id: '1', status: 'active' } },
+      { instanceId: 'inst-1', designId: 'design-1', tableName: 'members', namespace: 'ns-1' },
+      fakeCtx()
+    )
 
     const actor = createActor(machine)
     actor.subscribe((snapshot) => {
@@ -99,12 +100,13 @@ describe('compileWorkflow with meta actions', () => {
       }
     }
 
-    const { machine } = compileWorkflow(definition, {
-      instanceId: 'inst-1',
-      record: { id: '1', status: 'inactive' },
-      tableName: 'members',
-      namespace: 'ns-1'
-    }, fakeCtx())
+    const { machine } = compileWorkflow(
+      definition,
+      definition.initial,
+      { record: { id: '1', status: 'inactive' } },
+      { instanceId: 'inst-1', designId: 'design-1', tableName: 'members', namespace: 'ns-1' },
+      fakeCtx()
+    )
 
     const actor = createActor(machine)
     actor.subscribe((snapshot) => {
@@ -142,12 +144,13 @@ describe('compileWorkflow with meta actions', () => {
       }
     }
 
-    const { machine } = compileWorkflow(definition, {
-      instanceId: 'inst-1',
-      record: { id: '1' },
-      tableName: 'members',
-      namespace: 'ns-1'
-    }, fakeCtxRejecting('getRecord'))
+    const { machine } = compileWorkflow(
+      definition,
+      definition.initial,
+      { record: { id: '1' } },
+      { instanceId: 'inst-1', designId: 'design-1', tableName: 'members', namespace: 'ns-1' },
+      fakeCtxRejecting('getRecord')
+    )
 
     const actor = createActor(machine)
     actor.subscribe((snapshot) => {
@@ -158,4 +161,49 @@ describe('compileWorkflow with meta actions', () => {
     })
     actor.start()
   }))
+
+  it('starts at the overridden startState', () => {
+    const definition: WorkflowDefinition = {
+      id: 'test',
+      initial: 'a',
+      states: {
+        a: { type: 'final' },
+        b: { type: 'final' }
+      }
+    }
+    const { machine } = compileWorkflow(
+      definition,
+      'b',
+      {},
+      { instanceId: 'i:1', designId: 'd:1', namespace: 'ns' },
+      fakeCtx()
+    )
+    const actor = createActor(machine)
+    actor.start()
+    expect(actor.getSnapshot().value).toBe('b')
+    actor.stop()
+  })
+
+  it('injects __runtime metadata into context', () => {
+    const definition: WorkflowDefinition = { id: 'test', initial: 'start', states: { start: { type: 'final' } } }
+    const { machine } = compileWorkflow(
+      definition,
+      'start',
+      { foo: 'bar' },
+      { instanceId: 'i:1', designId: 'd:1', tableName: 't', companyId: 'c:1', namespace: 'ns' },
+      fakeCtx()
+    )
+    const actor = createActor(machine)
+    actor.start()
+    const ctx = actor.getSnapshot().context
+    expect(ctx.foo).toBe('bar')
+    expect(ctx.__runtime).toEqual({
+      instanceId: 'i:1',
+      designId: 'd:1',
+      tableName: 't',
+      companyId: 'c:1',
+      namespace: 'ns'
+    })
+    actor.stop()
+  })
 })
