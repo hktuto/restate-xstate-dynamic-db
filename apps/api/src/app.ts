@@ -11,6 +11,7 @@ import { workflowInstancesRoutes } from './routes/workflow-instances.js'
 import { userTasksRoutes } from './routes/user-tasks.js'
 import { platformRoutes } from './routes/platform.js'
 import { adminRoutes } from './routes/admin.js'
+import { userGroupsRoutes } from './routes/user-groups.js'
 
 export function createApp() {
   const app = new Hono()
@@ -27,5 +28,6 @@ export function createApp() {
   app.route('/api', userTasksRoutes())
   app.route('/api', platformRoutes())
   app.route('/api', adminRoutes())
+  app.route('/api/user-groups', userGroupsRoutes())
   return app
 }

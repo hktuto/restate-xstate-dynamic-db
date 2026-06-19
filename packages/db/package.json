@@ -42,6 +42,10 @@
       "types": "./src/permissions.ts",
       "default": "./src/permissions.ts"
     },
+    "./user-groups": {
+      "types": "./src/user-groups.ts",
+      "default": "./src/user-groups.ts"
+    },
     "./health-checks": {
       "types": "./src/health-checks.ts",
       "default": "./src/health-checks.ts"
