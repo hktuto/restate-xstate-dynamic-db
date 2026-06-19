@@ -7,19 +7,40 @@ import {
   createAccount,
   createUserProfile,
   getCompanyBySlug,
+  createPlatformSession,
+  getPlatformSessionById,
+  revokePlatformSession,
+  updatePlatformSessionToken,
 } from 'db/platform'
-import { getMemberByInviteCode, updateMember } from 'db/tenant'
+import {
+  getMemberByInviteCode,
+  updateMember,
+  getMemberByProfileId,
+  getActiveTenantSessionByPlatformSessionId,
+  createTenantSession,
+  revokeTenantSession,
+  ensureCompanyPolicy,
+  countActiveTenantSessions,
+  findOldestActiveTenantSession,
+} from 'db/tenant'
 import { comparePassword, hashPassword } from 'shared'
+import type { Context } from 'hono'
 import {
   clearAdminSession,
   clearTenantCompany,
   clearTenantSession,
-  readAdminSession,
-  setAdminSession,
+  createAccessToken,
+  createRefreshToken,
+  readAdminAccessToken,
+  readTenantAccessToken,
+  readTenantCompany,
+  setAdminSessionCookies,
   setTenantCompany,
-  setTenantSession,
+  setTenantSessionCookies,
+  verifyAccessTokenCookie,
+  type TenantCompanyCookie,
 } from '../lib/session.js'
-import type { AdminSession } from '../lib/session.js'
+import { extractDeviceInfo } from '../lib/device-fingerprint.js'
 
 const DUMMY_HASH = '$2b$12$8V7kAT3IavmTSYAx187I3.xTeRR6Ujz2G1MZACVrUBbN..wVwSICK'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -61,6 +82,57 @@ const inviteAttempts = createRateLimiter()
 
 function badRequest(message: string) {
   return { error: message } as const
+}
+
+function sevenDaysFromNow(): string {
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+}
+
+function fifteenMinutesFromNow(): string {
+  return new Date(Date.now() + 15 * 60 * 1000).toISOString()
+}
+
+async function startPlatformSession(
+  c: Context,
+  accountId: string,
+  profileId: string,
+  email: string,
+  opts: { platformUserId?: string; companyId?: string } = {}
+) {
+  const device = extractDeviceInfo(c)
+  const refresh = createRefreshToken()
+  const platformSession = await createPlatformSession('platform', {
+    refreshTokenHash: refresh.hash,
+    accessTokenJti: 'pending',
+    accountId: opts.platformUserId ? '' : accountId,
+    profileId: opts.platformUserId ? opts.platformUserId : profileId,
+    platformUserId: opts.platformUserId,
+    email,
+    companyId: opts.companyId,
+    type: 'user',
+    deviceFingerprint: device.fingerprint,
+    deviceName: device.name,
+    ip: device.ip,
+    userAgent: device.userAgent,
+    refreshExpiresAt: sevenDaysFromNow(),
+    accessExpiresAt: fifteenMinutesFromNow(),
+  })
+  const access = createAccessToken({
+    sessionId: platformSession.id,
+    accountId: opts.platformUserId ? opts.platformUserId : accountId,
+    profileId: opts.platformUserId ? opts.platformUserId : profileId,
+    companyId: opts.companyId,
+    type: 'user',
+  })
+  await updatePlatformSessionToken('platform', platformSession.id, { accessTokenJti: access.jti })
+  return { access, refresh, platformSession }
+}
+
+async function revokePlatformSessionTree(platformSessionId: string) {
+  await revokePlatformSession('platform', platformSessionId)
+  // Best-effort: revoke linked tenant sessions across all known company namespaces.
+  // In practice a tenant session should be revoked per-company; sweeping all namespaces
+  // is left to a future cleanup job. For now we revoke when the company namespace is known.
 }
 
 export function authRoutes() {
@@ -106,7 +178,8 @@ export function authRoutes() {
       return c.json(badRequest('Profile not found'), 500)
     }
 
-    setTenantSession(c, { accountId: account.id, profileId: profile.id })
+    const { access, refresh } = await startPlatformSession(c, account.id, profile.id, normalizedEmail)
+    setTenantSessionCookies(c, access.token, refresh.token)
     clearTenantCompany(c)
 
     const companies = await listCompaniesForProfile(profile.id)
@@ -161,15 +234,96 @@ export function authRoutes() {
       profileId: profile.id,
     })
 
-    setTenantSession(c, { accountId: account.id, profileId: profile.id })
+    const { access, refresh } = await startPlatformSession(c, account.id, profile.id, normalizedEmail)
+    setTenantSessionCookies(c, access.token, refresh.token)
+    clearTenantCompany(c)
 
     return c.json({ ok: true, companies: [] })
   })
 
   app.post('/logout', async (c) => {
+    const accessToken = readTenantAccessToken(c)
+    if (accessToken) {
+      const payload = verifyAccessTokenCookie(accessToken)
+      if (payload?.sessionId) {
+        await revokePlatformSessionTree(payload.sessionId)
+      }
+    }
     clearTenantSession(c)
     clearTenantCompany(c)
     return c.json({ ok: true })
+  })
+
+  app.post('/company', async (c) => {
+    const accessToken = readTenantAccessToken(c)
+    if (!accessToken) {
+      return c.json(badRequest('Unauthorized'), 401)
+    }
+    const payload = verifyAccessTokenCookie(accessToken)
+    if (!payload?.sessionId) {
+      return c.json(badRequest('Unauthorized'), 401)
+    }
+
+    let body: Record<string, unknown>
+    try {
+      body = await c.req.json<Record<string, unknown>>()
+    } catch {
+      return c.json(badRequest('Invalid JSON'), 400)
+    }
+
+    const { companyId, slug } = body
+    if (!companyId || typeof companyId !== 'string') {
+      return c.json(badRequest('companyId required'), 400)
+    }
+    if (!slug || typeof slug !== 'string') {
+      return c.json(badRequest('slug required'), 400)
+    }
+
+    const company = await getCompanyBySlug(slug)
+    if (!company || company.id !== companyId) {
+      return c.json(badRequest('Company not found'), 404)
+    }
+
+    const member = await getMemberByProfileId(company.namespace, payload.profileId)
+    if (!member || member.status !== 'active') {
+      return c.json(badRequest('Forbidden'), 403)
+    }
+
+    const existing = await getActiveTenantSessionByPlatformSessionId(company.namespace, payload.sessionId, company.id)
+    if (!existing) {
+      const policy = await ensureCompanyPolicy(company.namespace, company.id)
+      const maxSessions = policy.maxSessions ?? null
+      if (maxSessions !== null && maxSessions > 0) {
+        const count = await countActiveTenantSessions(company.namespace, member.id)
+        if (count >= maxSessions) {
+          if (policy.sessionOverflowAction === 'reject') {
+            return c.json(badRequest('Maximum active sessions reached'), 403)
+          }
+          const oldest = await findOldestActiveTenantSession(company.namespace, member.id)
+          if (oldest) {
+            await revokeTenantSession(company.namespace, oldest.id, 'session_overflow')
+          }
+        }
+      }
+
+      const device = extractDeviceInfo(c)
+      await createTenantSession(company.namespace, {
+        platformSessionId: payload.sessionId,
+        memberId: member.id,
+        profileId: payload.profileId,
+        email: payload.email ?? member.email,
+        companyId: company.id,
+        deviceFingerprint: device.fingerprint,
+        deviceName: device.name,
+        ip: device.ip,
+        userAgent: device.userAgent,
+      })
+    }
+
+    const companyCookie: TenantCompanyCookie = { id: company.id, slug: company.slug, namespace: company.namespace }
+    setTenantCompany(c, companyCookie)
+
+    return c.json({ ok: true, company: companyCookie })
   })
 
   app.post('/accept-invite', async (c) => {
@@ -218,6 +372,7 @@ export function authRoutes() {
 
     let account = await getAccountByProviderKey('email', normalizedEmail)
     let profileId: string
+    let accountId: string
 
     if (account) {
       if (!account.credential || !(await comparePassword(password, account.credential))) {
@@ -225,6 +380,7 @@ export function authRoutes() {
         return c.json(badRequest('Invalid credentials'), 401)
       }
       profileId = account.profileId
+      accountId = account.id
     } else {
       const profile = await createUserProfile({ name: trimmedName })
       profileId = profile.id
@@ -234,6 +390,7 @@ export function authRoutes() {
         credential: await hashPassword(password),
         profileId,
       })
+      accountId = account.id
     }
 
     const updated = await updateMember(company.namespace, member.id, {
@@ -242,9 +399,23 @@ export function authRoutes() {
       inviteCode: null,
       joinedAt: new Date().toISOString(),
     })
+    if (!updated) {
+      return c.json(badRequest('Failed to activate member'), 500)
+    }
 
-    setTenantSession(c, { accountId: account.id, profileId })
-    setTenantCompany(c, { id: company.id, slug: company.slug, namespace: company.namespace })
+    const { access, refresh, platformSession } = await startPlatformSession(c, accountId, profileId, normalizedEmail)
+    setTenantSessionCookies(c, access.token, refresh.token)
+
+    await createTenantSession(company.namespace, {
+      platformSessionId: platformSession.id,
+      memberId: updated.id,
+      profileId,
+      email: normalizedEmail,
+      companyId: company.id,
+    })
+
+    const companyCookie: TenantCompanyCookie = { id: company.id, slug: company.slug, namespace: company.namespace }
+    setTenantCompany(c, companyCookie)
 
     return c.json({ ok: true, member: updated })
   })
@@ -272,21 +443,36 @@ export function authRoutes() {
       if (!user || !(await comparePassword(password, user.password))) {
         return c.json(badRequest('Invalid credentials'), 401)
       }
-      setAdminSession(c, { userId: user.id, email: user.email })
+      const { access, refresh } = await startPlatformSession(c, user.id, user.id, user.email, { platformUserId: user.id })
+      setAdminSessionCookies(c, access.token, refresh.token)
       return c.json({ ok: true })
     } finally {
       await closeSurreal(surreal)
     }
   })
 
-  app.post('/admin/logout', (c) => {
+  app.post('/admin/logout', async (c) => {
+    const accessToken = readAdminAccessToken(c); console.log('ACCESS_TOKEN:', accessToken)
+    if (accessToken) {
+      const payload = verifyAccessTokenCookie(accessToken)
+      if (payload?.sessionId) {
+        await revokePlatformSession('platform', payload.sessionId)
+      }
+    }
     clearAdminSession(c)
     return c.json({ ok: true })
   })
 
   app.get('/admin/me', (c) => {
-    const session = readAdminSession(c)
-    return c.json({ authenticated: !!session, user: session })
+    const accessToken = readAdminAccessToken(c)
+    if (!accessToken) {
+      return c.json({ authenticated: false, user: null })
+    }
+    const payload = verifyAccessTokenCookie(accessToken)
+    if (!payload) {
+      return c.json({ authenticated: false, user: null })
+    }
+    return c.json({ authenticated: true, user: { userId: payload.accountId, email: payload.email } })
   })
 
   return app

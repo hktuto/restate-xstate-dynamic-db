@@ -12,7 +12,7 @@ import {
   setTenantSessionCookies,
   setAdminSessionCookies,
 } from '../lib/session.js'
-import { refreshTenantSession, refreshAdminSession } from '../lib/refresh-session.js'
+import { refreshPlatformUserSession, refreshAdminSession } from '../lib/refresh-session.js'
 import type { TenantSession, AdminSession } from '../lib/session.js'
 
 type SessionNext = () => Promise<void | Response>
@@ -37,9 +37,8 @@ export async function tenantSessionMiddleware(c: Context, next: SessionNext) {
 
   if (!session) {
     const refreshToken = readTenantRefreshToken(c)
-    const company = readTenantCompany(c)
-    if (refreshToken && company) {
-      const result = await refreshTenantSession(company.namespace, refreshToken)
+    if (refreshToken) {
+      const result = await refreshPlatformUserSession('platform', refreshToken)
       if (result) {
         setTenantSessionCookies(c, result.accessToken, result.refreshToken)
         session = result.session as TenantSession

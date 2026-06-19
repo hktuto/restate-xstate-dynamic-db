@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory'
-import { getMemberByProfileId } from 'db/tenant'
+import { getMemberByProfileId, getActiveTenantSessionByPlatformSessionId, touchTenantSession } from 'db/tenant'
 import { readTenantCompany } from '../lib/session.js'
 import { tenantSessionMiddleware } from './session.js'
 import type { ApiScope } from '../types.js'
@@ -35,10 +35,15 @@ export const tenantAuth = createMiddleware(async (c, next) => {
     if (!company) {
       return c.json({ error: 'Missing company context' }, 400)
     }
+    const tenantSession = await getActiveTenantSessionByPlatformSessionId(company.namespace, session.sessionId, company.id)
+    if (!tenantSession) {
+      return c.json({ error: 'Company session required' }, 403)
+    }
     const member = await getMemberByProfileId(company.namespace, session.profileId)
     if (!member || member.status !== 'active') {
       return c.json({ error: 'Forbidden' }, 403)
     }
+    await touchTenantSession(company.namespace, tenantSession.id)
     c.set('scope', {
       type: 'tenant',
       namespace: company.namespace,

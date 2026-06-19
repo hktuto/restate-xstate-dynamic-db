@@ -1,16 +1,27 @@
-import { signObject } from 'shared'
-import { getEnv } from '../src/env.js'
+import { createAccessToken } from '../src/lib/session.js'
 
 if (!process.env.SESSION_SECRET) {
   process.env.SESSION_SECRET = 'test-secret'
 }
 
-export function signTenantSessionCookie(accountId: string, profileId: string) {
-  const secret = getEnv().sessionSecret
-  return encodeURIComponent(signObject({ accountId, profileId }, secret))
+export function signTenantAccessTokenCookie(accountId: string, profileId: string, email = 'test@example.com') {
+  const { token } = createAccessToken({
+    sessionId: `sessions:test-${profileId}`,
+    accountId,
+    profileId,
+    type: 'user',
+    email,
+  })
+  return encodeURIComponent(token)
 }
 
-export function signAdminSessionCookie(userId: string, email: string) {
-  const secret = getEnv().sessionSecret
-  return encodeURIComponent(signObject({ userId, email }, secret))
+export function signAdminAccessTokenCookie(userId: string, email: string) {
+  const { token } = createAccessToken({
+    sessionId: `sessions:test-${userId}`,
+    accountId: userId,
+    profileId: userId,
+    type: 'user',
+    email,
+  })
+  return encodeURIComponent(token)
 }

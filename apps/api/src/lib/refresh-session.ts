@@ -1,9 +1,4 @@
 import {
-  getTenantSessionByRefreshToken,
-  updateTenantSessionToken,
-  revokeTenantSession,
-} from 'db/tenant'
-import {
   getPlatformSessionByRefreshToken,
   updatePlatformSessionToken,
   revokePlatformSession,
@@ -12,8 +7,6 @@ import {
   createAccessToken,
   createRefreshToken,
   hashRefreshToken,
-  setTenantSessionCookies,
-  setAdminSessionCookies,
   type TenantSession,
   type AdminSession,
 } from './session.js'
@@ -30,24 +23,27 @@ function computeRefreshExpiresAt(): string {
   return new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString()
 }
 
-export async function refreshTenantSession(namespace: string, refreshToken: string): Promise<RefreshResult | null> {
+export async function refreshPlatformUserSession(namespace: string, refreshToken: string): Promise<RefreshResult | null> {
   const hash = hashRefreshToken(refreshToken)
-  const record = await getTenantSessionByRefreshToken(namespace, hash)
+  const record = await getPlatformSessionByRefreshToken(namespace, hash)
   if (!record) return null
 
-  // Note: refresh-token reuse detection is deferred until a token-family design is implemented.
+  if (!record.accountId || !record.profileId || !record.email) {
+    await revokePlatformSession(namespace, record.id, 'incomplete_session')
+    return null
+  }
 
   const newRefresh = createRefreshToken()
   const access = createAccessToken({
     sessionId: record.id,
-    accountId: record.profileId, // tenant sessions do not have accountId; use profileId
+    accountId: record.accountId,
     profileId: record.profileId,
     companyId: record.companyId,
     type: record.type,
     impersonatorId: record.impersonatorId,
   })
 
-  await updateTenantSessionToken(namespace, record.id, {
+  await updatePlatformSessionToken(namespace, record.id, {
     refreshTokenHash: newRefresh.hash,
     refreshExpiresAt: computeRefreshExpiresAt(),
     accessTokenJti: access.jti,
@@ -59,7 +55,7 @@ export async function refreshTenantSession(namespace: string, refreshToken: stri
     refreshToken: newRefresh.token,
     session: {
       sessionId: record.id,
-      accountId: record.profileId,
+      accountId: record.accountId,
       profileId: record.profileId,
       companyId: record.companyId,
       type: record.type,

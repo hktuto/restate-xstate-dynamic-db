@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createApp } from '../src/app.js'
 import { provisionCompanyNamespace } from 'db/provision'
 import { getSurreal, closeSurreal } from 'db/client'
-import { signAdminSessionCookie } from './helpers.js'
+import { signAdminAccessTokenCookie } from './helpers.js'
 
 const TEST_NS = `test_api_tables_${Date.now()}`
 const app = createApp()
@@ -22,7 +22,7 @@ describe('/api/tables (admin scope)', () => {
   })
 
   const adminCookie = () =>
-    `admin_session=${signAdminSessionCookie('admin', 'admin@example.com')}`
+    `admin_access_token=${signAdminAccessTokenCookie('admin', 'admin@example.com')}`
 
   it('lists user tables', async () => {
     const res = await app.request(`/api/admin/tables/${TEST_NS}--main`, {
