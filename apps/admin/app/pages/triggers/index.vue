@@ -36,6 +36,11 @@ function withLocalUids(starts: StartRuleWithUid[] | undefined): StartRuleWithUid
   }))
 }
 
+function stripUid(rule: StartRuleWithUid): StartRule {
+  const { uid, ...rest } = rule
+  return rest as StartRule
+}
+
 const designs = ref<WorkflowDesign[]>([])
 const api = useApi()
 
@@ -83,12 +88,11 @@ async function createTrigger() {
     method: 'PATCH',
     body: JSON.stringify({
       starts: [
-        ...existingStarts,
+        ...existingStarts.map(stripUid),
         {
           type: 'db_trigger',
           startState: design.xstateConfig.initial,
-          options: { tableName: form.tableName, event: form.event },
-          uid: generateUid()
+          options: { tableName: form.tableName, event: form.event }
         }
       ]
     })
@@ -104,7 +108,7 @@ async function deleteTrigger(row: TriggerRow) {
   await api.fetch(`/api/admin/workflow-designs/${row.designId}`, {
     method: 'PATCH',
     body: JSON.stringify({
-      starts: starts.filter((start) => start.uid !== row.uid)
+      starts: starts.filter((start) => start.uid !== row.uid).map(stripUid)
     })
   })
   await refresh()
