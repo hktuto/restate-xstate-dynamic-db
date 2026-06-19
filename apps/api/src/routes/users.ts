@@ -48,8 +48,7 @@ export function usersRoutes() {
       return c.json({ error: 'Role required' }, 400)
     }
 
-    const validRoles: Array<'owner' | 'member'> = ['owner', 'member']
-    if (!validRoles.includes(role as 'owner' | 'member')) {
+    if (!VALID_ROLES.has(role as string)) {
       return c.json({ error: 'Invalid role' }, 400)
     }
 

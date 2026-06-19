@@ -160,7 +160,7 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   table('members', 'Members', [
     column('profileId', 'record', 'relation', { config: { relationId: '_relations:⟨members:profileId:user_profiles:id⟩' } }),
     column('email', 'string', 'email'),
-    column('role', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['owner', 'admin', 'member']) } }),
+    column('role', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['owner', 'member']) } }),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'active', 'inactive']) } }),
     column('inviteCode', 'string', 'text', { unique: true }),
     column('joinedAt', 'datetime', 'date'),

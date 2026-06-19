@@ -11,7 +11,7 @@ describe('/api/tables (admin scope)', () => {
   beforeAll(async () => {
     await provisionCompanyNamespace(TEST_NS)
     const surreal = await getSurreal(TEST_NS, 'main')
-    await surreal.query(`UPSERT members:one SET email = 'test@example.com', role = 'admin', status = 'active'`)
+    await surreal.query(`UPSERT members:one SET email = 'test@example.com', role = 'member', status = 'active'`)
     await closeSurreal(surreal)
   })
 
