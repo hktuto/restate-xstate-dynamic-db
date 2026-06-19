@@ -204,4 +204,16 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('startedAt', 'datetime', 'date'),
     column('completedAt', 'datetime', 'date'),
   ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
+  table('permission_groups', 'Permission Groups', [
+    column('resourceType', 'string', 'text'),
+    column('recordId', 'string', 'text', { optional: true }),
+    column('name', 'string', 'text'),
+    column('bitmask', 'string', 'text'),
+    column('isSystem', 'boolean', 'checkbox'),
+    column('description', 'string', 'text', { optional: true }),
+  ]),
+  table('user_groups', 'User Groups', [
+    column('name', 'string', 'text'),
+    column('description', 'string', 'text', { optional: true }),
+  ]),
 ]

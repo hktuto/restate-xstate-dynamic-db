@@ -70,6 +70,17 @@ export async function createTenantNamespace(namespace: string) {
       DEFINE TABLE IF NOT EXISTS user_tasks SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
       DEFINE INDEX IF NOT EXISTS idx_members_inviteCode ON members FIELDS inviteCode UNIQUE;
+
+      DEFINE TABLE IF NOT EXISTS user_group_memberships TYPE RELATION SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_user_group_memberships_in ON user_group_memberships FIELDS in;
+      DEFINE INDEX IF NOT EXISTS idx_user_group_memberships_out ON user_group_memberships FIELDS out;
+      DEFINE INDEX IF NOT EXISTS idx_user_group_memberships_unique ON user_group_memberships FIELDS in, out UNIQUE;
+
+      DEFINE TABLE IF NOT EXISTS permission_assignments TYPE RELATION SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_permission_assignments_in ON permission_assignments FIELDS in;
+      DEFINE INDEX IF NOT EXISTS idx_permission_assignments_out ON permission_assignments FIELDS out;
+      DEFINE INDEX IF NOT EXISTS idx_permission_assignments_resource ON permission_assignments FIELDS resourceType, recordId;
+      DEFINE INDEX IF NOT EXISTS idx_permission_assignments_unique ON permission_assignments FIELDS in, resourceType, recordId UNIQUE;
     `)
   } finally {
     await closeSurreal(surreal)
