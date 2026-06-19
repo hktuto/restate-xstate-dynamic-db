@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { RestateTestEnvironment } from '@restatedev/restate-sdk-testcontainers'
 import * as clients from '@restatedev/restate-sdk-clients'
+import * as restate from '@restatedev/restate-sdk'
 import { randomUUID } from 'node:crypto'
 import type { AnyMachineSnapshot } from 'xstate'
 import type { WorkflowDefinition } from 'shared'
@@ -533,5 +534,114 @@ describe('workflow runtime', () => {
     } finally {
       await removeNamespace(ns)
     }
+  })
+
+  it('throws 404 when design is not found', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch)
+    fetchMock.mockImplementationOnce(
+      async () =>
+        ({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          text: async () => 'Not Found',
+          json: async () => ({})
+        } as Response)
+    )
+
+    const client = rs.objectClient(workflowObject, randomUUID())
+    let thrown: unknown
+    await expect(
+      client.create({
+        designId: 'missing-design',
+        trigger: { type: 'user_trigger', startState: 'idle' },
+        context: {},
+        createdBy: 'test'
+      })
+    ).rejects.toSatisfy((err: unknown) => {
+      thrown = err
+      const message = err instanceof Error ? err.message : String(err)
+      return message.includes('404') || message.includes('Design missing-design not found')
+    })
+
+    const code = (thrown as { code?: number }).code
+    if (thrown instanceof restate.TerminalError || code !== undefined) {
+      expect(code).toBe(404)
+    }
+  })
+
+  it('throws 409 when recreating an instance with a different design', async () => {
+    const instanceId = randomUUID()
+    const client = rs.objectClient(workflowObject, instanceId)
+
+    const originalDesignId = 'original-design'
+    const otherDesignId = 'other-design'
+    const config: WorkflowDefinition = {
+      id: originalDesignId,
+      initial: 'idle',
+      states: {
+        idle: { on: { start: { target: 'running' } } },
+        running: { type: 'final' }
+      }
+    }
+    setMockDesign(originalDesignId, config)
+    setMockDesign(otherDesignId, config)
+
+    await client.create({
+      designId: originalDesignId,
+      trigger: { type: 'user_trigger', startState: 'idle' },
+      context: {},
+      createdBy: 'test'
+    })
+
+    let thrown: unknown
+    await expect(
+      client.create({
+        designId: otherDesignId,
+        trigger: { type: 'user_trigger', startState: 'idle' },
+        context: {},
+        createdBy: 'test'
+      })
+    ).rejects.toSatisfy((err: unknown) => {
+      thrown = err
+      const message = err instanceof Error ? err.message : String(err)
+      return message.includes('already exists with different design or namespace')
+    })
+
+    if (thrown instanceof restate.TerminalError) {
+      expect((thrown as { code?: number }).code).toBe(409)
+    }
+  })
+
+  it('includes currentState in the status update PATCH body', async () => {
+    const instanceId = randomUUID()
+    const client = rs.objectClient(workflowObject, instanceId)
+    const designId = 'status-update-test'
+    const config: WorkflowDefinition = {
+      id: designId,
+      initial: 'idle',
+      states: {
+        idle: { on: { start: { target: 'running' } } },
+        running: { type: 'final' }
+      }
+    }
+    setMockDesign(designId, config)
+
+    await client.create({
+      designId,
+      trigger: { type: 'user_trigger', startState: 'running' },
+      context: {},
+      createdBy: 'test'
+    })
+
+    const fetchMock = vi.mocked(globalThis.fetch)
+    const statusCall = fetchMock.mock.calls.find(([input, init]) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      return url === `http://localhost:3002/api/workflow-instances/${instanceId}/status` && init?.method === 'PATCH'
+    })
+
+    expect(statusCall).toBeDefined()
+    const body = JSON.parse(statusCall![1]!.body as string)
+    expect(body).toHaveProperty('currentState', 'running')
   })
 })

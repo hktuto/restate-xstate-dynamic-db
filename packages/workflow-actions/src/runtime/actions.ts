@@ -14,7 +14,8 @@ function resolveTable(ctx: ActionExecutorContext): string {
 }
 
 function resolveRecordId(ctx: ActionExecutorContext): string {
-  return String(ctx.params?.id ?? ctx.context?.id ?? '')
+  const record = ctx.context?.record as Record<string, unknown> | undefined
+  return String(ctx.params?.id ?? record?.id ?? ctx.context?.id ?? '')
 }
 
 const getRecord: ActionExecutor = async (ctx) => {

@@ -120,9 +120,7 @@ async function runTransition(
   state: PersistedState,
   event: { type: string; record?: Record<string, unknown> }
 ): Promise<{ snapshot: AnyMachineSnapshot; context: Record<string, unknown> }> {
-  const existingRuntime = (state.context as Record<string, unknown>)['__runtime'] as RuntimeContext | undefined
-  const baseContext = { ...state.context }
-  delete baseContext.__runtime
+  const { __runtime: existingRuntime, ...baseContext } = state.context as Record<string, unknown>
 
   const userContext: Record<string, unknown> = {
     ...baseContext,
@@ -131,10 +129,10 @@ async function runTransition(
 
   const runtime: RuntimeContext = {
     instanceId: objectCtx.key,
-    designId: existingRuntime?.designId ?? (state.config.id as string),
-    tableName: existingRuntime?.tableName,
-    companyId: existingRuntime?.companyId,
-    namespace: existingRuntime?.namespace
+    designId: (existingRuntime as RuntimeContext | undefined)?.designId ?? state.config.id,
+    tableName: (existingRuntime as RuntimeContext | undefined)?.tableName,
+    companyId: (existingRuntime as RuntimeContext | undefined)?.companyId,
+    namespace: (existingRuntime as RuntimeContext | undefined)?.namespace
   }
 
   const { machine, promises } = compileWorkflow(
@@ -198,7 +196,16 @@ export const workflowObject = restate.object({
   handlers: {
     create: async (objectCtx: restate.ObjectContext, req: CreateWorkflowRequest) => {
       const existing = await loadState(objectCtx)
-      if (existing) return existing.snapshot
+      if (existing) {
+        const existingRuntime = (existing.context as Record<string, unknown>)['__runtime'] as RuntimeContext | undefined
+        if (existingRuntime?.designId !== req.designId || existingRuntime?.namespace !== req.namespace) {
+          throw new restate.TerminalError(
+            `Workflow instance ${objectCtx.key} already exists with different design or namespace`,
+            { errorCode: 409 }
+          )
+        }
+        return existing.snapshot
+      }
 
       const design = await objectCtx.run('loadDesign', async () => {
         const res = await fetch(`${NITRO_API_URL}/api/workflow-designs/${req.designId}`)
@@ -209,7 +216,6 @@ export const workflowObject = restate.object({
       const runtime = {
         instanceId: objectCtx.key,
         designId: req.designId,
-        tableName: req.namespace ? undefined : undefined,
         companyId: req.companyId,
         namespace: req.namespace
       }
@@ -235,9 +241,10 @@ export const workflowObject = restate.object({
         subscriptions: {}
       }
       await maybeCreateUserTask(objectCtx, machine, liveSnapshot, state)
+      await resolveMatchingSubscriptions(objectCtx, liveSnapshot)
       await updateInstanceStatus(objectCtx, liveSnapshot, req.namespace)
       await saveState(objectCtx, state)
-      return liveSnapshot
+      return persistedSnapshot
     },
 
     send: async (objectCtx: restate.ObjectContext, req: SendWorkflowRequest) => {
