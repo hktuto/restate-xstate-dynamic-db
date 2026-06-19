@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
 import { listCompaniesForProfile, createCompany, getCompanyBySlug } from 'db/platform'
 import { createMember } from 'db/tenant'
+import { provisionCompanyNamespace } from 'db/provision'
 import { provisionDefaultCompanyGroups } from 'db/permissions'
-import { tenantAuth } from '../middleware/tenant.js'
+import { tenantAuth, tenantSession } from '../middleware/tenant.js'
 import { dispatchTrigger } from '../lib/dispatch.js'
 import { dispatchPlatformTrigger } from '../lib/dispatch-platform.js'
 import type { TenantScope } from '../types.js'
@@ -27,15 +28,14 @@ async function generateUniqueSlug(name: string): Promise<string> {
 
 export function companiesRoutes() {
   const app = new Hono()
-  app.use(tenantAuth)
 
-  app.get('/', async (c) => {
+  app.get('/', tenantAuth, async (c) => {
     const scope = c.get('scope') as TenantScope
     const companies = await listCompaniesForProfile(scope.profileId)
     return c.json(companies)
   })
 
-  app.post('/', async (c) => {
+  app.post('/', tenantSession, async (c) => {
     const scope = c.get('scope') as TenantScope
     let body: Record<string, unknown>
     try {
@@ -51,6 +51,8 @@ export function companiesRoutes() {
 
     const slug = await generateUniqueSlug(name)
     const company = await createCompany({ name: name.trim(), slug })
+
+    await provisionCompanyNamespace(company.namespace)
 
     const ownerMember = await createMember(company.namespace, {
       email: '',

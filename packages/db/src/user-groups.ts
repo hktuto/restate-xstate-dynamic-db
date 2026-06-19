@@ -155,6 +155,7 @@ export async function createUserGroupWithDefaults(
   creatorMemberId: string
 ): Promise<UserGroupRecord> {
   const group = await createUserGroup(namespace, input)
+  let memberGroupId: string | undefined
   for (const defaultGroup of DEFAULT_GROUPS.user_group) {
     const created = await createPermissionGroup(namespace, {
       resourceType: 'user_group',
@@ -166,6 +167,12 @@ export async function createUserGroupWithDefaults(
     if (defaultGroup.name === 'Owner') {
       await assignPermissionGroup(namespace, creatorMemberId, created.id)
     }
+    if (defaultGroup.name === 'Member') {
+      memberGroupId = created.id
+    }
+  }
+  if (memberGroupId) {
+    await assignPermissionGroup(namespace, group.id, memberGroupId)
   }
   return group
 }

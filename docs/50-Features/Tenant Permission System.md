@@ -1,7 +1,7 @@
 ---
 title: "Tenant Permission System"
 type: feature
-status: planned
+status: done
 area: architecture
 app:
   - web

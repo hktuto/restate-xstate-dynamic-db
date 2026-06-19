@@ -9,6 +9,23 @@ declare module 'hono' {
   }
 }
 
+export const tenantSession = createMiddleware(async (c, next) => {
+  const session = readTenantSession(c)
+  if (!session) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+  c.set('scope', {
+    type: 'tenant',
+    namespace: '',
+    database: '',
+    accountId: session.accountId,
+    profileId: session.profileId,
+    memberId: '',
+    role: 'member',
+  })
+  await next()
+})
+
 export const tenantAuth = createMiddleware(async (c, next) => {
   const session = readTenantSession(c)
   if (!session) {

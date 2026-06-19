@@ -21,8 +21,8 @@ export function createApp() {
   app.route('/api/permissions', permissionsRoutes())
   app.route('/api', authRoutes())
   app.route('/api', tablesRoutes())
-  app.route('/api', companiesRoutes())
-  app.route('/api', usersRoutes())
+  app.route('/api/companies', companiesRoutes())
+  app.route('/api/users', usersRoutes())
   app.route('/api/workflow-designs', workflowDesignsRoutes())
   app.route('/api/admin/workflow-designs', adminWorkflowDesignsRoutes())
   app.route('/api/admin/workflow-instances', adminWorkflowInstancesRoutes())
@@ -30,6 +30,6 @@ export function createApp() {
   app.route('/api', userTasksRoutes())
   app.route('/api', platformRoutes())
   app.route('/api/user-groups', userGroupsRoutes())
-  app.route('/api', adminRoutes())
+  app.route('/api/admin', adminRoutes())
   return app
 }
