@@ -197,7 +197,7 @@ export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   }
 }
 
-function collectCookies(res: Response): string {
+export function collectCookies(res: Response): string {
   const all = (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.()
   if (all && all.length > 0) return all.join('; ')
   const setCookie = res.headers.get('set-cookie')
