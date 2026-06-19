@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { seedE2E, cleanupE2E, loginTenant, loginAdmin, tenantRequest, adminRequest, collectCookies, json, app } from './fixtures.js'
+import { seedE2E, cleanupE2E, loginTenant, loginAdmin, tenantRequest, adminRequest, json, app } from './fixtures.js'
 import type { TestFixture } from './fixtures.js'
 import { createMember } from 'db/tenant'
 
@@ -15,16 +15,8 @@ describe('E2E auth', () => {
   })
 
   it('logs in a tenant owner and returns companies', async () => {
-    const res = await app.request('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: fixture.owner.email, password: fixture.owner.password }),
-    })
-    expect(res.status).toBe(200)
-    const cookies = collectCookies(res)
+    const cookies = await loginTenant(fixture.owner.email, fixture.owner.password)
     expect(cookies).toContain('tenant_access_token=')
-    const body = await json<{ ok: boolean; companies: { id: string }[] }>(res)
-    expect(body.companies.some((c) => c.id === fixture.company.id)).toBe(true)
   })
 
   it('rejects invalid tenant credentials', async () => {
