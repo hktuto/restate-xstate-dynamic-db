@@ -452,7 +452,7 @@ git commit -m "test(api): E2E companies tests"
 Create `apps/api/tests/e2e/users.e2e.test.ts`:
 
 ```ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import { seedE2E, cleanupE2E, loginTenant, tenantRequest, json } from './fixtures.js'
 import type { TestFixture } from './fixtures.js'
 
@@ -465,6 +465,18 @@ describe('E2E users', () => {
 
   afterAll(async () => {
     await cleanupE2E(fixture)
+  })
+
+  afterEach(async () => {
+    // Ensure the seeded member is restored to role 'member' after mutating tests.
+    const cookies = await ownerCookies()
+    const res = await tenantRequest('GET', '/api/users', cookies, fixture.company)
+    if (res.status !== 200) return
+    const members = await json<Array<{ id: string; role: string }>>(res)
+    const member = members.find((m) => m.id === fixture.member.memberId)
+    if (member && member.role !== 'member') {
+      await tenantRequest('PATCH', `/api/users/${fixture.member.memberId}`, cookies, fixture.company, { role: 'member' })
+    }
   })
 
   async function ownerCookies() {
@@ -529,6 +541,20 @@ describe('E2E users', () => {
       role: 'member',
     })
     expect(res.status).toBe(400)
+  })
+
+  it('rejects member role update by plain member', async () => {
+    const cookies = await memberCookies()
+    const res = await tenantRequest('PATCH', `/api/users/${fixture.member.memberId}`, cookies, fixture.company, {
+      role: 'owner',
+    })
+    expect(res.status).toBe(403)
+  })
+
+  it('rejects member removal by plain member', async () => {
+    const cookies = await memberCookies()
+    const res = await tenantRequest('DELETE', `/api/users/${fixture.owner.memberId}`, cookies, fixture.company)
+    expect(res.status).toBe(403)
   })
 
   it('removes a member', async () => {
