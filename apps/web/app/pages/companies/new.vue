@@ -7,7 +7,7 @@ async function submit() {
   error.value = ''
   try {
     const api = useApi()
-    const company = await api.fetch('/api/companies', {
+    const company = await api.fetch<{ id: string; slug: string; namespace: string }>('/api/companies', {
       method: 'POST',
       body: { name: name.value }
     })

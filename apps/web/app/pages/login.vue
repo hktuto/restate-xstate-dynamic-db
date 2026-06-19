@@ -8,7 +8,7 @@ const api = useApi()
 async function submit() {
   error.value = ''
   try {
-    const result = await api.fetch('/api/auth/login', {
+    const result = await api.fetch<{ companies: { id: string; slug: string; namespace: string }[] }>('/api/auth/login', {
       method: 'POST',
       body: { email: email.value, password: password.value }
     })
