@@ -162,14 +162,14 @@ async function main() {
   const pTask = await record(
     'platform',
     'createPlatformUserTask',
-    { instanceId: pInstance?.id, type: 'approval', tableName: 'orders', recordId: 'orders:1', workflowId: pWorkflow?.id },
+    { instanceId: pInstance?.id, type: 'approval', tableName: 'orders', recordId: 'orders:1', designId: pWorkflow?.id },
     () =>
       platform.createPlatformUserTask({
         instanceId: pInstance!.id,
         type: 'approval',
         tableName: 'orders',
         recordId: 'orders:1',
-        workflowId: pWorkflow!.id,
+        designId: pWorkflow!.id,
       }),
   )
   if (pTask) {
@@ -240,7 +240,7 @@ async function main() {
         type: 'approval',
         tableName: 'orders',
         recordId: 'orders:1',
-        workflowId: tDesign!.id,
+        designId: tDesign!.id,
       }),
   )
   if (tTask) {

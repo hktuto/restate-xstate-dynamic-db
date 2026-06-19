@@ -47,9 +47,9 @@ export function workflowInstancesRoutes() {
       return c.json({ error: 'ID required' }, 400)
     }
 
-    let body: { status?: WorkflowInstanceStatus; namespace?: string; database?: string }
+    let body: { status?: WorkflowInstanceStatus; currentState?: string; namespace?: string; database?: string }
     try {
-      body = await c.req.json<{ status?: WorkflowInstanceStatus; namespace?: string; database?: string }>()
+      body = await c.req.json<{ status?: WorkflowInstanceStatus; currentState?: string; namespace?: string; database?: string }>()
     } catch {
       return c.json({ error: 'Invalid JSON' }, 400)
     }
@@ -74,7 +74,7 @@ export function workflowInstancesRoutes() {
       return c.json({ error: 'Namespace mismatch' }, 403)
     }
 
-    const updated = await updateWorkflowInstanceStatus(bodyNamespace, id, body.status)
+    const updated = await updateWorkflowInstanceStatus(bodyNamespace, id, body.status, body.currentState)
     return c.json(updated)
   })
 

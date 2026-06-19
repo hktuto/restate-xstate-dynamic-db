@@ -36,7 +36,7 @@ export function userTasksRoutes() {
       type?: UserTaskType
       tableName?: string
       recordId?: string
-      workflowId?: string
+      designId?: string
       namespace?: string
       database?: string
     }
@@ -46,7 +46,7 @@ export function userTasksRoutes() {
         type?: UserTaskType
         tableName?: string
         recordId?: string
-        workflowId?: string
+        designId?: string
         namespace?: string
         database?: string
       }>()
@@ -54,8 +54,8 @@ export function userTasksRoutes() {
       return c.json({ error: 'Invalid JSON' }, 400)
     }
 
-    const { instanceId, type, tableName, recordId, workflowId } = body
-    if (!instanceId || !type || !tableName || !recordId || !workflowId) {
+    const { instanceId, type, tableName, recordId, designId } = body
+    if (!instanceId || !type || !tableName || !recordId || !designId) {
       return c.json({ error: 'Missing required fields' }, 400)
     }
 
@@ -70,7 +70,7 @@ export function userTasksRoutes() {
     // Database is accepted for symmetry but tenant DB helpers currently use 'main'.
     void body.database
 
-    const task = await createUserTask(namespace, { instanceId, type, tableName, recordId, workflowId })
+    const task = await createUserTask(namespace, { instanceId, type, tableName, recordId, designId })
     return c.json(task)
   })
 

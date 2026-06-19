@@ -70,7 +70,7 @@ async function setupPlatform(): Promise<PlatformSetup> {
     type: 'approval',
     tableName: 'orders',
     recordId: 'orders:1',
-    workflowId: workflow.id,
+    designId: workflow.id,
   })
   return { company, workflow, instance, task }
 }
@@ -103,7 +103,7 @@ async function setupTenant(namespace: string): Promise<TenantSetup> {
     type: 'approval',
     tableName: 'orders',
     recordId: `orders:${randomUUID()}`,
-    workflowId: design.id,
+    designId: design.id,
   })
   return { member, design, instance, task }
 }
@@ -226,7 +226,7 @@ export const platformScenarios = [
         type: 'approval',
         tableName: 'orders',
         recordId: `orders:${randomUUID()}`,
-        workflowId: workflow.id,
+        designId: workflow.id,
       })
     },
   } satisfies Scenario<PlatformSetup>,
@@ -457,7 +457,7 @@ export const tenantScenarios = [
         type: 'approval',
         tableName: 'orders',
         recordId: `orders:${randomUUID()}`,
-        workflowId: designId,
+        designId,
       })
     },
   } satisfies Scenario<TenantUserTaskCreateState>,

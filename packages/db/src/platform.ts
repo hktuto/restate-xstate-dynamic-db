@@ -167,13 +167,21 @@ export async function createPlatformWorkflowInstance(input: PlatformWorkflowInst
 
 export async function updatePlatformWorkflowInstanceStatus(
   id: string,
-  status: WorkflowInstanceStatus
+  status: WorkflowInstanceStatus,
+  currentState?: string
 ): Promise<PlatformWorkflowInstanceRecord | undefined> {
   const surreal = await getSurreal('platform', 'admin')
   try {
+    const data: { status: WorkflowInstanceStatus; currentState?: string; updatedAt: string } = {
+      status,
+      updatedAt: new Date().toISOString()
+    }
+    if (currentState !== undefined) {
+      data.currentState = currentState
+    }
     const [updated] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
       'UPDATE type::record($id) MERGE $data',
-      { id, data: { status, updatedAt: new Date().toISOString() } }
+      { id, data }
     )
     return normalizeId(updated[0])
   } finally {
@@ -200,7 +208,7 @@ export interface PlatformUserTaskRecord {
   status: PlatformUserTaskStatus
   tableName: string
   recordId: string
-  workflowId: string
+  designId: string
   createdAt: string
   resolvedAt?: string
   [key: string]: unknown
@@ -211,7 +219,7 @@ export interface PlatformUserTaskInput {
   type: PlatformUserTaskType
   tableName: string
   recordId: string
-  workflowId: string
+  designId: string
 }
 
 export async function listPlatformUserTasks(): Promise<PlatformUserTaskRecord[]> {

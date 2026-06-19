@@ -275,13 +275,21 @@ export async function deleteWorkflowInstance(namespace: string, id: string): Pro
 export async function updateWorkflowInstanceStatus(
   namespace: string,
   id: string,
-  status: WorkflowInstanceStatus
+  status: WorkflowInstanceStatus,
+  currentState?: string
 ): Promise<WorkflowInstanceRecord | undefined> {
   const surreal = await getSurreal(namespace, 'main')
   try {
+    const data: { status: WorkflowInstanceStatus; currentState?: string; updatedAt: string } = {
+      status,
+      updatedAt: new Date().toISOString()
+    }
+    if (currentState !== undefined) {
+      data.currentState = currentState
+    }
     const [updated] = await surreal.query<[WorkflowInstanceRecord[]]>(
       'UPDATE type::record($id) MERGE $data',
-      { id, data: { status, updatedAt: new Date().toISOString() } }
+      { id, data }
     )
     return normalizeId(updated[0])
   } finally {
@@ -299,7 +307,7 @@ export interface UserTaskRecord {
   status: UserTaskStatus
   tableName: string
   recordId: string
-  workflowId: string
+  designId: string
   createdAt: string
   resolvedAt?: string
   [key: string]: unknown
@@ -310,7 +318,7 @@ export interface UserTaskInput {
   type: UserTaskType
   tableName: string
   recordId: string
-  workflowId: string
+  designId: string
   status?: UserTaskStatus
 }
 

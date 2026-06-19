@@ -178,7 +178,7 @@ describe('platform', () => {
         type: 'approval',
         tableName: 'orders',
         recordId: 'orders:2',
-        workflowId: design.id,
+        designId: design.id,
       })
       expect(task.id).toMatch(/^user_tasks:/)
 

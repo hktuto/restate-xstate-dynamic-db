@@ -134,7 +134,7 @@ describe('tenant', () => {
         type: 'approval',
         tableName: 'orders',
         recordId: 'orders:1',
-        workflowId: design.id,
+        designId: design.id,
       })
       expect(task.id).toMatch(/^user_tasks:/)
 
