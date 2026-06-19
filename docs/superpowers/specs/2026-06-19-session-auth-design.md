@@ -50,8 +50,7 @@ Stored per namespace (tenant `company_<uuid>/main` for tenant sessions, `platfor
 
 ```ts
 table('sessions', 'Sessions', [
-  column('tokenHash', 'string', 'text'),             // SHA-256 of refresh token
-  column('refreshTokenHash', 'string', 'text'),      // unique hash of refresh token
+  column('refreshTokenHash', 'string', 'text'),      // SHA-256 of refresh token, unique
   column('accessTokenJti', 'string', 'text'),        // current access token id
   column('accountId', 'record', 'relation'),         // accounts.id
   column('profileId', 'record', 'relation'),         // user_profiles.id
@@ -70,7 +69,6 @@ table('sessions', 'Sessions', [
 ])
 ```
 
-- `tokenHash` is kept for compatibility during migration; new code uses `refreshTokenHash`.
 - `refreshTokenHash` is unique-indexed.
 - Only the hash of tokens is persisted; raw tokens exist only in cookies.
 
