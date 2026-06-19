@@ -197,19 +197,46 @@ export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   }
 }
 
-function collectCookies(res: Response): string {
-  const all = (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.()
-  const setCookies = all ?? (res.headers.get('set-cookie') ? [res.headers.get('set-cookie')!] : [])
-  if (setCookies.length === 0) throw new Error('Login did not set cookie')
+function parseCookieValue(raw: string): { name: string; value: string; cleared: boolean } | undefined {
+  const parts = raw.split(';').map((p) => p.trim())
+  const [nameValue] = parts
+  const eq = nameValue.indexOf('=')
+  if (eq < 0) return undefined
+  const name = nameValue.slice(0, eq)
+  const value = nameValue.slice(eq + 1)
 
-  const kept: string[] = []
-  for (const raw of setCookies) {
-    const parts = raw.split(';').map((p) => p.trim())
-    const nameValue = parts[0]
-    const isCleared = parts.some((p) => /^Max-Age\s*=\s*0$/i.test(p))
-    if (!isCleared) kept.push(nameValue)
+  const isCleared =
+    value === '' ||
+    parts.some((p) => /^Max-Age\s*=\s*0$/i.test(p)) ||
+    parts.some((p) => {
+      const m = p.match(/^Expires\s*=\s*(.+)/i)
+      if (!m) return false
+      return new Date(m[1]).getTime() < Date.now()
+    })
+
+  return { name, value, cleared: isCleared }
+}
+
+function collectCookies(res: Response): string {
+  const raw: string[] =
+    (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.() ??
+    (res.headers.get('set-cookie') ? [res.headers.get('set-cookie')!] : [])
+
+  if (raw.length === 0) throw new Error('Login did not set cookie')
+
+  const byName = new Map<string, string>()
+  for (const r of raw) {
+    const parsed = parseCookieValue(r)
+    if (!parsed) continue
+    if (parsed.cleared) {
+      byName.delete(parsed.name)
+      continue
+    }
+    byName.set(parsed.name, `${parsed.name}=${parsed.value}`)
   }
-  return kept.join('; ')
+
+  if (byName.size === 0) throw new Error('Login did not set a usable cookie')
+  return Array.from(byName.values()).join('; ')
 }
 
 export async function loginTenant(email: string, password: string): Promise<string> {
