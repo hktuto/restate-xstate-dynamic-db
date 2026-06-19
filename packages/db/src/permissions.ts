@@ -183,7 +183,7 @@ export async function getEffectivePermissions(
 
   const directGroups = await listPermissionAssignments(namespace, memberId)
   for (const group of directGroups) {
-    if (group.resourceType === resourceType && group.recordId === recordId) {
+    if (groupMatches(group, resourceType, recordId)) {
       mask |= BigInt(group.bitmask)
     }
   }
@@ -191,13 +191,24 @@ export async function getEffectivePermissions(
   for (const userGroup of memberGroups) {
     const groupAssignments = await listPermissionAssignments(namespace, userGroup.id)
     for (const group of groupAssignments) {
-      if (group.resourceType === resourceType && group.recordId === recordId) {
+      if (groupMatches(group, resourceType, recordId)) {
         mask |= BigInt(group.bitmask)
       }
     }
   }
 
   return mask.toString()
+}
+
+function groupMatches(
+  group: PermissionGroupRecord,
+  resourceType: string,
+  recordId?: string
+): boolean {
+  return (
+    group.resourceType === resourceType &&
+    (group.recordId === recordId || (recordId !== undefined && group.recordId === undefined))
+  )
 }
 
 async function getMemberUserGroups(
@@ -207,12 +218,12 @@ async function getMemberUserGroups(
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<
-      Array<{ out: { id: string } }>
+      Array<{ id: string }>
     >(
       'SELECT out.id AS id FROM user_group_memberships WHERE in = type::record($memberId)',
       { memberId }
     )
-    return rows.map((r) => ({ id: String(r.out.id) }))
+    return rows.map((r) => ({ id: String(r.id) }))
   } finally {
     await closeSurreal(surreal)
   }
