@@ -224,8 +224,8 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('context', 'object', 'json'),
     column('triggerBy', 'object', 'json'),
     column('namespace', 'string', 'text'),
-    column('companyId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } }),
-  ], [relation('designId', 'workflow_designs'), relation('companyId', 'companies')]),
+    column('companyId', 'string', 'text'),
+  ], [relation('designId', 'workflow_designs')]),
   table('user_tasks', 'User Tasks', [
     column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:instanceId:workflow_instances:id⟩' } }),
     column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['approval', 'review', 'manual']) } }),

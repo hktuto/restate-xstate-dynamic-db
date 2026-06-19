@@ -35,6 +35,9 @@ export async function seed() {
       DEFINE INDEX IF NOT EXISTS idx_health_checks_service_checkedAt ON health_checks FIELDS service, checkedAt;
       DEFINE INDEX IF NOT EXISTS idx_companies_slug ON companies FIELDS slug UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_accounts_provider_key ON accounts FIELDS provider, providerKey UNIQUE;
+      DEFINE INDEX IF NOT EXISTS idx_company_policies_companyId ON company_policies FIELDS companyId UNIQUE;
+      DEFINE INDEX IF NOT EXISTS idx_platform_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
+      DEFINE INDEX IF NOT EXISTS idx_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
 
       UPSERT platform_users:admin SET email = 'admin@example.com', password = $password;
     `, { password: passwordHash })
