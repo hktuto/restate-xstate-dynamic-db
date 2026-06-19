@@ -1,3 +1,4 @@
+import { computed } from 'vue'
 import type { WorkflowDefinition, ActionInputMetadata } from 'shared'
 import { resolveInputs } from 'workflow-actions/catalog/resolve-inputs'
 

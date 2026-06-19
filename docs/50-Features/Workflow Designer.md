@@ -4,7 +4,7 @@ type: feature
 status: done
 area: workflow
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-19
 app:
   - web
   - admin
@@ -31,6 +31,10 @@ Visual editor for building XState-compatible workflow definitions. Users drag, c
 ## Implementation
 
 Provided by `layers/workflow-editor` and used in both [[30-Apps/web|web]] and [[30-Apps/admin|admin]]. The consuming host pages integrate `WorkflowEditor.vue` and forward `error` events to their own toast/error UI.
+
+## Running workflows
+
+The `WorkflowRunModal` component renders a form from the first `user_trigger` start rule's inputs. It validates required and JSON fields, converts values to the correct runtime types, and posts to the host app's workflow-instances endpoint. Both web and admin detail pages use the shared modal, supplying their own namespace and API base path.
 
 ## Supported node types
 

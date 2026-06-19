@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-19
 package: workflow-editor-layer
 related:
   - [[50-Features/Workflow Designer]]
@@ -62,6 +62,7 @@ The editor is a pure Vue component (`WorkflowEditor.vue`) that:
 | `WorkflowContextPanel.vue` | Raw workflow definition and name editing. |
 | `DetailsPanel.vue` | Sidebar inspector for the selected node or edge. |
 | `SidebarPanel.vue` | Collapsible sidebar shell with Context/Details tabs. |
+| `WorkflowRunModal.vue` | Shared modal for running a workflow from a `user_trigger` start rule. |
 
 ## Composable inventory
 
@@ -71,6 +72,7 @@ The editor is a pure Vue component (`WorkflowEditor.vue`) that:
 | `useWorkflowGraph.ts` | Bidirectional mapping between `WorkflowDefinition` and the VueFlow graph model. |
 | `useWorkflowValidator.ts` | Validates the graph and returns `ValidationError[]`. |
 | `useWorkflowRuntimeEvents.ts` | Determines which events are valid for each node type and suggests default events. |
+| `useWorkflowRun.ts` | Resolves visible form inputs for a given start state. |
 
 ## Shared types
 
