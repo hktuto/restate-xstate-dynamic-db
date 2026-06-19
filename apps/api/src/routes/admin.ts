@@ -44,9 +44,14 @@ export function adminRoutes() {
       listCompanies(),
       listPlatformWorkflowDesigns(),
     ])
+    const triggers = workflowDesigns.reduce(
+      (sum, d) => sum + (d.starts?.filter((s) => s.type === 'db_trigger').length ?? 0),
+      0
+    )
     return c.json({
       companies: companies.length,
       workflowDesigns: workflowDesigns.length,
+      triggers,
     })
   })
 

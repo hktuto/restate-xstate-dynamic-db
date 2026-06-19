@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WorkflowDefinition } from 'shared'
+import type { WorkflowDefinition, StartRule } from 'shared'
 
 const name = ref('')
 const config = ref<WorkflowDefinition>({
@@ -7,6 +7,7 @@ const config = ref<WorkflowDefinition>({
   initial: '',
   states: {}
 })
+const starts = ref<StartRule[]>([])
 
 const api = useApi()
 const toast = useToast()
@@ -16,17 +17,17 @@ function onError(message: string) {
 }
 
 async function save() {
-  await api.fetch('/api/admin/workflows', {
+  await api.fetch('/api/admin/workflow-designs', {
     method: 'POST',
-    body: JSON.stringify({ name: name.value, xstateConfig: config.value })
+    body: JSON.stringify({ name: name.value, xstateConfig: config.value, starts: starts.value ?? [] })
   })
-  await navigateTo('/workflows')
+  await navigateTo('/workflow-designs')
 }
 </script>
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-4">New platform workflow</h1>
+    <h1 class="text-2xl font-bold mb-4">New workflow design</h1>
 
     <ClientOnly>
       <WorkflowEditor

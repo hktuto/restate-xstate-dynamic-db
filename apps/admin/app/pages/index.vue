@@ -1,7 +1,7 @@
 <script setup lang="ts">
 interface DashboardStats {
   companies: number
-  workflows: number
+  workflowDesigns: number
   triggers: number
 }
 
@@ -22,9 +22,9 @@ onMounted(async () => {
         <div class="text-sm text-gray-500">Companies</div>
         <div class="text-3xl font-bold">{{ stats?.companies ?? 0 }}</div>
       </NuxtLink>
-      <NuxtLink to="/workflows" class="bg-white p-4 rounded shadow hover:shadow-md transition">
-        <div class="text-sm text-gray-500">Platform Workflows</div>
-        <div class="text-3xl font-bold">{{ stats?.workflows ?? 0 }}</div>
+      <NuxtLink to="/workflow-designs" class="bg-white p-4 rounded shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Workflow Designs</div>
+        <div class="text-3xl font-bold">{{ stats?.workflowDesigns ?? 0 }}</div>
       </NuxtLink>
       <NuxtLink to="/triggers" class="bg-white p-4 rounded shadow hover:shadow-md transition">
         <div class="text-sm text-gray-500">Platform Triggers</div>
@@ -38,8 +38,8 @@ onMounted(async () => {
         <NuxtLink to="/companies/new" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           Create company
         </NuxtLink>
-        <NuxtLink to="/workflows/new" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">
-          New workflow
+        <NuxtLink to="/workflow-designs/new" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900">
+          New workflow design
         </NuxtLink>
         <NuxtLink to="/triggers" class="border px-4 py-2 rounded hover:bg-gray-50">
           Manage triggers
