@@ -13,21 +13,28 @@ describe('E2E permissions', () => {
     await cleanupE2E(fixture)
   })
 
-  async function memberCookies() {
-    const cookies = await loginTenant(fixture.member.email, fixture.member.password)
-    await tenantRequest('POST', '/api/company', cookies, fixture.company, {
+  async function ownerCookies() {
+    const cookies = await loginTenant(fixture.owner.email, fixture.owner.password)
+    const selectRes = await tenantRequest('POST', '/api/company', cookies, fixture.company, {
       companyId: fixture.company.id,
       slug: fixture.company.slug,
     })
+    expect(selectRes.status).toBe(200)
+    return cookies
+  }
+
+  async function memberCookies() {
+    const cookies = await loginTenant(fixture.member.email, fixture.member.password)
+    const selectRes = await tenantRequest('POST', '/api/company', cookies, fixture.company, {
+      companyId: fixture.company.id,
+      slug: fixture.company.slug,
+    })
+    expect(selectRes.status).toBe(200)
     return cookies
   }
 
   it('lists permission actions for company', async () => {
-    const cookies = await loginTenant(fixture.owner.email, fixture.owner.password)
-    await tenantRequest('POST', '/api/company', cookies, fixture.company, {
-      companyId: fixture.company.id,
-      slug: fixture.company.slug,
-    })
+    const cookies = await ownerCookies()
     const res = await tenantRequest('GET', '/api/permissions/actions?resourceType=company', cookies, fixture.company)
     expect(res.status).toBe(200)
     const body = await json<{ resourceType: string; actions: unknown[] }>(res)
