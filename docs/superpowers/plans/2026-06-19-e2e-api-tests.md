@@ -457,6 +457,7 @@ import { seedE2E, cleanupE2E, loginTenant, tenantRequest, json } from './fixture
 import type { TestFixture } from './fixtures.js'
 
 let fixture: TestFixture
+let invitedMemberId: string | undefined
 
 describe('E2E users', () => {
   beforeAll(async () => {
@@ -516,6 +517,7 @@ describe('E2E users', () => {
     })
     expect(res.status).toBe(200)
     const body = await json<{ id: string; email: string }>(res)
+    invitedMemberId = body.id
     expect(body.email).toBe(`invitee-${fixture.namespace}@test.co`)
   })
 
@@ -562,7 +564,8 @@ describe('E2E users', () => {
 
   it('removes a member', async () => {
     const cookies = await ownerCookies()
-    const res = await tenantRequest('DELETE', `/api/users/${fixture.member.memberId}`, cookies, fixture.company)
+    const id = invitedMemberId ?? fixture.member.memberId
+    const res = await tenantRequest('DELETE', `/api/users/${id}`, cookies, fixture.company)
     expect(res.status).toBe(200)
     const body = await json<{ ok: boolean }>(res)
     expect(body.ok).toBe(true)
