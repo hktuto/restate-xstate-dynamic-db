@@ -36,7 +36,7 @@ The superadmin Nuxt application for platform-level management.
 | `/login` | Admin login (uses `auth.vue` layout). |
 | `/` | Dashboard with platform stats. |
 | `/companies` | Manage companies. |
-| `/workflow-designs` | Manage platform workflow designs. |
+| `/workflow-designs` | Manage platform workflow designs; detail page can run a user trigger from generated start-state inputs. |
 | `/triggers` | Manage platform db-trigger start rules on workflow designs. |
 | `/health` | Service health monitor. |
 

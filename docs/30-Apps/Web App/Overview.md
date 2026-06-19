@@ -35,7 +35,7 @@ The tenant-facing Nuxt application. Each user belongs to a company and manages w
 | `/` | Company selection / landing. |
 | `/workflow-designs` | List company workflow designs. |
 | `/workflow-designs/new` | Create a new workflow design. |
-| `/workflow-designs/[id]` | Edit a workflow design in the visual editor. |
+| `/workflow-designs/[id]` | Edit a workflow design in the visual editor and run its user trigger from generated start-state inputs. |
 | `/triggers` | List and manage workflow-design start rules. |
 | `/maintenance` | Maintenance page shown when critical services are unhealthy. |
 | `/api/companies` | List companies (public within session). |

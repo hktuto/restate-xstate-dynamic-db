@@ -19,6 +19,7 @@
     "shared": "workspace:*",
     "vue": "^3.5.35",
     "vue-router": "^5.1.0",
+    "workflow-actions": "workspace:*",
     "workflow-editor-layer": "workspace:*",
     "xstate": "^5.32.1"
   },
