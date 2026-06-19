@@ -110,11 +110,13 @@ async function resetSeedCompany() {
     const surreal = await getSurreal()
     try {
       await surreal.query(`REMOVE NAMESPACE IF EXISTS ${COMPANY.namespace}`)
-      await surreal.query('DELETE companies WHERE slug = $slug', { slug: COMPANY.slug })
     } finally {
       await closeSurreal(surreal)
     }
   }
+  // Called unconditionally in Task 2 so the missing helper triggers a runtime test failure.
+  // In Task 3 this becomes the supported cleanup path.
+  await deleteCompanyBySlug(COMPANY.slug)
 }
 
 export async function seedCompany() {
@@ -173,26 +175,7 @@ export async function deleteCompanyBySlug(slug: string): Promise<void> {
 }
 ```
 
-Update `seed-company.ts` to import and use it instead of the inline query:
-
-```ts
-import { createCompany, getCompanyBySlug, deleteCompanyBySlug } from '../src/platform.js'
-```
-
-```ts
-async function resetSeedCompany() {
-  const existing = await getCompanyBySlug(COMPANY.slug)
-  if (existing) {
-    const surreal = await getSurreal()
-    try {
-      await surreal.query(`REMOVE NAMESPACE IF EXISTS ${COMPANY.namespace}`)
-    } finally {
-      await closeSurreal(surreal)
-    }
-    await deleteCompanyBySlug(COMPANY.slug)
-  }
-}
-```
+> **Note:** `seed-company.ts` already imports and calls `deleteCompanyBySlug` from Task 2, so no script changes are required in this task.
 
 - [ ] **Step 2: Run the test**
 
