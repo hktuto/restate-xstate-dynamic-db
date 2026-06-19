@@ -62,10 +62,11 @@ After `company_policies`:
 
 ```ts
 table('sessions', 'Sessions', [
-  column('refreshTokenHash', 'string', 'text'),
+  column('refreshTokenHash', 'string', 'text', { unique: true }),
   column('accessTokenJti', 'string', 'text'),
   column('accountId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:accountId:accounts:id⟩' } }),
   column('profileId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:profileId:user_profiles:id⟩' } }),
+  column('platformUserId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:platformUserId:platform_users:id⟩' } }),
   column('email', 'string', 'text'),
   column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['user', 'impersonation']) } }),
   column('impersonatorId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:impersonatorId:user_profiles:id⟩' } }),
@@ -79,7 +80,7 @@ table('sessions', 'Sessions', [
   column('lastUsedAt', 'datetime', 'date'),
   column('revokedAt', 'datetime', 'date'),
   column('revokeReason', 'string', 'text'),
-], [relation('accountId', 'accounts'), relation('profileId', 'user_profiles'), relation('impersonatorId', 'user_profiles'), relation('companyId', 'companies')]),
+], [relation('accountId', 'accounts'), relation('profileId', 'user_profiles'), relation('platformUserId', 'platform_users'), relation('impersonatorId', 'user_profiles'), relation('companyId', 'companies')]),
 ```
 
 - [ ] **Step 3: Add `sessions` table in tenant schema**
@@ -88,7 +89,7 @@ In `TENANT_TABLE_SCHEMAS`, add a `sessions` table that references tenant `member
 
 ```ts
 table('sessions', 'Sessions', [
-  column('refreshTokenHash', 'string', 'text'),
+  column('refreshTokenHash', 'string', 'text', { unique: true }),
   column('accessTokenJti', 'string', 'text'),
   column('memberId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:memberId:members:id⟩' } }),
   column('profileId', 'string', 'text'),
@@ -235,8 +236,9 @@ export interface PlatformSessionRecord {
   id: string
   refreshTokenHash: string
   accessTokenJti: string
-  accountId: string
-  profileId: string
+  accountId?: string
+  profileId?: string
+  platformUserId?: string
   email: string
   type: 'user' | 'impersonation'
   impersonatorId?: string

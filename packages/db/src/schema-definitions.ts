@@ -92,17 +92,18 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['active', 'inactive']) } }),
   ]),
   table('company_policies', 'Company Policies', [
-    column('companyId', 'record', 'relation', { config: { relationId: '_relations:⟨company_policies:companyId:companies:id⟩' } }),
+    column('companyId', 'record', 'relation', { unique: true, config: { relationId: '_relations:⟨company_policies:companyId:companies:id⟩' } }),
     column('maxSessions', 'number', 'number'),
     column('sessionOverflowAction', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['revoke_oldest', 'reject']) } }),
     column('allowImpersonation', 'boolean', 'checkbox'),
     column('allowApiKeys', 'boolean', 'checkbox'),
   ], [relation('companyId', 'companies')]),
   table('sessions', 'Sessions', [
-    column('refreshTokenHash', 'string', 'text'),
+    column('refreshTokenHash', 'string', 'text', { unique: true }),
     column('accessTokenJti', 'string', 'text'),
     column('accountId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:accountId:accounts:id⟩' } }),
     column('profileId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:profileId:user_profiles:id⟩' } }),
+    column('platformUserId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:platformUserId:platform_users:id⟩' } }),
     column('email', 'string', 'text'),
     column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['user', 'impersonation']) } }),
     column('impersonatorId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:impersonatorId:user_profiles:id⟩' } }),
@@ -116,7 +117,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('lastUsedAt', 'datetime', 'date'),
     column('revokedAt', 'datetime', 'date'),
     column('revokeReason', 'string', 'text'),
-  ], [relation('accountId', 'accounts'), relation('profileId', 'user_profiles'), relation('impersonatorId', 'user_profiles'), relation('companyId', 'companies')]),
+  ], [relation('accountId', 'accounts'), relation('profileId', 'user_profiles'), relation('platformUserId', 'platform_users'), relation('impersonatorId', 'user_profiles'), relation('companyId', 'companies')]),
   table('platform_users', 'Platform Users', [
     column('email', 'string', 'email', { unique: true }),
     column('password', 'string', 'text', { hidden: true }),
@@ -193,7 +194,7 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('invitedBy', 'record', 'relation', { config: { relationId: '_relations:⟨members:invitedBy:members:id⟩' } }),
   ], [relation('profileId', 'user_profiles'), relation('invitedBy', 'members', 'one-to-many')]),
   table('sessions', 'Sessions', [
-    column('refreshTokenHash', 'string', 'text'),
+    column('refreshTokenHash', 'string', 'text', { unique: true }),
     column('accessTokenJti', 'string', 'text'),
     column('memberId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:memberId:members:id⟩' } }),
     column('profileId', 'string', 'text'),

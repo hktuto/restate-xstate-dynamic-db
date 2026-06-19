@@ -48,15 +48,19 @@ Use **Approach B**: one `sessions` table for interactive browser sessions, and a
 
 Stored per namespace (tenant `company_<uuid>/main` for tenant sessions, `platform/admin` for admin sessions).
 
+Platform `sessions` can store either tenant-user sessions (using `accountId` and `profileId`) or admin sessions (using `platformUserId`); only the relevant columns are populated for a given session. Tenant `sessions` are company-scoped and use `memberId` to reference the current company member.
+
 ```ts
 table('sessions', 'Sessions', [
-  column('refreshTokenHash', 'string', 'text'),      // SHA-256 of refresh token, unique
-  column('accessTokenJti', 'string', 'text'),        // current access token id
-  column('accountId', 'record', 'relation'),         // accounts.id
-  column('profileId', 'record', 'relation'),         // user_profiles.id
-  column('type', 'string', 'select'),                // 'user' | 'impersonation'
-  column('impersonatorId', 'record', 'relation'),    // user_profiles.id, nullable
-  column('companyId', 'record', 'relation'),         // companies.id, nullable for platform
+  column('refreshTokenHash', 'string', 'text', { unique: true }), // SHA-256 of refresh token
+  column('accessTokenJti', 'string', 'text'),                     // current access token id
+  column('accountId', 'record', 'relation'),                      // accounts.id (tenant users)
+  column('profileId', 'record', 'relation'),                      // user_profiles.id (tenant users)
+  column('platformUserId', 'record', 'relation'),                 // platform_users.id (admin users)
+  column('email', 'string', 'text'),
+  column('type', 'string', 'select'),                             // 'user' | 'impersonation'
+  column('impersonatorId', 'record', 'relation'),                 // user_profiles.id, nullable
+  column('companyId', 'record', 'relation'),                      // companies.id, nullable for platform admin sessions
   column('deviceFingerprint', 'string', 'text'),
   column('deviceName', 'string', 'text'),
   column('ip', 'string', 'text'),
@@ -69,7 +73,20 @@ table('sessions', 'Sessions', [
 ])
 ```
 
-- `refreshTokenHash` is unique-indexed.
+Tenant `sessions` use `memberId` because `user_profiles` lives in the platform namespace:
+
+```ts
+table('sessions', 'Sessions', [
+  column('refreshTokenHash', 'string', 'text', { unique: true }),
+  column('accessTokenJti', 'string', 'text'),
+  column('memberId', 'record', 'relation'),   // members.id
+  column('profileId', 'string', 'text'),      // user_profiles.id (plain string)
+  // ... device, expiry, revoke columns
+])
+```
+
+- `refreshTokenHash` is unique-indexed in both platform and tenant `sessions`.
+- `company_policies.companyId` is unique.
 - Only the hash of tokens is persisted; raw tokens exist only in cookies.
 
 ### `company_policies`
@@ -78,7 +95,7 @@ Tenant-level policy/license settings. One row per company.
 
 ```ts
 table('company_policies', 'Company Policies', [
-  column('companyId', 'record', 'relation', { config: { relationId: '...' } }),
+  column('companyId', 'record', 'relation', { unique: true, config: { relationId: '...' } }),
   column('maxSessions', 'number', 'number'),         // null = unlimited
   column('sessionOverflowAction', 'string', 'select'), // 'revoke_oldest' | 'reject'
   column('allowImpersonation', 'boolean', 'checkbox'),
