@@ -29,14 +29,16 @@ async function save() {
   <div>
     <h1 class="text-2xl font-bold mb-4">New workflow design</h1>
 
-    <ClientOnly>
-      <WorkflowEditor
-        v-model="config"
-        :name="name"
-        @update:name="name = $event"
-        @save="save"
-        @error="onError"
-      />
-    </ClientOnly>
+    <div class="h-[calc(100vh-120px)]">
+      <ClientOnly>
+        <WorkflowEditor
+          v-model="config"
+          :name="name"
+          @update:name="name = $event"
+          @save="save"
+          @error="onError"
+        />
+      </ClientOnly>
+    </div>
   </div>
 </template>

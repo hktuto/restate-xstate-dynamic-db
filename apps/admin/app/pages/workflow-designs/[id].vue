@@ -74,16 +74,18 @@ async function run() {
       <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" @click="showRunModal = true">Run</button>
     </div>
 
-    <ClientOnly>
-      <WorkflowEditor
-        v-if="config"
-        v-model="config"
-        :name="name"
-        @update:name="name = $event"
-        @save="save"
-        @error="onError"
-      />
-    </ClientOnly>
+    <div class="h-[calc(100vh-160px)]">
+      <ClientOnly>
+        <WorkflowEditor
+          v-if="config"
+          v-model="config"
+          :name="name"
+          @update:name="name = $event"
+          @save="save"
+          @error="onError"
+        />
+      </ClientOnly>
+    </div>
 
     <div v-if="showRunModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showRunModal = false">
       <div class="bg-white rounded shadow p-6 w-full max-w-md">

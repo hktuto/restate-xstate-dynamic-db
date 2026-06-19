@@ -22,7 +22,7 @@ async function deleteWorkflowDesign(id: string) {
 <template>
   <div>
     <div class="flex items-center justify-between mb-4">
-      <h1 class="text-2xl font-bold">Workflow designs</h1>
+      <h1 class="text-2xl font-bold">Workflow Designs</h1>
       <NuxtLink to="/workflow-designs/new" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">New workflow design</NuxtLink>
     </div>
 

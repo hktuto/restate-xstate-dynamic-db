@@ -1,26 +1,57 @@
 <script setup lang="ts">
 import type { WorkflowDefinition, StartRule } from 'shared'
 
+interface StartRuleWithUid extends StartRule {
+  uid?: string
+}
+
 interface WorkflowDesign {
   id: string
   name: string
   xstateConfig: WorkflowDefinition
-  starts?: StartRule[]
+  starts?: StartRuleWithUid[]
 }
 
 interface TriggerRow {
   designId: string
   designName: string
-  startIndex: number
+  uid: string
   tableName: string
   event: string
+}
+
+function generateUid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function ensureUids(starts: StartRuleWithUid[] | undefined): StartRuleWithUid[] {
+  return (starts ?? []).map((start) => ({
+    ...start,
+    uid: start.uid ?? generateUid()
+  }))
 }
 
 const designs = ref<WorkflowDesign[]>([])
 const api = useApi()
 
 async function refresh() {
-  designs.value = await api.fetch<WorkflowDesign[]>('/api/admin/workflow-designs')
+  const loaded = await api.fetch<WorkflowDesign[]>('/api/admin/workflow-designs')
+  const patched: WorkflowDesign[] = []
+  for (const design of loaded) {
+    const startsWithUids = ensureUids(design.starts)
+    const needsPatch = (design.starts ?? []).some((start) => !start.uid)
+    if (needsPatch) {
+      await api.fetch(`/api/admin/workflow-designs/${design.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ starts: startsWithUids })
+      })
+    }
+    patched.push({ ...design, starts: startsWithUids })
+  }
+  designs.value = patched
 }
 
 await refresh()
@@ -29,12 +60,12 @@ const triggerRows = computed<TriggerRow[]>(() => {
   const rows: TriggerRow[] = []
   for (const design of designs.value) {
     const starts = design.starts ?? []
-    for (const [i, start] of starts.entries()) {
-      if (start.type === 'db_trigger') {
+    for (const start of starts) {
+      if (start.type === 'db_trigger' && start.uid) {
         rows.push({
           designId: design.id,
           designName: design.name,
-          startIndex: i,
+          uid: start.uid,
           tableName: String(start.options.tableName ?? ''),
           event: String(start.options.event ?? '')
         })
@@ -63,7 +94,8 @@ async function createTrigger() {
         {
           type: 'db_trigger',
           startState: design.xstateConfig.initial,
-          options: { tableName: form.tableName, event: form.event }
+          options: { tableName: form.tableName, event: form.event },
+          uid: generateUid()
         }
       ]
     })
@@ -79,7 +111,7 @@ async function deleteTrigger(row: TriggerRow) {
   await api.fetch(`/api/admin/workflow-designs/${row.designId}`, {
     method: 'PATCH',
     body: JSON.stringify({
-      starts: starts.filter((_, i) => i !== row.startIndex)
+      starts: starts.filter((start) => start.uid !== row.uid)
     })
   })
   await refresh()
@@ -119,7 +151,7 @@ async function deleteTrigger(row: TriggerRow) {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="t in triggerRows" :key="`${t.designId}-${t.startIndex}`" class="border-t">
+        <tr v-for="t in triggerRows" :key="t.uid" class="border-t">
           <td class="p-3">{{ t.tableName }}</td>
           <td class="p-3">{{ t.event }}</td>
           <td class="p-3">{{ t.designName }}</td>
