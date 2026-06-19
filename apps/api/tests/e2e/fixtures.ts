@@ -199,10 +199,17 @@ export async function cleanupE2E(fixture: TestFixture | undefined | null) {
 
 function collectCookies(res: Response): string {
   const all = (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.()
-  if (all && all.length > 0) return all.join('; ')
-  const setCookie = res.headers.get('set-cookie')
-  if (setCookie) return setCookie
-  throw new Error('Login did not set cookie')
+  const setCookies = all ?? (res.headers.get('set-cookie') ? [res.headers.get('set-cookie')!] : [])
+  if (setCookies.length === 0) throw new Error('Login did not set cookie')
+
+  const kept: string[] = []
+  for (const raw of setCookies) {
+    const parts = raw.split(';').map((p) => p.trim())
+    const nameValue = parts[0]
+    const isCleared = parts.some((p) => /^Max-Age\s*=\s*0$/i.test(p))
+    if (!isCleared) kept.push(nameValue)
+  }
+  return kept.join('; ')
 }
 
 export async function loginTenant(email: string, password: string): Promise<string> {
