@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { listCompaniesForProfile, createCompany, getCompanyBySlug } from 'db/platform'
 import { createMember } from 'db/tenant'
+import { provisionDefaultCompanyGroups } from 'db/permissions'
 import { tenantAuth } from '../middleware/tenant.js'
 import { dispatchTrigger } from '../lib/dispatch.js'
 import { dispatchPlatformTrigger } from '../lib/dispatch-platform.js'
@@ -51,13 +52,15 @@ export function companiesRoutes() {
     const slug = await generateUniqueSlug(name)
     const company = await createCompany({ name: name.trim(), slug })
 
-    await createMember(company.namespace, {
+    const ownerMember = await createMember(company.namespace, {
       email: '',
       profileId: scope.profileId,
       role: 'owner',
       status: 'active',
       inviteCode: null,
     })
+
+    await provisionDefaultCompanyGroups(company.namespace, ownerMember.id)
 
     const skipTrigger = c.req.header('x-restate-skip-trigger') === 'true'
     await dispatchTrigger(company.namespace, 'companies', 'create', company, {
