@@ -57,7 +57,7 @@ describe('permissions', () => {
   it('gives owners all permissions', async () => {
     const owner = await createMember(namespace, { email: 'o@example.com', role: 'owner' })
     const mask = await getEffectivePermissions(namespace, owner.id, 'company', owner.role)
-    expect(BigInt(mask)).toBe(63n)
+    expect(mask).toBe('63')
   })
 
   it('provisions default company groups', async () => {

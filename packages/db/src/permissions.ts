@@ -179,12 +179,12 @@ export async function getEffectivePermissions(
   }
 
   const memberGroups = await getMemberUserGroups(namespace, memberId)
-  let mask = 0n
+  let mask = 0
 
   const directGroups = await listPermissionAssignments(namespace, memberId)
   for (const group of directGroups) {
     if (groupMatches(group, resourceType, recordId)) {
-      mask |= BigInt(group.bitmask)
+      mask |= Number(group.bitmask)
     }
   }
 
@@ -192,7 +192,7 @@ export async function getEffectivePermissions(
     const groupAssignments = await listPermissionAssignments(namespace, userGroup.id)
     for (const group of groupAssignments) {
       if (groupMatches(group, resourceType, recordId)) {
-        mask |= BigInt(group.bitmask)
+        mask |= Number(group.bitmask)
       }
     }
   }

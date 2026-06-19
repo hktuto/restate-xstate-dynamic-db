@@ -8,18 +8,18 @@ export type ResourceType = keyof typeof RESOURCE_ACTIONS
 export type PermissionAction<T extends ResourceType = ResourceType> =
   (typeof RESOURCE_ACTIONS)[T][number]
 
-export function actionValue<T extends ResourceType>(resourceType: T, action: PermissionAction<T>): bigint {
+export function actionValue<T extends ResourceType>(resourceType: T, action: PermissionAction<T>): number {
   const actions = RESOURCE_ACTIONS[resourceType] as readonly PermissionAction<T>[]
   const idx = actions.indexOf(action)
   if (idx === -1) throw new Error(`Unknown action ${action} for ${resourceType}`)
-  return 1n << BigInt(idx)
+  return 1 << idx
 }
 
 export function actionsToBitmask<T extends ResourceType>(
   resourceType: T,
   actions: PermissionAction<T>[]
 ): string {
-  let mask = 0n
+  let mask = 0
   for (const action of actions) {
     mask |= actionValue(resourceType, action)
   }
@@ -28,25 +28,25 @@ export function actionsToBitmask<T extends ResourceType>(
 
 export function bitmaskToActions<T extends ResourceType>(
   resourceType: T,
-  bitmask: string | bigint
+  bitmask: string | number
 ): PermissionAction<T>[] {
-  const mask = typeof bitmask === 'string' ? BigInt(bitmask) : bitmask
+  const mask = typeof bitmask === 'string' ? Number(bitmask) : bitmask
   const actions = RESOURCE_ACTIONS[resourceType] as readonly PermissionAction<T>[]
-  return actions.filter((_, i) => (mask & (1n << BigInt(i))) !== 0n)
+  return actions.filter((_, i) => (mask & (1 << i)) !== 0)
 }
 
 export function hasAction<T extends ResourceType>(
-  bitmask: string | bigint,
+  bitmask: string | number,
   resourceType: T,
   action: PermissionAction<T>
 ): boolean {
-  const mask = typeof bitmask === 'string' ? BigInt(bitmask) : bitmask
-  return (mask & actionValue(resourceType, action)) !== 0n
+  const mask = typeof bitmask === 'string' ? Number(bitmask) : bitmask
+  return (mask & actionValue(resourceType, action)) !== 0
 }
 
 export function allActionsBitmask<T extends ResourceType>(resourceType: T): string {
   const actions = RESOURCE_ACTIONS[resourceType]
-  return ((1n << BigInt(actions.length)) - 1n).toString()
+  return ((1 << actions.length) - 1).toString()
 }
 
 export const DEFAULT_GROUPS: {

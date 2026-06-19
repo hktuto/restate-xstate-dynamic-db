@@ -12,7 +12,7 @@ export function permissionsRoutes() {
     const actions = RESOURCE_ACTIONS[resourceType as keyof typeof RESOURCE_ACTIONS]
     const result = actions.map((action, i) => ({
       action,
-      value: Number(1n << BigInt(i)),
+      value: 1 << i,
     }))
     return c.json({ resourceType, actions: result })
   })

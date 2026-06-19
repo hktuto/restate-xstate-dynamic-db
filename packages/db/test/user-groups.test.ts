@@ -33,7 +33,7 @@ describe('user groups', () => {
     expect(groups).toHaveLength(1)
 
     const mask = await getEffectivePermissions(namespace, member.id, 'user_group', member.role, group.id)
-    expect(BigInt(mask)).toBe(63n)
+    expect(mask).toBe('63')
   })
 
   it('adds and removes members from a user group', async () => {

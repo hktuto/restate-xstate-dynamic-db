@@ -11,8 +11,8 @@ import {
 
 describe('permissions', () => {
   it('converts actions to values and back', () => {
-    expect(actionValue('company', 'manage_settings')).toBe(2n)
-    expect(actionValue('user_group', 'add_member')).toBe(8n)
+    expect(actionValue('company', 'manage_settings')).toBe(2)
+    expect(actionValue('user_group', 'add_member')).toBe(8)
   })
 
   it('builds and decodes a bitmask', () => {
