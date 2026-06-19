@@ -21,7 +21,7 @@ export async function resolveInputs(
   if (!meta) return []
   if (meta.inputs) return meta.inputs
   if (meta.tableInput) {
-    const tableName = (state.meta?.params as Record<string, unknown>)?.[meta.tableInput] as string | undefined
+    const tableName = (state?.meta?.params as Record<string, unknown>)?.[meta.tableInput] as string | undefined
     if (!tableName) return []
     const schema = await getTableSchema(namespace, database, tableName)
     if (!schema) return []

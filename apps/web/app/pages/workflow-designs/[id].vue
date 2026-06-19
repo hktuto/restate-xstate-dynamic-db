@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { WorkflowDefinition, StartRule, ActionInputMetadata } from 'shared'
-import { useWorkflowRun } from '~/composables/useWorkflowRun'
 
 const route = useRoute()
 const id = route.params.id as string

@@ -30,7 +30,7 @@ function parseKey(key: string): { namespace: string; database: string } {
   if (parts.length !== 2) {
     throw new Error(`Invalid connection pool key: ${key}`)
   }
-  return { namespace: parts[0], database: parts[1] }
+  return { namespace: parts[0]!, database: parts[1]! }
 }
 
 async function createConnection(key: string): Promise<Surreal> {
