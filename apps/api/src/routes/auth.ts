@@ -452,7 +452,7 @@ export function authRoutes() {
   })
 
   app.post('/admin/logout', async (c) => {
-    const accessToken = readAdminAccessToken(c); console.log('ACCESS_TOKEN:', accessToken)
+    const accessToken = readAdminAccessToken(c)
     if (accessToken) {
       const payload = verifyAccessTokenCookie(accessToken)
       if (payload?.sessionId) {
