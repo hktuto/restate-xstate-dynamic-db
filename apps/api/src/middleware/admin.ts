@@ -1,37 +1,39 @@
 import { createMiddleware } from 'hono/factory'
-import { readAdminSession } from '../lib/session.js'
-import type { AdminScope } from '../types.js'
+import { adminSessionMiddleware } from './session.js'
+import type { ApiScope } from '../types.js'
 
-function parseNsdb(nsdb: string) {
-  const parts = nsdb.split('--')
-  if (parts.length !== 2) {
-    throw new Error(`Invalid namespace--database key: ${nsdb}`)
+declare module 'hono' {
+  interface ContextVariableMap {
+    scope: ApiScope
+    adminSession: import('../lib/session.js').AdminSession
   }
+}
+
+function parseNsdb(nsdb: string): { namespace: string; database: string } | null {
+  const parts = nsdb.split('--')
+  if (parts.length !== 2) return null
   const [namespace, database] = parts
   return { namespace, database }
 }
 
 export const adminAuth = (nsdbParam = 'nsdb') =>
   createMiddleware(async (c, next) => {
-    const session = readAdminSession(c)
-    if (!session) {
-      return c.json({ error: 'Unauthorized' }, 401)
-    }
-    let namespace: string
-    let database: string
-    const nsdb = c.req.param(nsdbParam)
-    if (nsdb) {
-      ;({ namespace, database } = parseNsdb(nsdb))
-    } else {
-      namespace = 'platform'
-      database = 'admin'
-    }
-    c.set('scope', {
-      type: 'admin',
-      namespace,
-      database,
-      userId: session.userId,
-      email: session.email,
+    return adminSessionMiddleware(c, async () => {
+      const session = c.get('adminSession')
+      const nsdb = c.req.param(nsdbParam)
+      const parsed = nsdb ? parseNsdb(nsdb) : { namespace: 'platform', database: 'admin' }
+      if (!parsed) {
+        return c.json({ error: 'Invalid namespace--database key' }, 400)
+      }
+      const { namespace, database } = parsed
+      c.set('scope', {
+        type: 'admin',
+        namespace,
+        database,
+        userId: session.userId,
+        email: session.email,
+        session,
+      })
+      return next()
     })
-    await next()
   })

@@ -16,6 +16,13 @@ describe('requirePermission', () => {
         memberId: 'members:1',
         role,
         permissions: bitmask ? { company: bitmask } : undefined,
+        session: {
+          sessionId: 'sessions:1',
+          accountId: 'accounts:1',
+          profileId: 'user_profiles:1',
+          companyId: 'companies:1',
+          type: 'user',
+        },
       } satisfies TenantScope)
       await next()
     })

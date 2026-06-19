@@ -1,3 +1,5 @@
+import type { TenantSession, AdminSession } from './lib/session.js'
+
 export interface TenantScope {
   type: 'tenant'
   namespace: string
@@ -7,6 +9,7 @@ export interface TenantScope {
   memberId: string
   role: 'owner' | 'admin' | 'member'
   permissions?: Record<string, string>
+  session: TenantSession
 }
 
 export interface AdminScope {
@@ -15,6 +18,7 @@ export interface AdminScope {
   database: string
   userId: string
   email: string
+  session: AdminSession
 }
 
 export type ApiScope = TenantScope | AdminScope
