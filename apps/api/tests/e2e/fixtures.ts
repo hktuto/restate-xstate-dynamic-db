@@ -3,10 +3,16 @@ import { hashPassword } from 'shared'
 import { getSurreal, closeSurreal } from 'db/client'
 import { createCompany, createUserProfile, createAccount } from 'db/platform'
 import { createMember } from 'db/tenant'
-import { provisionDefaultCompanyGroups } from 'db/permissions'
+import { provisionDefaultCompanyGroups, assignPermissionGroup } from 'db/permissions'
 import { provisionCompanyNamespace } from 'db/provision'
 import { createUserGroup, addUserGroupMember } from 'db/user-groups'
 import { createApp } from '../../src/app.js'
+
+function assertValidNamespace(namespace: string): void {
+  if (!/^[a-z_][a-z0-9_]*$/.test(namespace)) {
+    throw new Error(`Invalid namespace: ${namespace}`)
+  }
+}
 
 if (!process.env.SESSION_SECRET) {
   process.env.SESSION_SECRET = 'test-secret'
@@ -40,6 +46,7 @@ export async function seedE2E(): Promise<TestFixture> {
 
   async function cleanupPartial(namespace: string | undefined) {
     if (!namespace) return
+    assertValidNamespace(namespace)
     const root = await getSurreal()
     try {
       await root.query(`REMOVE NAMESPACE IF EXISTS ${namespace}`)
@@ -104,17 +111,27 @@ export async function seedE2E(): Promise<TestFixture> {
 
     const tenantSurreal = await getSurreal(company.namespace, 'main')
     let adminGroupId: string
+    let adminPermissionGroupId: string | undefined
     try {
-      const [rows] = await tenantSurreal.query<[{ id: string }[]]>(
+      const [groupRows] = await tenantSurreal.query<[{ id: string }[]]>(
         'SELECT id FROM user_groups WHERE name = $name LIMIT 1',
         { name: 'Admins' }
       )
-      const adminGroup = rows[0]
+      const adminGroup = groupRows[0]
       adminGroupId = adminGroup ? adminGroup.id : (await createUserGroup(company.namespace, { name: 'Admins' })).id
+
+      const [permRows] = await tenantSurreal.query<[{ id: string }[]]>(
+        'SELECT id FROM permission_groups WHERE name = $name AND resourceType = $resourceType LIMIT 1',
+        { name: 'Admin', resourceType: 'company' }
+      )
+      adminPermissionGroupId = permRows[0]?.id
     } finally {
       await closeSurreal(tenantSurreal)
     }
     await addUserGroupMember(company.namespace, admin.memberId, adminGroupId)
+    if (adminPermissionGroupId) {
+      await assignPermissionGroup(company.namespace, admin.memberId, adminPermissionGroupId)
+    }
 
     fixture = {
       namespace: company.namespace,
@@ -134,6 +151,7 @@ export async function seedE2E(): Promise<TestFixture> {
 
 export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   if (!fixture) return
+  assertValidNamespace(fixture.namespace)
   const root = await getSurreal()
   try {
     await root.query(`REMOVE NAMESPACE IF EXISTS ${fixture.namespace}`)
@@ -156,7 +174,8 @@ export async function loginTenant(email: string, password: string): Promise<stri
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  if (!res.ok) throw new Error(`Tenant login failed: ${res.status} ${await res.text()}`)
+  const body = await res.text().catch(() => '')
+  if (!res.ok) throw new Error(`Tenant login failed: ${res.status} ${body}`)
   return collectCookies(res)
 }
 
@@ -166,7 +185,8 @@ export async function loginAdmin(email: string, password: string): Promise<strin
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  if (!res.ok) throw new Error(`Admin login failed: ${res.status} ${await res.text()}`)
+  const body = await res.text().catch(() => '')
+  if (!res.ok) throw new Error(`Admin login failed: ${res.status} ${body}`)
   return collectCookies(res)
 }
 
