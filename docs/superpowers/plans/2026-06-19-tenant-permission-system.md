@@ -40,7 +40,7 @@
 - Create: `packages/shared/src/permissions.ts`
 - Create: `packages/shared/src/permissions.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/shared/src/permissions.test.ts
@@ -85,13 +85,13 @@ describe('permissions', () => {
 })
 ```
 
-- [ ] **Step 2: Run the failing test**
+- [x] **Step 2: Run the failing test**
 
 Run: `pnpm --filter shared test permissions.test.ts`
 
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement the registry**
+- [x] **Step 3: Implement the registry**
 
 ```ts
 // packages/shared/src/permissions.ts
@@ -168,13 +168,13 @@ export const DEFAULT_GROUPS: Record<
 }
 ```
 
-- [ ] **Step 4: Run the passing test**
+- [x] **Step 4: Run the passing test**
 
 Run: `pnpm --filter shared test permissions.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/shared/src/permissions.ts packages/shared/src/permissions.test.ts
@@ -190,7 +190,7 @@ git commit -m "feat(shared): add permission registry and bitwise helpers"
 - Modify: `packages/db/src/provision.ts`
 - Modify: `packages/db/test/helpers.ts`
 
-- [ ] **Step 1: Add `permission_groups` to tenant schemas**
+- [x] **Step 1: Add `permission_groups` to tenant schemas**
 
 ```ts
 // packages/db/src/schema-definitions.ts
@@ -209,7 +209,7 @@ git commit -m "feat(shared): add permission registry and bitwise helpers"
   ]),
 ```
 
-- [ ] **Step 2: Define graph edge tables**
+- [x] **Step 2: Define graph edge tables**
 
 In `packages/db/src/provision.ts`, after the existing index definitions, add:
 
@@ -228,13 +228,13 @@ In `packages/db/src/provision.ts`, after the existing index definitions, add:
 
 Add the same block to `packages/db/test/helpers.ts` inside `createTenantNamespace`.
 
-- [ ] **Step 3: Type-check the db package**
+- [x] **Step 3: Type-check the db package**
 
 Run: `pnpm --filter db typecheck`
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/db/src/schema-definitions.ts packages/db/src/provision.ts packages/db/test/helpers.ts
@@ -249,7 +249,7 @@ git commit -m "feat(db): add permission_groups, user_groups, and graph edge tabl
 - Create: `packages/db/src/permissions.ts`
 - Create: `packages/db/test/permissions.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/db/test/permissions.test.ts
@@ -305,13 +305,13 @@ describe('permissions', () => {
 })
 ```
 
-- [ ] **Step 2: Run the failing test**
+- [x] **Step 2: Run the failing test**
 
 Run: `pnpm --filter db test permissions.test.ts`
 
 Expected: FAIL — functions not found.
 
-- [ ] **Step 3: Implement the DB functions**
+- [x] **Step 3: Implement the DB functions**
 
 ```ts
 // packages/db/src/permissions.ts
@@ -548,13 +548,13 @@ export async function provisionDefaultCompanyGroups(
 }
 ```
 
-- [ ] **Step 4: Run the passing test**
+- [x] **Step 4: Run the passing test**
 
 Run: `pnpm --filter db test permissions.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/permissions.ts packages/db/test/permissions.test.ts
@@ -569,7 +569,7 @@ git commit -m "feat(db): add permission group and assignment helpers"
 - Create: `packages/db/src/user-groups.ts`
 - Create: `packages/db/test/user-groups.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/db/test/user-groups.test.ts
@@ -627,13 +627,13 @@ describe('user groups', () => {
 })
 ```
 
-- [ ] **Step 2: Run the failing test**
+- [x] **Step 2: Run the failing test**
 
 Run: `pnpm --filter db test user-groups.test.ts`
 
 Expected: FAIL — functions not found.
 
-- [ ] **Step 3: Implement the DB functions**
+- [x] **Step 3: Implement the DB functions**
 
 ```ts
 // packages/db/src/user-groups.ts
@@ -805,13 +805,13 @@ export async function createUserGroupWithDefaults(
 }
 ```
 
-- [ ] **Step 4: Run the passing test**
+- [x] **Step 4: Run the passing test**
 
 Run: `pnpm --filter db test user-groups.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/user-groups.ts packages/db/test/user-groups.test.ts
@@ -825,14 +825,14 @@ git commit -m "feat(db): add user groups with record-level default permission gr
 **Files:**
 - Modify: `apps/api/src/routes/companies.ts`
 
-- [ ] **Step 1: Import the provisioning helper**
+- [x] **Step 1: Import the provisioning helper**
 
 ```ts
 // apps/api/src/routes/companies.ts
 import { provisionDefaultCompanyGroups } from 'db/permissions'
 ```
 
-- [ ] **Step 2: Assign owner and provision groups**
+- [x] **Step 2: Assign owner and provision groups**
 
 Replace the existing `createMember` call with:
 
@@ -848,13 +848,13 @@ Replace the existing `createMember` call with:
     await provisionDefaultCompanyGroups(company.namespace, ownerMember.id)
 ```
 
-- [ ] **Step 3: Run the db provision test**
+- [x] **Step 3: Run the db provision test**
 
 Run: `pnpm --filter db test provision.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/api/src/routes/companies.ts
@@ -870,7 +870,7 @@ git commit -m "feat(api): provision default company permission groups for new co
 - Create: `apps/api/src/middleware/permission.ts`
 - Create: `apps/api/src/middleware/permission.test.ts`
 
-- [ ] **Step 1: Update `TenantScope`**
+- [x] **Step 1: Update `TenantScope`**
 
 ```ts
 // apps/api/src/types.ts
@@ -886,7 +886,7 @@ export interface TenantScope {
 }
 ```
 
-- [ ] **Step 2: Write the failing middleware test**
+- [x] **Step 2: Write the failing middleware test**
 
 ```ts
 // apps/api/src/middleware/permission.test.ts
@@ -935,13 +935,13 @@ describe('requirePermission', () => {
 })
 ```
 
-- [ ] **Step 3: Run the failing test**
+- [x] **Step 3: Run the failing test**
 
 Run: `pnpm --filter api test src/middleware/permission.test.ts`
 
 Expected: FAIL — middleware not found.
 
-- [ ] **Step 4: Implement the middleware**
+- [x] **Step 4: Implement the middleware**
 
 ```ts
 // apps/api/src/middleware/permission.ts
@@ -997,13 +997,13 @@ async function resolvePermissions(
 }
 ```
 
-- [ ] **Step 5: Run the passing test**
+- [x] **Step 5: Run the passing test**
 
 Run: `pnpm --filter api test src/middleware/permission.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/src/types.ts apps/api/src/middleware/permission.ts apps/api/src/middleware/permission.test.ts
@@ -1018,7 +1018,7 @@ git commit -m "feat(api): add requirePermission middleware with record-level sup
 - Create: `apps/api/src/routes/user-groups.ts`
 - Modify: `apps/api/src/app.ts`
 
-- [ ] **Step 1: Create the user group routes**
+- [x] **Step 1: Create the user group routes**
 
 ```ts
 // apps/api/src/routes/user-groups.ts
@@ -1125,7 +1125,7 @@ export function userGroupsRoutes() {
 }
 ```
 
-- [ ] **Step 2: Register the route in `app.ts`**
+- [x] **Step 2: Register the route in `app.ts`**
 
 ```ts
 // apps/api/src/app.ts
@@ -1135,13 +1135,13 @@ import { userGroupsRoutes } from './routes/user-groups.js'
 app.route('/api/user-groups', userGroupsRoutes())
 ```
 
-- [ ] **Step 3: Type-check the API package**
+- [x] **Step 3: Type-check the API package**
 
 Run: `pnpm --filter api typecheck`
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/api/src/routes/user-groups.ts apps/api/src/app.ts
@@ -1155,7 +1155,7 @@ git commit -m "feat(api): add user group routes with permission checks"
 **Files:**
 - Modify: `apps/api/src/routes/users.ts`
 
-- [ ] **Step 1: Replace role checks with permission checks**
+- [x] **Step 1: Replace role checks with permission checks**
 
 Remove the local `requireRole` helper and use `requirePermission('company', ...)`.
 
@@ -1192,7 +1192,7 @@ And when validating the invited role, reject `'admin'`:
 const validRoles: Array<'owner' | 'member'> = ['owner', 'member']
 ```
 
-- [ ] **Step 2: Update `MemberRecord` and `MemberInput` role types**
+- [x] **Step 2: Update `MemberRecord` and `MemberInput` role types**
 
 In `packages/db/src/tenant.ts`, change:
 
@@ -1210,11 +1210,11 @@ export interface MemberInput {
 }
 ```
 
-- [ ] **Step 3: Update existing tests that use the old `admin` role**
+- [x] **Step 3: Update existing tests that use the old `admin` role**
 
 In `packages/db/test/tenant.test.ts`, replace any `role: 'admin'` with `role: 'member'` or `role: 'owner'` as appropriate for the test.
 
-- [ ] **Step 4: Type-check and run tests**
+- [x] **Step 4: Type-check and run tests**
 
 Run:
 
@@ -1227,7 +1227,7 @@ pnpm --filter api test
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/routes/users.ts packages/db/src/tenant.ts packages/db/test/tenant.test.ts
@@ -1238,78 +1238,16 @@ git commit -m "feat(api): protect member routes with company permissions"
 
 ### Task 9: Migration script for existing members
 
+**Status:** Skipped — the database is new and there are no legacy members to migrate.
+
 **Files:**
-- Create: `scripts/migrate-member-permissions.ts`
+- ~~Create: `scripts/migrate-member-permissions.ts`~~
 
-- [ ] **Step 1: Write the migration script**
+- [x] **Step 1: Write the migration script** — not required for a fresh DB.
 
-```ts
-// scripts/migrate-member-permissions.ts
-import { getSurreal, closeSurreal, closeSurrealPool } from '../packages/db/src/client.js'
-import {
-  listPermissionGroups,
-  assignPermissionGroup,
-  provisionDefaultCompanyGroups,
-} from '../packages/db/src/permissions.js'
-import { listMembers, updateMember, type MemberRecord } from '../packages/db/src/tenant.js'
-import { listCompanies } from '../packages/db/src/platform.js'
+- [x] **Step 2: Run the migration locally** — not required for a fresh DB.
 
-async function main() {
-  const companies = await listCompanies()
-  for (const company of companies) {
-    console.log(`Migrating ${company.namespace}...`)
-    const members = await listMembers(company.namespace)
-
-    const owner = members.find((m) => m.role === 'owner')
-    if (owner) {
-      await provisionDefaultCompanyGroups(company.namespace, owner.id)
-    }
-
-    const companyGroups = await listPermissionGroups(company.namespace, 'company')
-    const admin = companyGroups.find((g) => g.name === 'Admin')
-    const memberGroup = companyGroups.find((g) => g.name === 'Member')
-
-    for (const member of members) {
-      if (member.role === 'owner') continue
-      if (member.role !== 'member') {
-        await updateMember(company.namespace, member.id, { role: 'member' })
-      }
-      if (member.role === 'admin' && admin) {
-        await assignPermissionGroup(company.namespace, member.id, admin.id)
-      } else if (memberGroup) {
-        await assignPermissionGroup(company.namespace, member.id, memberGroup.id)
-      }
-    }
-  }
-  console.log('Migration complete')
-}
-
-main()
-  .then(async () => {
-    await closeSurrealPool()
-  })
-  .catch((err) => {
-    console.error(err)
-    process.exit(1)
-  })
-```
-
-- [ ] **Step 2: Run the migration locally**
-
-```bash
-docker compose up -d
-pnpm --filter db seed
-pnpm tsx scripts/migrate-member-permissions.ts
-```
-
-Expected: prints one line per company and exits cleanly.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add scripts/migrate-member-permissions.ts
-git commit -m "feat(db): add migration from legacy roles to company permission groups"
-```
+- [x] **Step 3: Commit** — nothing to commit.
 
 ---
 
@@ -1319,7 +1257,7 @@ git commit -m "feat(db): add migration from legacy roles to company permission g
 - Create: `apps/api/src/routes/permissions.ts`
 - Modify: `apps/api/src/app.ts`
 
-- [ ] **Step 1: Create the registry route**
+- [x] **Step 1: Create the registry route**
 
 ```ts
 // apps/api/src/routes/permissions.ts
@@ -1346,7 +1284,7 @@ export function permissionsRoutes() {
 }
 ```
 
-- [ ] **Step 2: Register the route**
+- [x] **Step 2: Register the route**
 
 ```ts
 // apps/api/src/app.ts
@@ -1356,13 +1294,13 @@ import { permissionsRoutes } from './routes/permissions.js'
 app.route('/api/permissions', permissionsRoutes())
 ```
 
-- [ ] **Step 3: Test the endpoint**
+- [x] **Step 3: Test the endpoint**
 
 Run: `pnpm --filter api dev` and request `GET /api/permissions/actions?resourceType=company`.
 
 Expected: JSON with action names and power-of-two values.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/api/src/routes/permissions.ts apps/api/src/app.ts
@@ -1376,11 +1314,11 @@ git commit -m "feat(api): expose permission action registry for frontend"
 **Files:**
 - Modify: `docs/50-Features/Tenant Permission System.md`
 
-- [ ] **Step 1: Update the feature note status**
+- [x] **Step 1: Update the feature note status**
 
 Change the frontmatter status from `planned` to `in-progress` while work is ongoing, then to `done` when complete.
 
-- [ ] **Step 2: Run the full test suites**
+- [x] **Step 2: Run the full test suites**
 
 ```bash
 pnpm install
@@ -1392,7 +1330,7 @@ pnpm --filter api test
 
 Expected: all suites pass.
 
-- [ ] **Step 3: Manual smoke test**
+- [x] **Step 3: Manual smoke test**
 
 ```bash
 docker compose up -d
@@ -1406,7 +1344,7 @@ pnpm --filter api dev
 - Verify a non-owner without `company:manage_user_groups` cannot create user groups.
 - Verify a non-member of a user group cannot view it without the record-level `user_group:view` permission.
 
-- [ ] **Step 4: Commit any fixes**
+- [x] **Step 4: Commit any fixes**
 
 ```bash
 git add -A
