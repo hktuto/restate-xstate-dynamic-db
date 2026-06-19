@@ -5,7 +5,8 @@ export interface TenantScope {
   accountId: string
   profileId: string
   memberId: string
-  role: 'owner' | 'admin' | 'member'
+  role: 'owner' | 'member'
+  permissions?: Record<string, string>
 }
 
 export interface AdminScope {

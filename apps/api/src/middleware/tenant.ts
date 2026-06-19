@@ -29,7 +29,7 @@ export const tenantAuth = createMiddleware(async (c, next) => {
     accountId: session.accountId,
     profileId: session.profileId,
     memberId: member.id,
-    role: member.role,
+    role: member.role as 'owner' | 'member',
   })
   await next()
 })
