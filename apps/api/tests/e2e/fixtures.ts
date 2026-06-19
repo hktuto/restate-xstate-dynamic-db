@@ -166,9 +166,23 @@ export async function seedE2E(): Promise<TestFixture> {
   return fixture
 }
 
+async function deleteCompanyByNamespace(namespace: string) {
+  try {
+    const platform = await getSurreal('platform', 'admin')
+    try {
+      await platform.query('DELETE companies WHERE namespace = $namespace', { namespace })
+    } finally {
+      await closeSurreal(platform)
+    }
+  } catch (err) {
+    console.warn('deleteCompanyByNamespace failed:', err)
+  }
+}
+
 export async function cleanupCompanyNamespace(namespace: string | undefined | null) {
   if (!namespace) return
   assertValidNamespace(namespace)
+  await deleteCompanyByNamespace(namespace)
   try {
     const root = await getSurreal()
     try {
@@ -196,6 +210,8 @@ export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   } catch (err) {
     console.warn('cleanupE2E: failed to connect to platform admin DB:', err)
   }
+
+  await deleteCompanyByNamespace(fixture.namespace)
 
   await cleanupCompanyNamespace(fixture.namespace)
 }

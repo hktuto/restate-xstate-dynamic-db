@@ -500,15 +500,19 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
   const companies = await listCompanies()
   const memberships = await Promise.all(
     companies.map(async (company) => {
-      const surreal = await getSurreal(company.namespace, 'main')
       try {
-        const [members] = await surreal.query<[Array<{ id: string }>]>(
-          'SELECT id FROM members WHERE profileId = $profileId LIMIT 1',
-          { profileId }
-        )
-        return Array.isArray(members) && members.length > 0 ? company : null
-      } finally {
-        await closeSurreal(surreal)
+        const surreal = await getSurreal(company.namespace, 'main')
+        try {
+          const [members] = await surreal.query<[Array<{ id: string }>]>(
+            'SELECT id FROM members WHERE profileId = $profileId LIMIT 1',
+            { profileId }
+          )
+          return Array.isArray(members) && members.length > 0 ? company : null
+        } finally {
+          await closeSurreal(surreal)
+        }
+      } catch {
+        return null
       }
     })
   )
