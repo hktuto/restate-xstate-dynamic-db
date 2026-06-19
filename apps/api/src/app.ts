@@ -12,11 +12,13 @@ import { userTasksRoutes } from './routes/user-tasks.js'
 import { platformRoutes } from './routes/platform.js'
 import { adminRoutes } from './routes/admin.js'
 import { userGroupsRoutes } from './routes/user-groups.js'
+import { permissionsRoutes } from './routes/permissions.js'
 
 export function createApp() {
   const app = new Hono()
   app.use(createCorsMiddleware())
   app.get('/health', (c) => c.json({ ok: true }))
+  app.route('/api/permissions', permissionsRoutes())
   app.route('/api', authRoutes())
   app.route('/api', tablesRoutes())
   app.route('/api', companiesRoutes())
@@ -27,7 +29,7 @@ export function createApp() {
   app.route('/api/workflow-instances', workflowInstancesRoutes())
   app.route('/api', userTasksRoutes())
   app.route('/api', platformRoutes())
-  app.route('/api', adminRoutes())
   app.route('/api/user-groups', userGroupsRoutes())
+  app.route('/api', adminRoutes())
   return app
 }
