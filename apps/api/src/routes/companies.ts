@@ -3,6 +3,7 @@ import { listCompaniesForProfile, createCompany, getCompanyBySlug } from 'db/pla
 import { createMember } from 'db/tenant'
 import { tenantAuth } from '../middleware/tenant.js'
 import { dispatchTrigger } from '../lib/dispatch.js'
+import { dispatchPlatformTrigger } from '../lib/dispatch-platform.js'
 import type { TenantScope } from '../types.js'
 
 function slugify(name: string): string {
@@ -63,6 +64,7 @@ export function companiesRoutes() {
       skip: skipTrigger,
       companyId: company.id,
     })
+    await dispatchPlatformTrigger('companies', 'create', company, { skip: skipTrigger })
 
     return c.json(company)
   })
