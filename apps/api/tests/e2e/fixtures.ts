@@ -121,7 +121,7 @@ export async function seedE2E(): Promise<TestFixture> {
       })
       const member = await createMember(company.namespace, {
         email,
-        role: role === 'admin' ? 'member' : role,
+        role,
         status: 'active',
         profileId: profile.id,
         inviteCode: null,
@@ -145,10 +145,6 @@ export async function seedE2E(): Promise<TestFixture> {
       )
       const adminGroup = groupRows[0]
       adminGroupId = adminGroup ? normalizeRecordId(adminGroup.id) : (await createUserGroup(company.namespace, { name: 'Admins' })).id
-
-      // Promote the seeded admin user to the admin role. The members table
-      // currently only stores owner/member, so we update the record directly.
-      await tenantSurreal.query('UPDATE type::record($id) SET role = "admin"', { id: admin.memberId })
 
       const [permRows] = await tenantSurreal.query<[{ id: string }[]]>(
         'SELECT id FROM permission_groups WHERE name = $name AND resourceType = $resourceType LIMIT 1',

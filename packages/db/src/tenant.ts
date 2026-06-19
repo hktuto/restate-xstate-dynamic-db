@@ -6,7 +6,7 @@ export interface MemberRecord {
   id: string
   profileId?: string
   email: string
-  role: 'owner' | 'member'
+  role: 'owner' | 'admin' | 'member'
   status: 'pending' | 'active' | 'inactive'
   inviteCode?: string
   joinedAt?: string
@@ -18,7 +18,7 @@ export interface MemberRecord {
 
 export interface MemberInput {
   email: string
-  role: 'owner' | 'member'
+  role: 'owner' | 'admin' | 'member'
   status?: 'pending' | 'active' | 'inactive'
   inviteCode?: string | null
   invitedBy?: string

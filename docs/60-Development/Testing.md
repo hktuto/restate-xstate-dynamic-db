@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-19
 related:
   - [[Getting Started]]
   - [[DB Package]]
@@ -39,3 +39,29 @@ pnpm --filter db test client.test.ts
 - Platform tests clean the shared `platform/admin` tables before each test.
 - Tenant tests create uniquely-named namespaces and remove them after each test.
 - Test files run sequentially (`fileParallelism: false`) because they share the same SurrealDB instance.
+
+## API E2E tests
+
+The `apps/api` E2E tests run against a real SurrealDB instance via Docker Compose. They seed a full company with owner, admin, and member users, then exercise the API endpoints through Hono's test client.
+
+### Prerequisites
+
+```bash
+docker compose up -d surrealdb
+```
+
+### Run the full API suite
+
+```bash
+pnpm --filter api test
+```
+
+### Run one E2E file
+
+```bash
+pnpm --filter api test <file>.e2e.test.ts
+```
+
+### Test isolation
+
+- Tests create unique `e2e_*` namespaces and clean them up in `afterAll`.

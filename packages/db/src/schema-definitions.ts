@@ -7,6 +7,7 @@ export interface ColumnDefinition {
   dbType: 'string' | 'number' | 'boolean' | 'datetime' | 'object' | 'array' | 'record'
   displayType: 'text' | 'url' | 'email' | 'user' | 'select' | 'checkbox' | 'date' | 'number' | 'relation' | 'formula' | 'richText' | 'json'
   config?: Record<string, unknown>
+  fields?: ColumnDefinition[]
   system?: boolean
   unique?: boolean
   uniqueScope?: string
@@ -187,7 +188,7 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   table('members', 'Members', [
     column('profileId', 'record', 'relation', { config: { relationId: '_relations:⟨members:profileId:user_profiles:id⟩' } }),
     column('email', 'string', 'email'),
-    column('role', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['owner', 'member']) } }),
+    column('role', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['owner', 'admin', 'member']) } }),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'active', 'inactive']) } }),
     column('inviteCode', 'string', 'text', { unique: true }),
     column('joinedAt', 'datetime', 'date'),
