@@ -12,7 +12,7 @@ import {
 } from '../src/platform.js'
 import { createMember, type MemberRecord } from '../src/tenant.js'
 import { provisionCompanyNamespace } from '../src/provision.js'
-import { provisionDefaultCompanyGroups } from '../src/permissions.js'
+import { assignPermissionGroup, listPermissionGroups, provisionDefaultCompanyGroups } from '../src/permissions.js'
 
 const COMPANY = {
   name: 'SeedCo Test',
@@ -29,13 +29,15 @@ interface SeedPerson {
   status: 'pending' | 'active' | 'inactive'
 }
 
-async function createPersonAccount(person: SeedPerson): Promise<{ profile: UserProfileRecord; account: AccountRecord }> {
+async function createPersonAccount(
+  person: SeedPerson,
+  credential: string
+): Promise<{ profile: UserProfileRecord; account: AccountRecord }> {
   const profile = await createUserProfile({ name: person.name })
-  const passwordHash = await hashPassword(PASSWORD)
   const account = await createAccount({
     provider: 'email',
     providerKey: person.email,
-    credential: passwordHash,
+    credential,
     profileId: profile.id,
   })
   return { profile, account }
@@ -53,6 +55,45 @@ async function createCompanyMember(
     status: person.status,
     inviteCode: null,
   })
+}
+
+const MEMBERS: SeedPerson[] = [
+  { name: 'Alice', email: 'alice@seedco.test', role: 'member', status: 'active' },
+  { name: 'Bob', email: 'bob@seedco.test', role: 'member', status: 'active' },
+  { name: 'Charlie', email: 'charlie@seedco.test', role: 'member', status: 'active' },
+  { name: 'Diana', email: 'diana@seedco.test', role: 'member', status: 'active' },
+  { name: 'Evan', email: 'evan@seedco.test', role: 'member', status: 'active' },
+  { name: 'Fiona', email: 'fiona@seedco.test', role: 'member', status: 'active' },
+  { name: 'George', email: 'george@seedco.test', role: 'member', status: 'active' },
+  { name: 'Hannah', email: 'hannah@seedco.test', role: 'member', status: 'active' },
+  { name: 'Ian', email: 'ian@seedco.test', role: 'member', status: 'active' },
+  { name: 'Judy', email: 'judy@seedco.test', role: 'member', status: 'active' },
+  { name: 'Pending Pat', email: 'pending@seedco.test', role: 'member', status: 'pending' },
+  { name: 'Inactive Ira', email: 'inactive@seedco.test', role: 'member', status: 'inactive' },
+]
+
+const ADMIN_EMAILS = new Set(['alice@seedco.test', 'bob@seedco.test'])
+
+async function seedMembers(
+  namespace: string,
+  ownerMember: MemberRecord,
+  credential: string
+) {
+  const groups = await listPermissionGroups(namespace, 'company')
+  const adminGroup = groups.find((g) => g.name === 'Admin')!
+  const memberGroup = groups.find((g) => g.name === 'Member')!
+
+  const seeded: Array<{ person: SeedPerson; member: MemberRecord }> = []
+
+  for (const person of MEMBERS) {
+    const { profile } = await createPersonAccount(person, credential)
+    const member = await createCompanyMember(namespace, person, profile.id)
+    const group = ADMIN_EMAILS.has(person.email) ? adminGroup : memberGroup
+    await assignPermissionGroup(namespace, member.id, group.id)
+    seeded.push({ person, member })
+  }
+
+  return seeded
 }
 
 async function resetSeedCompany() {
@@ -73,10 +114,14 @@ export async function seedCompany() {
   const company = await createCompany({ name: COMPANY.name, slug: COMPANY.slug, namespace: COMPANY.namespace })
   await provisionCompanyNamespace(company.namespace)
 
+  const passwordHash = await hashPassword(PASSWORD)
+
   const ownerPerson: SeedPerson = { name: 'Owner', email: 'owner@seedco.test', role: 'owner', status: 'active' }
-  const { profile: ownerProfile, account: ownerAccount } = await createPersonAccount(ownerPerson)
+  const { profile: ownerProfile } = await createPersonAccount(ownerPerson, passwordHash)
   const ownerMember = await createCompanyMember(company.namespace, ownerPerson, ownerProfile.id)
   await provisionDefaultCompanyGroups(company.namespace, ownerMember.id)
+
+  await seedMembers(company.namespace, ownerMember, passwordHash)
 
   console.log(`Created company ${company.name} (${company.namespace})`)
 }
