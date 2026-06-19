@@ -13,7 +13,7 @@ async function login() {
   try {
     await api.fetch('/api/auth/admin/login', {
       method: 'POST',
-      body: { email: email.value, password: password.value }
+      body: JSON.stringify({ email: email.value, password: password.value })
     })
     auth.value = { authenticated: true }
     await router.push('/')

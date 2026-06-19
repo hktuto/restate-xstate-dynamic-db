@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkflowDefinition, StartRule } from 'shared'
 
+/** `uid` is local to the page session; it is NOT persisted on `StartRule`. */
 interface StartRuleWithUid extends StartRule {
   uid?: string
 }
@@ -27,7 +28,8 @@ function generateUid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-function ensureUids(starts: StartRuleWithUid[] | undefined): StartRuleWithUid[] {
+/** Assign a local-only uid to each start rule for stable client-side keys. */
+function withLocalUids(starts: StartRuleWithUid[] | undefined): StartRuleWithUid[] {
   return (starts ?? []).map((start) => ({
     ...start,
     uid: start.uid ?? generateUid()
@@ -39,19 +41,10 @@ const api = useApi()
 
 async function refresh() {
   const loaded = await api.fetch<WorkflowDesign[]>('/api/admin/workflow-designs')
-  const patched: WorkflowDesign[] = []
-  for (const design of loaded) {
-    const startsWithUids = ensureUids(design.starts)
-    const needsPatch = (design.starts ?? []).some((start) => !start.uid)
-    if (needsPatch) {
-      await api.fetch(`/api/admin/workflow-designs/${design.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ starts: startsWithUids })
-      })
-    }
-    patched.push({ ...design, starts: startsWithUids })
-  }
-  designs.value = patched
+  designs.value = loaded.map((design) => ({
+    ...design,
+    starts: withLocalUids(design.starts)
+  }))
 }
 
 await refresh()
