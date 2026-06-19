@@ -166,9 +166,23 @@ export async function seedE2E(): Promise<TestFixture> {
   return fixture
 }
 
+export async function cleanupCompanyNamespace(namespace: string | undefined | null) {
+  if (!namespace) return
+  assertValidNamespace(namespace)
+  try {
+    const root = await getSurreal()
+    try {
+      await root.query(`REMOVE NAMESPACE IF EXISTS ${namespace}`)
+    } finally {
+      await closeSurreal(root)
+    }
+  } catch (err) {
+    console.warn('cleanupCompanyNamespace failed:', err)
+  }
+}
+
 export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   if (!fixture) return
-  assertValidNamespace(fixture.namespace)
 
   try {
     const platform = await getSurreal('platform', 'admin')
@@ -183,18 +197,7 @@ export async function cleanupE2E(fixture: TestFixture | undefined | null) {
     console.warn('cleanupE2E: failed to connect to platform admin DB:', err)
   }
 
-  try {
-    const root = await getSurreal()
-    try {
-      await root.query(`REMOVE NAMESPACE IF EXISTS ${fixture.namespace}`)
-    } catch (err) {
-      console.warn('cleanupE2E: failed to remove namespace:', err)
-    } finally {
-      await closeSurreal(root)
-    }
-  } catch (err) {
-    console.warn('cleanupE2E: failed to connect as root:', err)
-  }
+  await cleanupCompanyNamespace(fixture.namespace)
 }
 
 function parseCookieValue(raw: string): { name: string; value: string; cleared: boolean } | undefined {
@@ -207,7 +210,11 @@ function parseCookieValue(raw: string): { name: string; value: string; cleared: 
 
   const isCleared =
     value === '' ||
-    parts.some((p) => /^Max-Age\s*=\s*0$/i.test(p)) ||
+    parts.some((p) => {
+      const m = p.match(/^Max-Age\s*=\s*(.+)/i)
+      if (!m) return false
+      return Number(m[1]) <= 0
+    }) ||
     parts.some((p) => {
       const m = p.match(/^Expires\s*=\s*(.+)/i)
       if (!m) return false
