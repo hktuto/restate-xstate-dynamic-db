@@ -52,7 +52,7 @@ export interface SeededUser {
   profileId: string
   accountId: string
   memberId: string
-  role: 'owner' | 'member'
+  role: 'owner' | 'admin' | 'member'
 }
 
 export interface TestFixture {
@@ -110,7 +110,7 @@ export async function seedE2E(): Promise<TestFixture> {
       await closeSurreal(adminSurreal)
     }
 
-    async function createUser(role: 'owner' | 'member', prefix: string): Promise<SeededUser> {
+    async function createUser(role: 'owner' | 'admin' | 'member', prefix: string): Promise<SeededUser> {
       const email = `${prefix}-${suffix}@test.co`
       const profile = await createUserProfile({ name: prefix })
       const account = await createAccount({
@@ -121,7 +121,7 @@ export async function seedE2E(): Promise<TestFixture> {
       })
       const member = await createMember(company.namespace, {
         email,
-        role,
+        role: role === 'admin' ? 'member' : role,
         status: 'active',
         profileId: profile.id,
         inviteCode: null,
@@ -130,7 +130,7 @@ export async function seedE2E(): Promise<TestFixture> {
     }
 
     const owner = await createUser('owner', 'owner')
-    const admin = await createUser('member', 'admin')
+    const admin = await createUser('admin', 'admin')
     const member = await createUser('member', 'member')
 
     await provisionDefaultCompanyGroups(company.namespace, owner.memberId)
@@ -145,6 +145,10 @@ export async function seedE2E(): Promise<TestFixture> {
       )
       const adminGroup = groupRows[0]
       adminGroupId = adminGroup ? normalizeRecordId(adminGroup.id) : (await createUserGroup(company.namespace, { name: 'Admins' })).id
+
+      // Promote the seeded admin user to the admin role. The members table
+      // currently only stores owner/member, so we update the record directly.
+      await tenantSurreal.query('UPDATE type::record($id) SET role = "admin"', { id: admin.memberId })
 
       const [permRows] = await tenantSurreal.query<[{ id: string }[]]>(
         'SELECT id FROM permission_groups WHERE name = $name AND resourceType = $resourceType LIMIT 1',
