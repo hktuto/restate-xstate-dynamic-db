@@ -14,6 +14,23 @@ function assertValidNamespace(namespace: string): void {
   }
 }
 
+function normalizeRecordId(value: unknown): string {
+  if (value === null || value === undefined) {
+    throw new Error('Missing record id')
+  }
+  if (typeof value === 'string') return value
+  const obj = value as { toString?: () => string; tb?: string; id?: string | { toString?: () => string } }
+  if (typeof obj.toString === 'function') {
+    const str = obj.toString()
+    if (str && str !== '[object Object]') return str
+  }
+  if (obj.tb) {
+    const idPart = typeof obj.id === 'string' ? obj.id : (obj.id as { toString?: () => string })?.toString?.()
+    if (idPart) return `${obj.tb}:${idPart}`
+  }
+  throw new Error(`Unsupported record id value: ${JSON.stringify(value)}`)
+}
+
 if (!process.env.SESSION_SECRET) {
   process.env.SESSION_SECRET = 'test-secret'
 }
@@ -79,7 +96,7 @@ export async function seedE2E(): Promise<TestFixture> {
         'CREATE platform_users CONTENT $data RETURN id',
         { data: { email: `platform-admin-${suffix}@test.co`, password: await hashPassword(password) } }
       )
-      platformAdminId = String(rows[0].id)
+      platformAdminId = normalizeRecordId(rows[0].id)
     } finally {
       await closeSurreal(adminSurreal)
     }
@@ -100,7 +117,7 @@ export async function seedE2E(): Promise<TestFixture> {
         profileId: profile.id,
         inviteCode: null,
       })
-      return { email, password, profileId: profile.id, accountId: account.id, memberId: member.id, role }
+      return { email, password, profileId: profile.id, accountId: account.id, memberId: normalizeRecordId(member.id), role }
     }
 
     const owner = await createUser('owner', 'owner')
@@ -118,13 +135,13 @@ export async function seedE2E(): Promise<TestFixture> {
         { name: 'Admins' }
       )
       const adminGroup = groupRows[0]
-      adminGroupId = adminGroup ? adminGroup.id : (await createUserGroup(company.namespace, { name: 'Admins' })).id
+      adminGroupId = adminGroup ? normalizeRecordId(adminGroup.id) : (await createUserGroup(company.namespace, { name: 'Admins' })).id
 
       const [permRows] = await tenantSurreal.query<[{ id: string }[]]>(
         'SELECT id FROM permission_groups WHERE name = $name AND resourceType = $resourceType LIMIT 1',
         { name: 'Admin', resourceType: 'company' }
       )
-      adminPermissionGroupId = permRows[0]?.id
+      adminPermissionGroupId = permRows[0] ? normalizeRecordId(permRows[0].id) : undefined
     } finally {
       await closeSurreal(tenantSurreal)
     }
@@ -152,18 +169,31 @@ export async function seedE2E(): Promise<TestFixture> {
 export async function cleanupE2E(fixture: TestFixture | undefined | null) {
   if (!fixture) return
   assertValidNamespace(fixture.namespace)
-  const root = await getSurreal()
+
   try {
-    await root.query(`REMOVE NAMESPACE IF EXISTS ${fixture.namespace}`)
-  } finally {
-    await closeSurreal(root)
+    const platform = await getSurreal('platform', 'admin')
+    try {
+      await platform.query('DELETE type::record($id)', { id: fixture.company.id })
+    } catch (err) {
+      console.warn('cleanupE2E: failed to delete company record:', err)
+    } finally {
+      await closeSurreal(platform)
+    }
+  } catch (err) {
+    console.warn('cleanupE2E: failed to connect to platform admin DB:', err)
   }
 
-  const platform = await getSurreal('platform', 'admin')
   try {
-    await platform.query('DELETE type::record($id)', { id: fixture.company.id })
-  } finally {
-    await closeSurreal(platform)
+    const root = await getSurreal()
+    try {
+      await root.query(`REMOVE NAMESPACE IF EXISTS ${fixture.namespace}`)
+    } catch (err) {
+      console.warn('cleanupE2E: failed to remove namespace:', err)
+    } finally {
+      await closeSurreal(root)
+    }
+  } catch (err) {
+    console.warn('cleanupE2E: failed to connect as root:', err)
   }
 }
 

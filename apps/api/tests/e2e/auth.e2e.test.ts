@@ -14,7 +14,7 @@ describe('E2E auth', () => {
     await cleanupE2E(fixture)
   })
 
-  it('logs in a tenant owner and returns companies', async () => {
+  it('logs in a tenant owner and sets an access token cookie', async () => {
     const cookies = await loginTenant(fixture.owner.email, fixture.owner.password)
     expect(cookies).toContain('tenant_access_token=')
   })
@@ -63,6 +63,8 @@ describe('E2E auth', () => {
     const cookies = await loginTenant(fixture.owner.email, fixture.owner.password)
     const res = await tenantRequest('POST', '/api/logout', cookies, fixture.company)
     expect(res.status).toBe(200)
+    const followUp = await tenantRequest('GET', '/api/users', cookies, fixture.company)
+    expect(followUp.status).toBe(401)
   })
 
   it('logs in an admin', async () => {
@@ -83,6 +85,8 @@ describe('E2E auth', () => {
     const cookies = await loginAdmin(fixture.platformAdmin.email, fixture.platformAdmin.password)
     const res = await adminRequest('POST', '/api/admin/logout', cookies)
     expect(res.status).toBe(200)
+    const followUp = await adminRequest('GET', '/api/admin/dashboard', cookies)
+    expect(followUp.status).toBe(401)
   })
 
   it('accepts an invite', async () => {
