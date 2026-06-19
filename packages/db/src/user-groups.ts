@@ -89,6 +89,7 @@ export async function deleteUserGroup(namespace: string, id: string): Promise<vo
       await surreal.query('DELETE permission_assignments WHERE out = type::record($id)', { id: group.id })
       await surreal.query('DELETE type::record($id)', { id: group.id })
     }
+    await surreal.query('DELETE permission_assignments WHERE in = type::record($id)', { id })
     await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
@@ -137,7 +138,7 @@ export async function listUserGroupMembers(
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<
-      Array<{ id: string }>
+      [Array<{ id: string }>]
     >(
       'SELECT in.id AS id FROM user_group_memberships WHERE out = type::record($userGroupId)',
       { userGroupId }

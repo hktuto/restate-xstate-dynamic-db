@@ -25,7 +25,7 @@ describe('user groups', () => {
   })
 
   it('creates a user group with default record-level permission groups', async () => {
-    const member = await createMember(namespace, { email: 'o@example.com', role: 'owner' })
+    const member = await createMember(namespace, { email: 'm@example.com', role: 'member' })
     const group = await createUserGroupWithDefaults(namespace, { name: 'Engineering' }, member.id)
     expect(group.id).toMatch(/^user_groups:/)
 

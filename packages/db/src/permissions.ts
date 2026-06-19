@@ -156,7 +156,7 @@ export async function listPermissionAssignments(
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<
-      Array<{ out: PermissionGroupRecord }>
+      [Array<{ out: PermissionGroupRecord }>]
     >(
       'SELECT out.* AS out FROM permission_assignments WHERE in = type::record($assigneeId)',
       { assigneeId }
@@ -218,7 +218,7 @@ async function getMemberUserGroups(
   const surreal = await getSurreal(namespace, 'main')
   try {
     const [rows] = await surreal.query<
-      Array<{ id: string }>
+      [Array<{ id: string }>]
     >(
       'SELECT out.id AS id FROM user_group_memberships WHERE in = type::record($memberId)',
       { memberId }
