@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkflowDefinition, StartRule, ActionInputMetadata } from 'shared'
 import { useWorkflowRun } from '../composables/useWorkflowRun.js'
+import { buildPayload } from './workflow-run-modal-helpers.js'
 
 const USER_TRIGGER_TYPE = 'user_trigger'
 
@@ -78,12 +79,21 @@ function setInputValue(input: ActionInputMetadata, value: string | boolean) {
   formValues.value[input.name] = value
 }
 
+function isSelectOption(o: unknown): o is { label: string; value: string } {
+  return (
+    typeof o === 'object' &&
+    o !== null &&
+    'label' in o &&
+    'value' in o &&
+    typeof (o as Record<string, unknown>).label === 'string' &&
+    typeof (o as Record<string, unknown>).value === 'string'
+  )
+}
+
 function getSelectOptions(input: ActionInputMetadata): { label: string; value: string }[] {
   const opts = input.config?.options
   if (!Array.isArray(opts)) return []
-  return opts.filter((o): o is { label: string; value: string } =>
-    typeof o === 'object' && o !== null && 'label' in o && 'value' in o
-  ) as { label: string; value: string }[]
+  return opts.filter(isSelectOption)
 }
 
 async function loadInputs() {
@@ -122,49 +132,11 @@ async function submit() {
   result.value = ''
   error.value = ''
 
-  for (const input of inputs.value) {
-    const value = formValues.value[input.name]
-
-    if (input.required) {
-      if (input.displayType === 'checkbox') {
-        if (!value) {
-          reportError(`${input.label} is required`)
-          return
-        }
-      } else if (typeof value !== 'string' || value.trim() === '') {
-        reportError(`${input.label} is required`)
-        return
-      }
-    }
-
-    if (input.displayType === 'json') {
-      const str = typeof value === 'string' ? value : ''
-      if (str.trim() !== '') {
-        try {
-          JSON.parse(str)
-        } catch {
-          reportError(`${input.label} must be valid JSON`)
-          return
-        }
-      }
-    }
-  }
-
-  const values: Record<string, unknown> = {}
-  for (const input of inputs.value) {
-    const raw = formValues.value[input.name]
-
-    if (input.displayType === 'json') {
-      const str = typeof raw === 'string' ? raw : ''
-      values[input.name] = str.trim() === '' ? undefined : JSON.parse(str)
-    } else if (input.displayType === 'number') {
-      const str = typeof raw === 'string' ? raw : ''
-      values[input.name] = str.trim() === '' ? undefined : Number(str)
-    } else if (input.displayType === 'checkbox') {
-      values[input.name] = Boolean(raw)
-    } else {
-      values[input.name] = typeof raw === 'string' ? raw : String(raw)
-    }
+  const { values, errors } = buildPayload(inputs.value, formValues.value)
+  const firstError = errors[0]
+  if (firstError) {
+    reportError(firstError)
+    return
   }
 
   loading.value = true

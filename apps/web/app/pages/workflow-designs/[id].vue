@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { WorkflowDefinition, StartRule } from 'shared'
 
-const USER_TRIGGER_TYPE = 'user_trigger'
 const COMPANY_COOKIE_NAME = 'company'
 
 const route = useRoute()

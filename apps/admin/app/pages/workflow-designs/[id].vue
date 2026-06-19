@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { WorkflowDefinition, StartRule } from 'shared'
 
-const USER_TRIGGER_TYPE = 'user_trigger'
 const ADMIN_API_BASE_PATH = '/api/admin'
 const ADMIN_NAMESPACE = 'platform'
 
