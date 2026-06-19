@@ -118,7 +118,7 @@ export function usersRoutes() {
         return c.json({ error: 'Only owners can change roles' }, 403)
       }
       if (id === scope.memberId && body.role !== 'owner') {
-        return c.json({ error: 'Owners cannot demote themselves' }, 400)
+        return c.json({ error: 'Owners cannot demote themselves' }, 403)
       }
       memberUpdate.role = body.role as 'owner' | 'member'
     }

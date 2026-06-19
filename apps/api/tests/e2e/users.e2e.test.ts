@@ -17,7 +17,10 @@ describe('E2E users', () => {
     // Ensure the seeded member is restored to role 'member' after mutating tests.
     const cookies = await ownerCookies()
     const res = await tenantRequest('GET', '/api/users', cookies, fixture.company)
-    if (res.status !== 200) return
+    if (res.status !== 200) {
+      console.warn(`E2E users afterEach reset: GET /api/users returned ${res.status}`)
+      return
+    }
     const members = await json<Array<{ id: string; role: string }>>(res)
     const member = members.find((m) => m.id === fixture.member.memberId)
     if (member && member.role !== 'member') {
@@ -86,7 +89,7 @@ describe('E2E users', () => {
     const res = await tenantRequest('PATCH', `/api/users/${fixture.owner.memberId}`, cookies, fixture.company, {
       role: 'member',
     })
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(403)
   })
 
   it('rejects member role update by plain member', async () => {
