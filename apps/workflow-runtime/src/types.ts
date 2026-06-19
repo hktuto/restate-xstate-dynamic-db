@@ -1,12 +1,12 @@
 import type { AnyMachineSnapshot, AnyStateMachine } from 'xstate'
-import type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest } from 'shared'
+import type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest, WorkflowDefinition } from 'shared'
 
 export type { CreateWorkflowRequest, SendWorkflowRequest, WaitForWorkflowRequest }
 
 export interface RuntimeContext {
   instanceId: string
-  record: Record<string, unknown>
-  tableName: string
+  designId: string
+  tableName?: string
   companyId?: string
   namespace?: string
 }
@@ -14,8 +14,8 @@ export interface RuntimeContext {
 export interface PersistedState {
   schemaVersion: number
   snapshot: AnyMachineSnapshot
-  config: CreateWorkflowRequest['config']
-  context: RuntimeContext
+  config: WorkflowDefinition
+  context: Record<string, unknown>
   subscriptions: Partial<Record<Condition, Subscription>>
 }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { RestateTestEnvironment } from '@restatedev/restate-sdk-testcontainers'
 import * as clients from '@restatedev/restate-sdk-clients'
 import { randomUUID } from 'node:crypto'
@@ -10,6 +10,12 @@ import { workflowObject } from '../src/workflow.js'
 
 function ctx(snapshot: AnyMachineSnapshot): Record<string, unknown> {
   return snapshot.context as Record<string, unknown>
+}
+
+const mockDesigns = new Map<string, { xstateConfig: WorkflowDefinition }>()
+
+function setMockDesign(designId: string, xstateConfig: WorkflowDefinition) {
+  mockDesigns.set(designId, { xstateConfig })
 }
 
 async function createTestNamespace() {
@@ -43,6 +49,10 @@ describe('workflow runtime', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = typeof input === 'string' ? input : input.toString()
+        if (url.startsWith('http://localhost:3002/api/workflow-designs/')) {
+          const designId = url.split('/').pop()!
+          return { ok: true, status: 200, json: async () => mockDesigns.get(designId) ?? {} } as Response
+        }
         if (url.startsWith('http://localhost:3002/api/')) {
           return { ok: true, status: 200, json: async () => ({}) } as Response
         }
@@ -58,6 +68,10 @@ describe('workflow runtime', () => {
     rs = clients.connect({ url: env.baseUrl() })
   }, 20000)
 
+  afterEach(() => {
+    mockDesigns.clear()
+  })
+
   afterAll(async () => {
     vi.unstubAllGlobals()
     if (env !== undefined) {
@@ -69,8 +83,9 @@ describe('workflow runtime', () => {
     const instanceId = randomUUID()
     const client = rs.objectClient(workflowObject, instanceId)
 
+    const designId = 'test'
     const config = {
-      id: 'test',
+      id: designId,
       initial: 'idle',
       states: {
         idle: { on: { start: 'running' } },
@@ -78,8 +93,14 @@ describe('workflow runtime', () => {
         done: { type: 'final' }
       }
     } as unknown as WorkflowDefinition
+    setMockDesign(designId, config)
 
-    const afterStart = await client.create({ config, event: 'start', tableName: 'tests', record: { id: '1' }, workflowId: 'test' })
+    const afterStart = await client.create({
+      designId,
+      trigger: { type: 'user_trigger', startState: 'running' },
+      context: {},
+      createdBy: 'test'
+    })
     expect(afterStart.value).toBe('running')
 
     const afterFinish = await client.send({ event: 'finish' })
@@ -95,8 +116,9 @@ describe('workflow runtime', () => {
   it('branches true on a condition action', async () => {
     const instanceId = randomUUID()
     const client = rs.objectClient(workflowObject, instanceId)
+    const designId = 'condition-test'
     const config: WorkflowDefinition = {
-      id: 'condition-test',
+      id: designId,
       initial: 'check',
       states: {
         check: {
@@ -115,13 +137,13 @@ describe('workflow runtime', () => {
         inactive: { type: 'final' }
       }
     }
+    setMockDesign(designId, config)
 
     const snapshot = await client.create({
-      config,
-      event: 'start',
-      tableName: 'tests',
-      record: { id: '1', status: 'active' },
-      workflowId: 'condition-test'
+      designId,
+      trigger: { type: 'user_trigger', startState: 'check' },
+      context: { record: { id: '1', status: 'active' } },
+      createdBy: 'test'
     })
 
     expect(snapshot.value).toBe('active')
@@ -130,8 +152,9 @@ describe('workflow runtime', () => {
   it('branches false on a condition action', async () => {
     const instanceId = randomUUID()
     const client = rs.objectClient(workflowObject, instanceId)
+    const designId = 'condition-test'
     const config: WorkflowDefinition = {
-      id: 'condition-test',
+      id: designId,
       initial: 'check',
       states: {
         check: {
@@ -150,13 +173,13 @@ describe('workflow runtime', () => {
         inactive: { type: 'final' }
       }
     }
+    setMockDesign(designId, config)
 
     const snapshot = await client.create({
-      config,
-      event: 'start',
-      tableName: 'tests',
-      record: { id: '2', status: 'inactive' },
-      workflowId: 'condition-test'
+      designId,
+      trigger: { type: 'user_trigger', startState: 'check' },
+      context: { record: { id: '2', status: 'inactive' } },
+      createdBy: 'test'
     })
 
     expect(snapshot.value).toBe('inactive')
@@ -167,8 +190,9 @@ describe('workflow runtime', () => {
     try {
       const instanceId = randomUUID()
       const client = rs.objectClient(workflowObject, instanceId)
+      const designId = 'create-test'
       const config: WorkflowDefinition = {
-        id: 'create-test',
+        id: designId,
         initial: 'create',
         states: {
           create: {
@@ -186,14 +210,14 @@ describe('workflow runtime', () => {
           failed: { type: 'final' }
         }
       }
+      setMockDesign(designId, config)
 
       const snapshot = await client.create({
-        config,
-        event: 'start',
-        tableName: 'e2e_records',
-        record: {},
-        namespace: ns,
-        workflowId: 'create-test'
+        designId,
+        trigger: { type: 'user_trigger', startState: 'create' },
+        context: { record: {} },
+        createdBy: 'test',
+        namespace: ns
       })
 
       expect(snapshot.value).toBe('done')
@@ -208,8 +232,9 @@ describe('workflow runtime', () => {
     try {
       const instanceId = randomUUID()
       const client = rs.objectClient(workflowObject, instanceId)
+      const designId = 'audit-test'
       const config: WorkflowDefinition = {
-        id: 'audit-test',
+        id: designId,
         initial: 'create',
         states: {
           create: {
@@ -227,14 +252,14 @@ describe('workflow runtime', () => {
           failed: { type: 'final' }
         }
       }
+      setMockDesign(designId, config)
 
       const snapshot = await client.create({
-        config,
-        event: 'start',
-        tableName: 'e2e_records',
-        record: {},
-        namespace: ns,
-        workflowId: 'audit-test'
+        designId,
+        trigger: { type: 'user_trigger', startState: 'create' },
+        context: { record: {} },
+        createdBy: 'test',
+        namespace: ns
       })
 
       expect(snapshot.value).toBe('done')
@@ -255,8 +280,9 @@ describe('workflow runtime', () => {
     try {
       const instanceIdTrue = randomUUID()
       const clientTrue = rs.objectClient(workflowObject, instanceIdTrue)
+      const designIdTrue = 'condition-audit-true'
       const trueConfig: WorkflowDefinition = {
-        id: 'condition-audit-true',
+        id: designIdTrue,
         initial: 'check',
         states: {
           check: {
@@ -269,14 +295,14 @@ describe('workflow runtime', () => {
           done: { type: 'final' }
         }
       }
+      setMockDesign(designIdTrue, trueConfig)
 
       const trueSnapshot = await clientTrue.create({
-        config: trueConfig,
-        event: 'start',
-        tableName: 'tests',
-        record: { id: '1', status: 'active' },
-        namespace: ns,
-        workflowId: 'condition-audit-true'
+        designId: designIdTrue,
+        trigger: { type: 'user_trigger', startState: 'check' },
+        context: { record: { id: '1', status: 'active' } },
+        createdBy: 'test',
+        namespace: ns
       })
 
       expect(trueSnapshot.value).toBe('done')
@@ -289,8 +315,9 @@ describe('workflow runtime', () => {
 
       const instanceIdFalse = randomUUID()
       const clientFalse = rs.objectClient(workflowObject, instanceIdFalse)
+      const designIdFalse = 'condition-audit-false'
       const falseConfig: WorkflowDefinition = {
-        id: 'condition-audit-false',
+        id: designIdFalse,
         initial: 'check',
         states: {
           check: {
@@ -303,14 +330,14 @@ describe('workflow runtime', () => {
           done: { type: 'final' }
         }
       }
+      setMockDesign(designIdFalse, falseConfig)
 
       const falseSnapshot = await clientFalse.create({
-        config: falseConfig,
-        event: 'start',
-        tableName: 'tests',
-        record: { id: '2', status: 'inactive' },
-        namespace: ns,
-        workflowId: 'condition-audit-false'
+        designId: designIdFalse,
+        trigger: { type: 'user_trigger', startState: 'check' },
+        context: { record: { id: '2', status: 'inactive' } },
+        createdBy: 'test',
+        namespace: ns
       })
 
       expect(falseSnapshot.value).toBe('done')
@@ -332,8 +359,9 @@ describe('workflow runtime', () => {
 
       const instanceId = randomUUID()
       const client = rs.objectClient(workflowObject, instanceId)
+      const designId = 'multi-audit-test'
       const config: WorkflowDefinition = {
-        id: 'multi-audit-test',
+        id: designId,
         initial: 'fetch',
         states: {
           fetch: {
@@ -356,14 +384,14 @@ describe('workflow runtime', () => {
           failed: { type: 'final' }
         }
       }
+      setMockDesign(designId, config)
 
       const snapshot = await client.create({
-        config,
-        event: 'start',
-        tableName: 'e2e_records',
-        record: {},
-        namespace: ns,
-        workflowId: 'multi-audit-test'
+        designId,
+        trigger: { type: 'user_trigger', startState: 'fetch' },
+        context: { record: {} },
+        createdBy: 'test',
+        namespace: ns
       })
 
       expect(snapshot.value).toBe('done')
@@ -403,8 +431,9 @@ describe('workflow runtime', () => {
 
       const instanceId = randomUUID()
       const client = rs.objectClient(workflowObject, instanceId)
+      const designId = 'get-update-test'
       const config: WorkflowDefinition = {
-        id: 'get-update-test',
+        id: designId,
         initial: 'fetch',
         states: {
           fetch: {
@@ -427,14 +456,14 @@ describe('workflow runtime', () => {
           failed: { type: 'final' }
         }
       }
+      setMockDesign(designId, config)
 
       const snapshot = await client.create({
-        config,
-        event: 'start',
-        tableName: 'e2e_records',
-        record: {},
-        namespace: ns,
-        workflowId: 'get-update-test'
+        designId,
+        trigger: { type: 'user_trigger', startState: 'fetch' },
+        context: { record: {} },
+        createdBy: 'test',
+        namespace: ns
       })
 
       expect(snapshot.value).toBe('done')
@@ -455,8 +484,9 @@ describe('workflow runtime', () => {
 
       const instanceId = randomUUID()
       const client = rs.objectClient(workflowObject, instanceId)
+      const designId = 'delete-test'
       const config: WorkflowDefinition = {
-        id: 'delete-test',
+        id: designId,
         initial: 'fetch',
         states: {
           fetch: {
@@ -479,14 +509,14 @@ describe('workflow runtime', () => {
           failed: { type: 'final' }
         }
       }
+      setMockDesign(designId, config)
 
       const snapshot = await client.create({
-        config,
-        event: 'start',
-        tableName: 'e2e_records',
-        record: {},
-        namespace: ns,
-        workflowId: 'delete-test'
+        designId,
+        trigger: { type: 'user_trigger', startState: 'fetch' },
+        context: { record: {} },
+        createdBy: 'test',
+        namespace: ns
       })
 
       expect(snapshot.value).toBe('done')
