@@ -4,7 +4,7 @@ type: feature
 status: in-progress
 area: web
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-21
 app:
   - web
 related:
@@ -12,6 +12,7 @@ related:
   - [[Company Management]]
   - [[User Management]]
   - [[30-Apps/Web App/Overview]]
+  - [[Admin Authentication & Authorization]]
 ---
 
 # Tenant Authentication & Authorization
