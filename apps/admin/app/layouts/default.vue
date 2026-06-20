@@ -8,6 +8,7 @@ const items = ref<NavigationMenuItem[]>([
   { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/dashboard' },
   { label: 'Companies', icon: 'i-lucide-building-2', to: '/companies' },
   { label: 'Users', icon: 'i-lucide-users', to: '/users' },
+  { label: 'User Groups', icon: 'i-lucide-users-round', to: '/user-groups' },
   { label: 'Settings', icon: 'i-lucide-settings', to: '/settings' },
   { label: 'Workflow Designs', icon: 'i-lucide-workflow', to: '/workflow-designs' },
   { label: 'Views', icon: 'i-lucide-eye', to: '/views' },

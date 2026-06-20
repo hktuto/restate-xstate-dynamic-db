@@ -2,8 +2,24 @@ import { Hono } from 'hono'
 import {
   listPlatformWorkflowDesigns,
   listCompanies,
+  listPlatformUsers,
+  getPlatformUserById,
+  createPlatformUser,
+  updatePlatformUser,
+  deletePlatformUser,
+  type PlatformUserRecord,
 } from 'db/platform'
+import {
+  listAdminUserGroups,
+  getAdminUserGroupById,
+  createAdminUserGroup,
+  updateAdminUserGroup,
+  deleteAdminUserGroup,
+  listAdminUserGroupMemberships,
+  setAdminUserGroupMemberships,
+} from 'db/admin-user-groups'
 import { listLatestHealthChecks, listHealthCheckHistoryForService, type HealthCheckService } from 'db/health-checks'
+import { hashPassword } from 'shared'
 import { adminAuth } from '../middleware/admin.js'
 
 const DEFAULT_LIMIT = 20
@@ -53,6 +69,134 @@ export function adminRoutes() {
       workflowDesigns: workflowDesigns.length,
       triggers,
     })
+  })
+
+  // Platform users
+  function serializeUser(user: PlatformUserRecord) {
+    const { password: _, ...rest } = user
+    return rest
+  }
+
+  app.get('/platform-users', async (c) => {
+    const users = await listPlatformUsers()
+    const withGroups = await Promise.all(
+      users.map(async (user) => ({
+        ...serializeUser(user),
+        groups: await listAdminUserGroupMemberships(user.id),
+      }))
+    )
+    return c.json(withGroups)
+  })
+
+  app.get('/platform-users/:id', async (c) => {
+    const user = await getPlatformUserById(c.req.param('id'))
+    if (!user) return c.json({ error: 'Not found' }, 404)
+    const groups = await listAdminUserGroupMemberships(user.id)
+    return c.json({ ...serializeUser(user), groups })
+  })
+
+  app.post('/platform-users', async (c) => {
+    let body: Record<string, unknown>
+    try {
+      body = await c.req.json<Record<string, unknown>>()
+    } catch {
+      return c.json({ error: 'Invalid JSON' }, 400)
+    }
+    const email = typeof body.email === 'string' ? body.email.trim() : ''
+    const password = typeof body.password === 'string' ? body.password : ''
+    const groupIds = Array.isArray(body.groupIds) ? body.groupIds.filter((id): id is string => typeof id === 'string') : []
+
+    if (!email || !password) {
+      return c.json({ error: 'Email and password are required' }, 400)
+    }
+
+    const hashed = await hashPassword(password)
+    const user = await createPlatformUser({ email, password: hashed })
+    if (groupIds.length) {
+      await setAdminUserGroupMemberships(user.id, groupIds)
+    }
+    const groups = await listAdminUserGroupMemberships(user.id)
+    return c.json({ ...serializeUser(user), groups }, 201)
+  })
+
+  app.patch('/platform-users/:id', async (c) => {
+    const id = c.req.param('id')
+    let body: Record<string, unknown>
+    try {
+      body = await c.req.json<Record<string, unknown>>()
+    } catch {
+      return c.json({ error: 'Invalid JSON' }, 400)
+    }
+
+    const update: { email?: string; password?: string } = {}
+    if (typeof body.email === 'string') update.email = body.email.trim()
+    if (typeof body.password === 'string' && body.password.length > 0) {
+      update.password = await hashPassword(body.password)
+    }
+
+    const user = await updatePlatformUser(id, update)
+    if (!user) return c.json({ error: 'Not found' }, 404)
+
+    if (Array.isArray(body.groupIds)) {
+      const groupIds = body.groupIds.filter((id): id is string => typeof id === 'string')
+      await setAdminUserGroupMemberships(id, groupIds)
+    }
+
+    const groups = await listAdminUserGroupMemberships(user.id)
+    return c.json({ ...serializeUser(user), groups })
+  })
+
+  app.delete('/platform-users/:id', async (c) => {
+    await deletePlatformUser(c.req.param('id'))
+    return c.json({ ok: true })
+  })
+
+  // Admin user groups
+  app.get('/admin-user-groups', async (c) => {
+    return c.json(await listAdminUserGroups())
+  })
+
+  app.get('/admin-user-groups/:id', async (c) => {
+    const group = await getAdminUserGroupById(c.req.param('id'))
+    if (!group) return c.json({ error: 'Not found' }, 404)
+    return c.json(group)
+  })
+
+  app.post('/admin-user-groups', async (c) => {
+    let body: Record<string, unknown>
+    try {
+      body = await c.req.json<Record<string, unknown>>()
+    } catch {
+      return c.json({ error: 'Invalid JSON' }, 400)
+    }
+    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    if (!name) return c.json({ error: 'Name is required' }, 400)
+    const group = await createAdminUserGroup({
+      name,
+      description: typeof body.description === 'string' ? body.description : undefined,
+    })
+    return c.json(group, 201)
+  })
+
+  app.patch('/admin-user-groups/:id', async (c) => {
+    const id = c.req.param('id')
+    let body: Record<string, unknown>
+    try {
+      body = await c.req.json<Record<string, unknown>>()
+    } catch {
+      return c.json({ error: 'Invalid JSON' }, 400)
+    }
+    const update: { name?: string; description?: string } = {}
+    if (typeof body.name === 'string') update.name = body.name.trim()
+    if (typeof body.description === 'string') update.description = body.description
+    const group = await updateAdminUserGroup(id, update)
+    if (!group) return c.json({ error: 'Not found' }, 404)
+    return c.json(group)
+  })
+
+  app.delete('/admin-user-groups/:id', async (c) => {
+    await deleteAdminUserGroup(c.req.param('id'))
+    return c.json({ ok: true })
   })
 
   return app

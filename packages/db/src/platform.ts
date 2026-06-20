@@ -541,6 +541,116 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
 }
 
 
+export interface PlatformUserRecord {
+  id: string
+  email: string
+  password: string
+  createdAt: string
+  updatedAt: string
+  [key: string]: unknown
+}
+
+export interface PlatformUserInput {
+  email: string
+  password: string
+}
+
+export interface PlatformUserUpdateInput {
+  email?: string
+  password?: string
+}
+
+export async function listPlatformUsers(): Promise<PlatformUserRecord[]> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    const [users] = await surreal.query<[PlatformUserRecord[]]>(
+      'SELECT * FROM platform_users ORDER BY email'
+    )
+    return normalizeIds(users)
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getPlatformUserById(id: string): Promise<PlatformUserRecord | undefined> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    const [result] = await surreal.query<[PlatformUserRecord[]]>(
+      'SELECT * FROM type::record($id)',
+      { id }
+    )
+    return normalizeId(result[0])
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getPlatformUserByEmail(email: string): Promise<PlatformUserRecord | undefined> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    const [result] = await surreal.query<[PlatformUserRecord[]]>(
+      'SELECT * FROM platform_users WHERE email = $email LIMIT 1',
+      { email }
+    )
+    return normalizeId(result[0])
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function createPlatformUser(input: PlatformUserInput): Promise<PlatformUserRecord> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    const now = new Date().toISOString()
+    const data = {
+      ...input,
+      createdAt: now,
+      updatedAt: now,
+    }
+    const [created] = await surreal.query<[PlatformUserRecord[]]>(
+      'CREATE platform_users CONTENT $data',
+      { data }
+    )
+    return normalizeId(created[0])!
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function updatePlatformUser(
+  id: string,
+  input: PlatformUserUpdateInput
+): Promise<PlatformUserRecord | undefined> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    const data: Record<string, unknown> = {}
+    if (input.email !== undefined) data.email = input.email
+    if (input.password !== undefined) data.password = input.password
+    data.updatedAt = new Date().toISOString()
+
+    const [updated] = await surreal.query<[PlatformUserRecord[]]>(
+      'UPDATE type::record($id) MERGE $data',
+      { id, data }
+    )
+    return normalizeId(updated[0])
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function deletePlatformUser(id: string): Promise<void> {
+  const surreal = await getSurreal('platform', 'admin')
+  try {
+    await surreal.query(
+      'DELETE admin_user_group_memberships WHERE in = type::record($id)',
+      { id }
+    )
+    await surreal.query('DELETE type::record($id)', { id })
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
 export interface UserProfileRecord {
   id: string
   name: string

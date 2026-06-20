@@ -44,6 +44,8 @@ export async function seed() {
       DEFINE INDEX IF NOT EXISTS idx_platform_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
 
       UPSERT platform_users:admin SET email = 'admin@example.com', password = $password;
+      UPSERT admin_user_groups:superadmin SET name = 'Super Admin', description = 'Full platform access';
+      RELATE platform_users:admin->admin_user_group_memberships->admin_user_groups:superadmin;
     `, { password: passwordHash })
 
     for (const table of PLATFORM_TABLE_SCHEMAS) {

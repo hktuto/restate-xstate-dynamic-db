@@ -2,18 +2,12 @@
 interface AdminUserGroup {
   id: string
   name: string
-}
-
-interface PlatformUser {
-  id: string
-  email: string
-  createdAt: string
+  description?: string
   updatedAt: string
-  groups: AdminUserGroup[]
 }
 
 const api = useApi()
-const users = ref<PlatformUser[]>([])
+const groups = ref<AdminUserGroup[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -21,21 +15,21 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    users.value = await api.fetch<PlatformUser[]>('/api/admin/platform-users')
+    groups.value = await api.fetch<AdminUserGroup[]>('/api/admin/admin-user-groups')
   } catch (err: any) {
-    error.value = err?.message ?? 'Failed to load users'
+    error.value = err?.message ?? 'Failed to load groups'
   } finally {
     loading.value = false
   }
 }
 
 async function remove(id: string) {
-  if (!confirm('Delete this admin user?')) return
+  if (!confirm('Delete this group?')) return
   try {
-    await api.fetch(`/api/admin/platform-users/${id}`, { method: 'DELETE' })
+    await api.fetch(`/api/admin/admin-user-groups/${id}`, { method: 'DELETE' })
     await load()
   } catch (err: any) {
-    error.value = err?.message ?? 'Failed to delete user'
+    error.value = err?.message ?? 'Failed to delete group'
   }
 }
 
@@ -45,21 +39,21 @@ onMounted(load)
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Users" icon="i-lucide-users">
+      <UDashboardNavbar title="User Groups" icon="i-lucide-users-round">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
 
         <template #right>
-          <UButton to="/users/new" icon="i-lucide-plus">
-            Add user
+          <UButton to="/user-groups/new" icon="i-lucide-plus">
+            Add group
           </UButton>
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
-      <UCard title="Admin users" description="Manage platform administrator accounts and their groups.">
+      <UCard title="Admin user groups" description="Groups used to organize platform administrators.">
         <UAlert
           v-if="error"
           color="error"
@@ -70,38 +64,29 @@ onMounted(load)
 
         <div v-if="loading" class="text-gray-500">Loading...</div>
 
-        <div v-else-if="!users.length" class="text-gray-500">
-          No admin users found.
+        <div v-else-if="!groups.length" class="text-gray-500">
+          No groups found.
         </div>
 
         <table v-else class="w-full text-left text-sm">
           <thead class="border-b">
             <tr>
-              <th class="py-2">Email</th>
-              <th class="py-2">Groups</th>
+              <th class="py-2">Name</th>
+              <th class="py-2">Description</th>
               <th class="py-2">Updated</th>
               <th class="py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in users" :key="user.id" class="border-b last:border-b-0">
-              <td class="py-3">{{ user.email }}</td>
-              <td class="py-3">
-                <span v-if="!user.groups.length" class="text-gray-400">—</span>
-                <span
-                  v-for="group in user.groups"
-                  :key="group.id"
-                  class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 mr-1"
-                >
-                  {{ group.name }}
-                </span>
-              </td>
+            <tr v-for="group in groups" :key="group.id" class="border-b last:border-b-0">
+              <td class="py-3">{{ group.name }}</td>
+              <td class="py-3 text-gray-500">{{ group.description || '—' }}</td>
               <td class="py-3 text-gray-500">
-                {{ new Date(user.updatedAt).toLocaleString() }}
+                {{ new Date(group.updatedAt).toLocaleString() }}
               </td>
               <td class="py-3 text-right">
                 <UButton
-                  :to="`/users/${encodeURIComponent(user.id)}`"
+                  :to="`/user-groups/${encodeURIComponent(group.id)}`"
                   color="neutral"
                   variant="ghost"
                   icon="i-lucide-pencil"
@@ -111,7 +96,7 @@ onMounted(load)
                   color="error"
                   variant="ghost"
                   icon="i-lucide-trash"
-                  @click="remove(user.id)"
+                  @click="remove(group.id)"
                 />
               </td>
             </tr>

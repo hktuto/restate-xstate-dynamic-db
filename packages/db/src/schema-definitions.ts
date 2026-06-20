@@ -277,6 +277,10 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('name', 'string', 'text'),
     column('description', 'string', 'text', { optional: true }),
   ]),
+  table('admin_user_groups', 'Admin User Groups', [
+    column('name', 'string', 'text'),
+    column('description', 'string', 'text', { optional: true }),
+  ]),
   table('_views', 'Views', [
     column('table', 'string', 'text'),
     column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['table']) } }),

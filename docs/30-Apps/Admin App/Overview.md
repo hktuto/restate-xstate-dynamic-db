@@ -32,6 +32,8 @@ The superadmin Nuxt application for platform-level management.
 - Dashboard layout follows the Nuxt UI dashboard template: a collapsible, resizable `UDashboardSidebar` with the brand in the sidebar header, and a `UDashboardSidebarCollapse` toggle in each page’s `UDashboardNavbar`.
 - Color mode is supported via Nuxt UI / `@nuxtjs/color-mode`. A light/dark toggle lives under **Appearance** in the profile dropdown menu.
 - Dashboard shows aggregate stats: companies, workflow designs, and triggers. The trigger count is derived from the number of `db_trigger` start rules across all platform workflow designs.
+- The `/users` page lists platform admin users, allows creating and editing them, and supports assigning users to multiple admin user groups via graph-edge memberships.
+- The `/user-groups` page manages admin user groups.
 - The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
 
 ## Routes
@@ -41,6 +43,8 @@ The superadmin Nuxt application for platform-level management.
 | `/login` | Admin login (uses `auth.vue` layout). |
 | `/` | Dashboard with platform stats. |
 | `/companies` | Manage companies. |
+| `/users` | List, add, and edit platform admin users. |
+| `/user-groups` | List, add, and edit admin user groups. |
 | `/workflow-designs` | Manage platform workflow designs; detail page can run a user trigger from generated start-state inputs. |
 | `/triggers` | Manage platform db-trigger start rules on workflow designs. |
 | `/health` | Service health monitor. |
