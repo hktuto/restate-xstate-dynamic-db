@@ -20,6 +20,8 @@ export async function seed() {
 
       ${tableDefinitions}
 
+      DEFINE TABLE IF NOT EXISTS admin_user_group_memberships TYPE RELATION SCHEMALESS;
+
       DEFINE TABLE IF NOT EXISTS _tables SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_tables_name ON _tables FIELDS name UNIQUE;
 
