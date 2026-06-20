@@ -40,6 +40,8 @@ import {
   verifyAccessTokenCookie,
   type TenantCompanyCookie,
 } from '../lib/session.js'
+import { adminSessionMiddleware } from '../middleware/session.js'
+import '../middleware/admin.js'
 import { extractDeviceInfo } from '../lib/device-fingerprint.js'
 
 const DUMMY_HASH = '$2b$12$8V7kAT3IavmTSYAx187I3.xTeRR6Ujz2G1MZACVrUBbN..wVwSICK'
@@ -463,16 +465,9 @@ export function authRoutes() {
     return c.json({ ok: true })
   })
 
-  app.get('/admin/me', (c) => {
-    const accessToken = readAdminAccessToken(c)
-    if (!accessToken) {
-      return c.json({ authenticated: false, user: null })
-    }
-    const payload = verifyAccessTokenCookie(accessToken)
-    if (!payload) {
-      return c.json({ authenticated: false, user: null })
-    }
-    return c.json({ authenticated: true, user: { userId: payload.accountId, email: payload.email } })
+  app.get('/admin/me', adminSessionMiddleware, (c) => {
+    const session = c.get('adminSession')
+    return c.json({ authenticated: true, user: { userId: session.userId, email: session.email } })
   })
 
   return app
