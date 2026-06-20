@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
+import type { NavigationMenuItem, DropdownMenuItem } from '@nuxt/ui'
 
 const auth = useAuth()
+const colorMode = useColorMode()
 
 const items = ref<NavigationMenuItem[]>([
   { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/dashboard' },
@@ -15,6 +16,54 @@ const items = ref<NavigationMenuItem[]>([
 
 const displayName = computed(() => auth.user.value?.email ?? 'Admin User')
 const avatarSeed = computed(() => auth.user.value?.email ?? 'Admin')
+
+const menuItems = computed<DropdownMenuItem[][]>(() => [
+  [{
+    type: 'label',
+    label: displayName.value,
+    avatar: {
+      src: `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(avatarSeed.value)}`,
+      alt: displayName.value,
+    },
+  }],
+  [
+    { label: 'Profile', icon: 'i-lucide-user', to: '/settings' },
+    { label: 'Settings', icon: 'i-lucide-settings', to: '/settings' },
+  ],
+  [{
+    label: 'Appearance',
+    icon: 'i-lucide-sun-moon',
+    children: [
+      {
+        label: 'Light',
+        icon: 'i-lucide-sun',
+        type: 'checkbox',
+        checked: colorMode.value === 'light',
+        onSelect(e: Event) {
+          e.preventDefault()
+          colorMode.preference = 'light'
+        },
+      },
+      {
+        label: 'Dark',
+        icon: 'i-lucide-moon',
+        type: 'checkbox',
+        checked: colorMode.value === 'dark',
+        onSelect(e: Event) {
+          e.preventDefault()
+          colorMode.preference = 'dark'
+        },
+      },
+    ],
+  }],
+  [{
+    label: 'Logout',
+    icon: 'i-lucide-log-out',
+    onSelect() {
+      auth.logout()
+    },
+  }],
+])
 </script>
 
 <template>
@@ -35,7 +84,11 @@ const avatarSeed = computed(() => auth.user.value?.email ?? 'Admin')
       <UNavigationMenu orientation="vertical" :items="items" tooltip />
 
       <template #footer="{ collapsed }">
-        <UPopover>
+        <UDropdownMenu
+          :items="menuItems"
+          :content="{ align: 'center', collisionPadding: 12 }"
+          :ui="{ content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)' }"
+        >
           <UButton
             color="neutral"
             variant="ghost"
@@ -47,45 +100,11 @@ const avatarSeed = computed(() => auth.user.value?.email ?? 'Admin')
               alt: displayName,
             }"
             :label="collapsed ? undefined : displayName"
-            :trailing-icon="collapsed ? undefined : 'i-lucide-chevron-up'"
+            :trailing-icon="collapsed ? undefined : 'i-lucide-chevrons-up-down'"
+            class="data-[state=open]:bg-elevated"
+            :ui="{ trailingIcon: 'text-dimmed' }"
           />
-
-          <template #content>
-            <div class="flex flex-col gap-1 p-2 w-48">
-              <UButton
-                to="/settings"
-                variant="ghost"
-                color="neutral"
-                icon="i-lucide-user"
-                class="justify-start"
-              >
-                Profile
-              </UButton>
-
-              <UButton
-                to="/settings"
-                variant="ghost"
-                color="neutral"
-                icon="i-lucide-settings"
-                class="justify-start"
-              >
-                Settings
-              </UButton>
-
-              <USeparator />
-
-              <UButton
-                variant="ghost"
-                color="neutral"
-                icon="i-lucide-log-out"
-                class="justify-start"
-                @click="auth.logout"
-              >
-                Logout
-              </UButton>
-            </div>
-          </template>
-        </UPopover>
+        </UDropdownMenu>
       </template>
     </UDashboardSidebar>
 
