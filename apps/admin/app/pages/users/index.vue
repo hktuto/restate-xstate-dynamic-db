@@ -1,14 +1,12 @@
-<template>
-  <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Users" icon="i-lucide-users" />
-    </template>
+<script setup lang="ts">
+const config = {
+  title: 'Users',
+  icon: 'i-lucide-users',
+  table: 'platform_users',
+  nsdb: 'platform--admin',
+}
+</script>
 
-    <template #body>
-      <UCard
-        title="Users"
-        description="User management will be implemented here."
-      />
-    </template>
-  </UDashboardPanel>
+<template>
+  <DataTablePage v-bind="config" />
 </template>

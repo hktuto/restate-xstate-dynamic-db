@@ -1,14 +1,10 @@
 ---
 title: DB Session Auth Design
-type: spec
-status: done
-area: auth
-app:
-  - api
-  - web
-  - admin
+type: note
+status: in-progress
+area: docs
 created: 2026-06-19
-updated: 2026-06-19
+updated: 2026-06-20
 related:
   - [[20-Architecture/Data Model]]
   - [[50-Features/Tenant Authentication & Authorization]]

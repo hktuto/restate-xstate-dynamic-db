@@ -1,0 +1,12 @@
+{
+  "name": "data-table-layer",
+  "type": "module",
+  "dependencies": {
+    "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "nuxt": "^4.4.8",
+    "typescript": "^5.8.3",
+    "vue": "^3.5.35"
+  }
+}

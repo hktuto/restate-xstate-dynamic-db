@@ -458,6 +458,7 @@ export async function createCompany(input: CompanyInput): Promise<CompanyRecord>
     const record = {
       ...input,
       namespace: input.namespace ?? `company_${id}`,
+      status: 'active',
       createdAt: new Date().toISOString()
     }
     const [created] = await surreal.query<[CompanyRecord[]]>(

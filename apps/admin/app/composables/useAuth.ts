@@ -19,7 +19,8 @@ export function useAuth() {
       const result = await api.fetch<{ authenticated: boolean; user: AdminUser | null }>('/api/admin/me')
       user.value = result.user ?? null
       authenticated.value = result.authenticated
-    } catch {
+    } catch (error) {
+      console.error(error)
       user.value = null
       authenticated.value = false
     } finally {

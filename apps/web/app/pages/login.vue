@@ -8,7 +8,7 @@ const api = useApi()
 async function submit() {
   error.value = ''
   try {
-    const result = await api.fetch<{ companies: { id: string; slug: string; namespace: string }[] }>('/api/auth/login', {
+    const result = await api.fetch<{ companies: { id: string; slug: string; namespace: string }[] }>('/api/login', {
       method: 'POST',
       body: { email: email.value, password: password.value }
     })
@@ -16,7 +16,7 @@ async function submit() {
       await router.push('/companies')
     } else {
       const company = result.companies[0]!
-      await api.fetch('/api/auth/company', {
+      await api.fetch('/api/company', {
         method: 'POST',
         body: { companyId: company.id, slug: company.slug }
       })

@@ -92,8 +92,31 @@ Auth endpoints are served by `apps/api` so the Nuxt frontends can call a single 
 
 Tenant routes read `tenant_session` and `company` cookies and verify the active member. Admin routes read `admin_session`; table routes parse the `nsdb` path parameter, while platform-scoped admin routes default to the `platform/admin` namespace/database.
 
+## Environment
+
+The API reads `SESSION_SECRET` from the root `.env` file at startup. The `dev` and `start` scripts load it via Node's `--env-file` flag:
+
+```json
+{
+  "dev": "tsx watch --env-file ../../.env src/index.ts",
+  "start": "tsx --env-file ../../.env src/index.ts"
+}
+```
+
+If `SESSION_SECRET` is not set, the process throws `Error: SESSION_SECRET is required`.
+
 ## Run locally
 
 ```bash
 pnpm --filter api dev
 ```
+
+## Tests
+
+```bash
+# Requires surrealdb-test on port 8001
+docker compose up -d surrealdb-test
+pnpm --filter api test
+```
+
+The API test suite extends the shared `vitest.base.config.ts`, which loads `.env.test` and points `SURREAL_URL` at the test SurrealDB instance. E2E fixtures create unique `e2e_*` namespaces and clean them up after each test.

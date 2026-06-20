@@ -4,7 +4,7 @@ type: app
 status: done
 area: runtime
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-19
 app:
   - runtime
 related:
@@ -63,6 +63,16 @@ The `restate-register` service automatically registers the workflow runtime with
 - **Restate meta:** `9070`
 
 The health endpoint is intentionally separate from the Restate endpoint so Compose can verify liveness without interfering with HTTP/2 traffic.
+
+## Tests
+
+```bash
+# Requires surrealdb-test on port 8001
+docker compose up -d surrealdb-test
+pnpm --filter workflow-runtime test
+```
+
+The workflow-runtime test suite extends the shared `vitest.base.config.ts`, which loads `.env.test` and points `SURREAL_URL` at the test SurrealDB instance.
 
 ## Related
 

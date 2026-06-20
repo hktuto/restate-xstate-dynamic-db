@@ -8,6 +8,11 @@ import {
   upsertRelation,
   getTableSchema,
   syncTableSchemaFromRecords,
+  listViews,
+  getView,
+  getDefaultView,
+  upsertView,
+  deleteView,
 } from '../src/schema-registry.js'
 import { getSurreal, closeSurreal } from '../src/client.js'
 import { SYSTEM_COLUMNS } from '../src/schema-definitions.js'
@@ -217,5 +222,279 @@ describe('schema-registry', () => {
   it('getTableSchema rejects invalid tableName', async () => {
     await expect(getTableSchema(testNs, 'main', 'bad-name')).rejects.toThrow('Invalid table name')
     await expect(getTableSchema(testNs, 'main', '123bad')).rejects.toThrow('Invalid table name')
+  })
+
+  it('upserts and retrieves nested object fields', async () => {
+    await upsertColumn(testNs, 'main', {
+      table: 'contacts',
+      name: 'address',
+      dbType: 'object',
+      displayType: 'json',
+      optional: true,
+      fields: [
+        { name: 'street', dbType: 'string', displayType: 'text' },
+        { name: 'city', dbType: 'string', displayType: 'text' },
+      ],
+    })
+    const schema = await getTableSchema(testNs, 'main', 'contacts')
+    const address = schema!.columns.find((c) => c.name === 'address')
+    expect(address?.fields).toHaveLength(2)
+    expect(address?.fields?.map((f) => f.name)).toEqual(['street', 'city'])
+    const street = address?.fields?.find((f) => f.name === 'street')
+    expect(street?.dbType).toBe('string')
+    expect(street?.displayType).toBe('text')
+  })
+
+  it('upserts and retrieves array-of-object fields', async () => {
+    await upsertColumn(testNs, 'main', {
+      table: 'contacts',
+      name: 'invoiceLines',
+      dbType: 'array',
+      displayType: 'json',
+      optional: true,
+      fields: [
+        { name: 'id', dbType: 'string', displayType: 'text' },
+        { name: 'date', dbType: 'datetime', displayType: 'date' },
+        { name: 'item', dbType: 'string', displayType: 'text' },
+        { name: 'total', dbType: 'number', displayType: 'number' },
+      ],
+    })
+    const schema = await getTableSchema(testNs, 'main', 'contacts')
+    const lines = schema!.columns.find((c) => c.name === 'invoiceLines')
+    expect(lines?.fields).toHaveLength(4)
+    expect(lines?.fields?.map((f) => f.name)).toEqual(['id', 'date', 'item', 'total'])
+    const total = lines?.fields?.find((f) => f.name === 'total')
+    expect(total?.dbType).toBe('number')
+    expect(total?.displayType).toBe('number')
+  })
+
+  it('upserts and retrieves deeply nested object fields', async () => {
+    await upsertColumn(testNs, 'main', {
+      table: 'contacts',
+      name: 'organization',
+      dbType: 'object',
+      displayType: 'json',
+      optional: true,
+      fields: [
+        {
+          name: 'address',
+          dbType: 'object',
+          displayType: 'json',
+          fields: [
+            { name: 'street', dbType: 'string', displayType: 'text' },
+            { name: 'zip', dbType: 'string', displayType: 'text' },
+          ],
+        },
+      ],
+    })
+    const schema = await getTableSchema(testNs, 'main', 'contacts')
+    const organization = schema!.columns.find((c) => c.name === 'organization')
+    expect(organization?.fields).toHaveLength(1)
+    const address = organization?.fields?.find((f) => f.name === 'address')
+    expect(address?.dbType).toBe('object')
+    expect(address?.displayType).toBe('json')
+    expect(address?.fields?.map((f) => f.name)).toEqual(['street', 'zip'])
+    const zip = address?.fields?.find((f) => f.name === 'zip')
+    expect(zip?.dbType).toBe('string')
+    expect(zip?.displayType).toBe('text')
+  })
+
+  it('rejects invalid nested field identifiers', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'badNestedIdentifier',
+        dbType: 'object',
+        displayType: 'json',
+        fields: [{ name: 'bad-name', dbType: 'string', displayType: 'text' }],
+      })
+    ).rejects.toThrow('Invalid nested field name')
+  })
+
+  it('rejects nested fields on primitive dbTypes', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'badPrimitive',
+        dbType: 'string',
+        displayType: 'text',
+        fields: [{ name: 'x', dbType: 'string', displayType: 'text' }],
+      })
+    ).rejects.toThrow("only allowed on object or array")
+  })
+
+  it('rejects duplicate nested field names', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'badDuplicate',
+        dbType: 'object',
+        displayType: 'json',
+        fields: [
+          { name: 'x', dbType: 'string', displayType: 'text' },
+          { name: 'x', dbType: 'number', displayType: 'number' },
+        ],
+      })
+    ).rejects.toThrow('Duplicate nested field name')
+  })
+
+  it('rejects system flag on nested fields', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'badSystemField',
+        dbType: 'object',
+        displayType: 'json',
+        fields: [{ name: 'x', dbType: 'string', displayType: 'text', system: true }],
+      })
+    ).rejects.toThrow('Nested field cannot be a system column')
+  })
+
+  it('rejects unique flag on nested fields', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'badUniqueField',
+        dbType: 'object',
+        displayType: 'json',
+        fields: [{ name: 'x', dbType: 'string', displayType: 'text', unique: true }],
+      })
+    ).rejects.toThrow('Nested field cannot be unique')
+  })
+
+  it('rejects uniqueScope on nested fields', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'badUniqueScopeField',
+        dbType: 'object',
+        displayType: 'json',
+        fields: [{ name: 'x', dbType: 'string', displayType: 'text', uniqueScope: 'foo' }],
+      })
+    ).rejects.toThrow('Nested field cannot have a uniqueScope')
+  })
+
+  it('rejects order on nested fields', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'badOrderField',
+        dbType: 'object',
+        displayType: 'json',
+        fields: [{ name: 'x', dbType: 'string', displayType: 'text', order: 1 }],
+      })
+    ).rejects.toThrow('Nested field cannot have an order')
+  })
+
+  it('rejects fields on system columns', async () => {
+    await expect(
+      upsertColumn(testNs, 'main', {
+        table: 'contacts',
+        name: 'id',
+        dbType: 'record',
+        displayType: 'text',
+        system: true,
+        fields: [{ name: 'x', dbType: 'string', displayType: 'text' }],
+      })
+    ).rejects.toThrow('cannot have nested fields')
+  })
+
+  describe('views', () => {
+    it('lists default views seeded during provision', async () => {
+      const views = await listViews(testNs, 'main')
+      expect(views.length).toBeGreaterThan(0)
+      const membersView = views.find((v) => v.table === 'members' && v.isDefault)
+      expect(membersView).toBeDefined()
+    })
+
+    it('gets default view by table', async () => {
+      const view = await getDefaultView(testNs, 'main', 'members')
+      expect(view).not.toBeNull()
+      expect(view!.table).toBe('members')
+      expect(view!.isDefault).toBe(true)
+      expect(view!.config.table?.columns.length).toBeGreaterThan(0)
+    })
+
+    it('creates and retrieves a custom view', async () => {
+      const created = await upsertView(testNs, 'main', {
+        table: 'members',
+        type: 'table',
+        name: 'Custom Members',
+        config: {
+          table: {
+            columns: [
+              { column: 'email', visible: true, width: 'auto' },
+              { column: 'role', visible: false },
+            ],
+          },
+        },
+      })
+      expect(created.id).toBeDefined()
+
+      const view = await getView(testNs, 'main', created.id)
+      expect(view).not.toBeNull()
+      expect(view!.name).toBe('Custom Members')
+      expect(view!.config.table?.columns).toHaveLength(2)
+    })
+
+    it('lists views filtered by table', async () => {
+      const views = await listViews(testNs, 'main', 'members')
+      expect(views.every((v) => v.table === 'members')).toBe(true)
+    })
+
+    it('rejects unknown columns in view config', async () => {
+      await expect(
+        upsertView(testNs, 'main', {
+          table: 'members',
+          type: 'table',
+          name: 'Bad View',
+          config: {
+            table: {
+              columns: [{ column: 'does_not_exist', visible: true }],
+            },
+          },
+        })
+      ).rejects.toThrow('Unknown column in view config')
+    })
+
+    it('rejects views for unknown tables', async () => {
+      await expect(
+        upsertView(testNs, 'main', {
+          table: 'unknown_table_xyz',
+          type: 'table',
+          name: 'Bad View',
+          config: { table: { columns: [] } },
+        })
+      ).rejects.toThrow('Table not found')
+    })
+
+    it('updates an existing view', async () => {
+      const created = await upsertView(testNs, 'main', {
+        table: 'members',
+        type: 'table',
+        name: 'Update Test',
+        config: { table: { columns: [{ column: 'email', visible: true }] } },
+      })
+      const updated = await upsertView(testNs, 'main', {
+        id: created.id,
+        name: 'Updated Name',
+        config: { table: { columns: [{ column: 'email', visible: false }] } },
+      })
+      expect(updated.id).toBe(created.id)
+      expect(updated.name).toBe('Updated Name')
+      expect(updated.config.table?.columns[0]?.visible).toBe(false)
+    })
+
+    it('deletes a view', async () => {
+      const created = await upsertView(testNs, 'main', {
+        table: 'members',
+        type: 'table',
+        name: 'To Delete',
+        config: { table: { columns: [{ column: 'email', visible: true }] } },
+      })
+      await deleteView(testNs, 'main', created.id)
+      const view = await getView(testNs, 'main', created.id)
+      expect(view).toBeNull()
+    })
   })
 })

@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { createCorsMiddleware } from './middleware/cors.js'
 import { authRoutes } from './routes/auth.js'
 import { tablesRoutes } from './routes/tables.js'
+import { viewsRoutes } from './routes/views.js'
 import { companiesRoutes } from './routes/companies.js'
 import { usersRoutes } from './routes/users.js'
 import { workflowDesignsRoutes } from './routes/workflow-designs.js'
@@ -21,6 +22,7 @@ export function createApp() {
   app.route('/api/permissions', permissionsRoutes())
   app.route('/api', authRoutes())
   app.route('/api', tablesRoutes())
+  app.route('/api', viewsRoutes())
   app.route('/api/companies', companiesRoutes())
   app.route('/api/users', usersRoutes())
   app.route('/api/workflow-designs', workflowDesignsRoutes())

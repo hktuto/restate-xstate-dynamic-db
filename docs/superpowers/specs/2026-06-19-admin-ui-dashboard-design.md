@@ -1,15 +1,13 @@
 ---
-title: "Admin UI Dashboard Layout and Login Page"
-type: spec
-status: planned
-area: frontend
-app:
-  - admin
-related:
-  - "[[Admin]]"
-  - "[[Nuxt UI]]"
+title: Admin UI Dashboard Layout and Login Page
+type: note
+status: in-progress
+area: docs
 created: 2026-06-19
-updated: 2026-06-19
+updated: 2026-06-20
+related:
+  - [[Admin]]
+  - [[Nuxt UI]]
 ---
 
 # Admin UI Dashboard Layout and Login Page

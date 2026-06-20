@@ -1,11 +1,27 @@
 import type { WorkflowDefinition, ActionInputMetadata } from 'shared'
 import { getTableSchema } from 'db/schema-registry'
+import type { ColumnDefinition } from 'db/schema-definitions'
 
 import { actionsMetadata } from './actions.js'
 
 function toActionDisplayType(displayType: string): ActionInputMetadata['displayType'] {
   const valid: ActionInputMetadata['displayType'][] = ['text', 'email', 'url', 'number', 'select', 'checkbox', 'date', 'json', 'richText']
   return valid.includes(displayType as ActionInputMetadata['displayType']) ? (displayType as ActionInputMetadata['displayType']) : 'text'
+}
+
+function mapColumnToInput(column: ColumnDefinition): ActionInputMetadata {
+  return {
+    name: column.name,
+    label: column.label ?? column.name,
+    dbType: column.dbType,
+    displayType: toActionDisplayType(column.displayType),
+    description: column.label,
+    required: !column.optional,
+    hidden: column.hidden,
+    defaultValue: column.defaultValue,
+    config: column.config,
+    fields: column.fields?.map(mapColumnToInput),
+  }
 }
 
 export async function resolveInputs(
@@ -27,17 +43,7 @@ export async function resolveInputs(
     if (!schema) return []
     return schema.columns
       .filter((c) => !c.system)
-      .map((c) => ({
-        name: c.name,
-        label: c.label ?? c.name,
-        dbType: c.dbType,
-        displayType: toActionDisplayType(c.displayType),
-        description: c.label,
-        required: !c.optional,
-        hidden: c.hidden,
-        defaultValue: c.defaultValue,
-        config: c.config
-      }))
+      .map(mapColumnToInput)
   }
   return []
 }

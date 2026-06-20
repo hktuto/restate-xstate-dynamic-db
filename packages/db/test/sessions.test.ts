@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createPlatformSession, getPlatformSessionByRefreshToken, revokePlatformSession, countActivePlatformSessions } from '../src/platform'
-import { createTenantSession, getActiveTenantSessionByPlatformSessionId, revokeTenantSession, countActiveTenantSessions } from '../src/tenant'
+import { createPlatformSession, getPlatformSessionByRefreshToken, revokePlatformSession, countActivePlatformSessions } from '../src/platform.js'
+import { createTenantSession, getActiveTenantSessionByPlatformSessionId, revokeTenantSession, countActiveTenantSessions } from '../src/tenant.js'
 import { createTenantNamespace, removeTenantNamespace } from './helpers.js'
 
 const TEST_NS = `test_sessions_${Date.now()}`

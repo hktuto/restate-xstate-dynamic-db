@@ -1,3 +1,12 @@
+---
+title: Admin Sidebar Layout Refinement
+type: note
+status: in-progress
+area: docs
+created: 2026-06-20
+updated: 2026-06-20
+---
+
 # Admin Sidebar Layout Refinement
 
 ## Goal

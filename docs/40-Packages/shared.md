@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-19
 package: shared
 related:
   - [[Authentication & Authorization]]
@@ -31,6 +31,12 @@ Shared utilities used across apps and packages.
 
 ```bash
 pnpm --filter shared typecheck
+```
+
+## Tests
+
+```bash
+pnpm --filter shared test
 ```
 
 ## Related

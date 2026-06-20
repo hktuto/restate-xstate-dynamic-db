@@ -4,7 +4,7 @@ type: index
 status: in-progress
 area: docs
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-19
 related:
   - [[Vision]]
   - [[System Overview]]
@@ -107,6 +107,11 @@ docker compose up -d
 pnpm --filter db seed
 
 # Apps
+pnpm --filter api dev
 pnpm --filter admin dev
 pnpm --filter web dev
+
+# Tests (require surrealdb-test)
+docker compose up -d surrealdb-test
+pnpm -r test
 ```

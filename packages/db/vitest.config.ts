@@ -1,10 +1,10 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig, mergeConfig } from 'vitest/config'
+import base from '../../vitest.base.config.js'
 
-export default defineConfig({
+export default mergeConfig(base, defineConfig({
   test: {
-    globals: true,
-    environment: 'node',
     setupFiles: ['./test/setup.ts'],
     fileParallelism: false,
+    testTimeout: 30000,
   },
-})
+}))

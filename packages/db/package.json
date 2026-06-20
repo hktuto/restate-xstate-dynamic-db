@@ -34,6 +34,10 @@
       "types": "./src/seed.ts",
       "default": "./src/seed.ts"
     },
+    "./clean-db": {
+      "types": "./src/clean-db.ts",
+      "default": "./src/clean-db.ts"
+    },
     "./tenant": {
       "types": "./src/tenant.ts",
       "default": "./src/tenant.ts"
@@ -61,6 +65,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "clean-db": "tsx scripts/clean-db.ts",
     "seed": "tsx src/seed.ts",
     "seed-company": "tsx scripts/seed-company.ts",
     "seed:workflows": "tsx src/seed-workflows.ts",

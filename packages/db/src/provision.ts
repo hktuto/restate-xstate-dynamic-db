@@ -1,7 +1,7 @@
 // packages/db/src/provision.ts
 import { getSurreal, closeSurreal } from './client.js'
 import { TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
-import { upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
+import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
 
 export async function provisionCompanyNamespace(namespace: string) {
   if (!/^[a-z_][a-z0-9_]*$/.test(namespace)) {
@@ -31,6 +31,11 @@ export async function provisionCompanyNamespace(namespace: string) {
       DEFINE INDEX IF NOT EXISTS idx_relations_to ON _relations FIELDS toTable, toColumn;
       DEFINE INDEX IF NOT EXISTS idx_relations_unique ON _relations FIELDS fromTable, fromColumn, toTable, toColumn UNIQUE;
 
+      DEFINE TABLE IF NOT EXISTS _views SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_views_table ON _views FIELDS table;
+      DEFINE INDEX IF NOT EXISTS idx_views_table_name ON _views FIELDS table, name UNIQUE;
+      DEFINE INDEX IF NOT EXISTS idx_views_default ON _views FIELDS table, isDefault;
+
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
       DEFINE INDEX IF NOT EXISTS idx_members_inviteCode ON members FIELDS inviteCode UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_company_policies_companyId ON company_policies FIELDS companyId UNIQUE;
@@ -59,6 +64,10 @@ export async function provisionCompanyNamespace(namespace: string) {
       for (const relation of table.relations ?? []) {
         await upsertRelation(namespace, 'main', relation)
       }
+    }
+
+    for (const table of TENANT_TABLE_SCHEMAS) {
+      await generateDefaultView(namespace, 'main', table.name)
     }
 
     return { ok: true, namespace }

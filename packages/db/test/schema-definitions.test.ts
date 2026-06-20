@@ -24,6 +24,7 @@ const VALID_DISPLAY_TYPES = [
   'relation',
   'formula',
   'richText',
+  'tag',
 ] as const
 
 describe('schema-definitions', () => {
@@ -94,6 +95,34 @@ describe('schema-definitions', () => {
     for (const table of [...PLATFORM_TABLE_SCHEMAS, ...TENANT_TABLE_SCHEMAS]) {
       const keys = (table.relations ?? []).map((r) => `${r.fromColumn}:${r.toTable}`)
       expect(new Set(keys).size).toBe(keys.length)
+    }
+  })
+
+  it('workflow_instances.triggerBy has nested fields', () => {
+    for (const schemas of [PLATFORM_TABLE_SCHEMAS, TENANT_TABLE_SCHEMAS]) {
+      const table = schemas.find((t) => t.name === 'workflow_instances')
+      expect(table).toBeDefined()
+      const triggerBy = table!.columns.find((c) => c.name === 'triggerBy')
+      expect(triggerBy).toBeDefined()
+      expect(triggerBy!.dbType).toBe('object')
+      expect(triggerBy!.fields?.map((f) => f.name)).toEqual(['type', 'startState'])
+      expect(triggerBy!.fields?.[0].dbType).toBe('string')
+      expect(triggerBy!.fields?.[1].dbType).toBe('string')
+    }
+  })
+
+  it('workflow_designs.starts has nested item fields', () => {
+    for (const schemas of [PLATFORM_TABLE_SCHEMAS, TENANT_TABLE_SCHEMAS]) {
+      const table = schemas.find((t) => t.name === 'workflow_designs')
+      expect(table).toBeDefined()
+      const starts = table!.columns.find((c) => c.name === 'starts')
+      expect(starts).toBeDefined()
+      expect(starts!.dbType).toBe('array')
+      expect(starts!.fields?.map((f) => f.name)).toEqual(['type', 'startState', 'options'])
+      expect(starts!.fields?.[0].optional).toBe(true)
+      expect(starts!.fields?.[1].optional).toBe(true)
+      expect(starts!.fields?.[2].optional).toBe(true)
+      expect(starts!.fields?.[2].dbType).toBe('object')
     }
   })
 })

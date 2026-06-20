@@ -27,6 +27,16 @@ services:
       - surreal-data:/data
     restart: unless-stopped
 
+  surrealdb-test:
+    image: surrealdb/surrealdb:latest
+    user: root
+    ports:
+      - "8001:8000"
+    command: start --user root --pass root rocksdb:///data-test/surreal.db
+    volumes:
+      - surreal-test-data:/data
+    restart: unless-stopped
+
   workflow-runtime:
     build:
       context: .
@@ -95,4 +105,5 @@ services:
 
 volumes:
   surreal-data:
+  surreal-test-data:
   restate-data:

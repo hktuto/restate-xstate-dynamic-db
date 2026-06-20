@@ -1,15 +1,13 @@
 ---
-title: "Seed Company Script Design"
-type: spec
-status: planned
-area: development
-app:
-  - db
-related:
-  - "[[Tenant Permission System]]"
-  - "[[Company Management]]"
+title: Seed Company Script Design
+type: note
+status: in-progress
+area: docs
 created: 2026-06-19
-updated: 2026-06-19
+updated: 2026-06-20
+related:
+  - [[Tenant Permission System]]
+  - [[Company Management]]
 ---
 
 # Seed Company Script Design
@@ -40,7 +38,7 @@ All accounts share the password `SeedPass123!`.
 
 | Account | Email | Member role | Company permission group | User groups |
 |---|---|---|---|---|
-| `owner` | `owner@seedco.test` | `owner` | Owner shortcut (all bits) | Engineering (owner), Finance (owner) |
+| `owner` | `owner@seedco.test` | `owner` | Owner shortcut (all bits) | Engineering (owner), Product (owner), Finance (owner) |
 | `alice` | `alice@seedco.test` | `member` | **Admin** | Engineering (owner) |
 | `bob` | `bob@seedco.test` | `member` | **Admin** | Product (owner) |
 | `charlie` | `charlie@seedco.test` | `member` | Member | Engineering |

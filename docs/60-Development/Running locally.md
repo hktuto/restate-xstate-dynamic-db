@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-06-19
 related:
   - [[Getting Started]]
   - [[Troubleshooting]]
@@ -22,16 +22,31 @@ docker compose up -d
 pnpm --filter db seed
 
 # 3. Apps (in separate terminals)
+pnpm --filter api dev
 pnpm --filter admin dev
 pnpm --filter web dev
 ```
 
 ## Verify
 
+- API: http://localhost:3002
 - Admin: http://localhost:3001
 - Web: http://localhost:3000
 - SurrealDB: http://localhost:8000
+- SurrealDB test instance: http://localhost:8001
 - Restate UI: http://localhost:9070
+
+## Run tests locally
+
+```bash
+# Start the test SurrealDB instance
+docker compose up -d surrealdb-test
+
+# Run all tests
+pnpm -r test
+```
+
+Tests are isolated from the dev database via the shared Vitest base config and `.env.test`.
 
 ## Related
 

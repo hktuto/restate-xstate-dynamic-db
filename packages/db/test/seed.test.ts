@@ -19,9 +19,9 @@ describe('platform seed', () => {
     const [info] = (await surreal.query('INFO FOR DB')) as [any]
     await closeSurreal(surreal)
     const tables = Object.keys(info.tables).filter((name: string) =>
-      ['_tables', '_columns', '_relations'].includes(name)
+      ['_tables', '_columns', '_relations', '_views'].includes(name)
     )
-    expect(tables.sort()).toEqual(['_columns', '_relations', '_tables'])
+    expect(tables.sort()).toEqual(['_columns', '_relations', '_tables', '_views'])
   })
 
   it('seeds registry rows for platform tables and system columns', async () => {
@@ -37,5 +37,17 @@ describe('platform seed', () => {
     expect(columns.some((c) => c.name === 'slug')).toBe(true)
     expect(columns.some((c) => c.name === 'createdAt' && c.system === true)).toBe(true)
     expect(relations.some((r) => r.fromTable === 'accounts' && r.toTable === 'user_profiles')).toBe(true)
+  })
+
+  it('seeds default views for platform tables', async () => {
+    const surreal = await getSurreal('platform', 'admin')
+    const [views] = (await surreal.query(
+      'SELECT * FROM _views WHERE table = $tableName AND isDefault = true',
+      { tableName: 'companies' }
+    )) as [any[]]
+    await closeSurreal(surreal)
+    expect(views.length).toBeGreaterThan(0)
+    expect(views[0].name).toBe('Default')
+    expect(views[0].config.table.columns.length).toBeGreaterThan(0)
   })
 })

@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url'
 import { hashPassword } from 'shared'
 import { getSurreal, closeSurreal, closeSurrealPool } from './client.js'
 import { PLATFORM_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
-import { upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
+import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
+import { cleanDb } from './clean-db.js'
 
 export async function seed() {
   const surreal = await getSurreal()
@@ -31,11 +32,15 @@ export async function seed() {
       DEFINE INDEX IF NOT EXISTS idx_relations_to ON _relations FIELDS toTable, toColumn;
       DEFINE INDEX IF NOT EXISTS idx_relations_unique ON _relations FIELDS fromTable, fromColumn, toTable, toColumn UNIQUE;
 
+      DEFINE TABLE IF NOT EXISTS _views SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_views_table ON _views FIELDS table;
+      DEFINE INDEX IF NOT EXISTS idx_views_table_name ON _views FIELDS table, name UNIQUE;
+      DEFINE INDEX IF NOT EXISTS idx_views_default ON _views FIELDS table, isDefault;
+
       DEFINE INDEX IF NOT EXISTS idx_health_checks_checkedAt ON health_checks FIELDS checkedAt;
       DEFINE INDEX IF NOT EXISTS idx_health_checks_service_checkedAt ON health_checks FIELDS service, checkedAt;
       DEFINE INDEX IF NOT EXISTS idx_companies_slug ON companies FIELDS slug UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_accounts_provider_key ON accounts FIELDS provider, providerKey UNIQUE;
-      DEFINE INDEX IF NOT EXISTS idx_company_policies_companyId ON company_policies FIELDS companyId UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_platform_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
 
       UPSERT platform_users:admin SET email = 'admin@example.com', password = $password;
@@ -54,6 +59,10 @@ export async function seed() {
       }
     }
 
+    for (const table of PLATFORM_TABLE_SCHEMAS) {
+      await generateDefaultView('platform', 'admin', table.name)
+    }
+
     console.log('Platform namespace seeded')
   } finally {
     await closeSurreal(surreal)
@@ -61,7 +70,8 @@ export async function seed() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  seed()
+  cleanDb()
+    .then(() => seed())
     .then(async () => {
       await closeSurrealPool()
     })

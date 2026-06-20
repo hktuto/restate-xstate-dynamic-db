@@ -4,7 +4,7 @@ type: index
 status: in-progress
 area: docs
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-20
 related:
   - [[Project Brief]]
   - [[Dashboard]]

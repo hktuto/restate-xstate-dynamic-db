@@ -1,7 +1,18 @@
 // packages/db/src/schema-registry.ts
 import { Surreal } from 'surrealdb'
 import { getSurreal, closeSurreal } from './client.js'
-import { SYSTEM_COLUMNS, type ColumnDefinition } from './schema-definitions.js'
+import {
+  SYSTEM_COLUMNS,
+  type ColumnDefinition,
+  type ViewDefinition,
+} from './schema-definitions.js'
+import {
+  type ColumnRow,
+  type RelationRow,
+  type TableRow,
+  type TableSchema,
+} from 'shared'
+import { normalizeId } from './normalize.js'
 
 export interface TableInput {
   name: string
@@ -17,6 +28,7 @@ export interface ColumnInput {
   dbType: ColumnDefinition['dbType']
   displayType: ColumnDefinition['displayType']
   config?: Record<string, unknown>
+  fields?: ColumnDefinition[]
   system?: boolean
   unique?: boolean
   uniqueScope?: string
@@ -36,42 +48,17 @@ export interface RelationInput {
   linkTable?: string
 }
 
-export interface TableRow {
-  id: string
-  name: string
-  label?: string
-  description?: string
-  hidden?: boolean
-  createdAt?: string
-  updatedAt?: string
-}
-
-export interface ColumnRow extends ColumnDefinition {
-  table: string
-}
-
-export interface RelationRow {
-  id: string
-  name?: string
-  fromTable: string
-  fromColumn: string
-  toTable: string
-  toColumn: string
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many'
-  linkTable?: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-export interface TableSchema {
-  table: TableRow
-  columns: ColumnRow[]
-  relations: RelationRow[]
-}
-
 export interface SyncResult {
   tableName: string
   columnsDiscovered: number
+}
+
+export interface ViewInput extends Partial<ViewDefinition> {}
+
+export interface ViewRow extends ViewDefinition {
+  id: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 const SYSTEM_COLUMN_NAMES = SYSTEM_COLUMNS.map((c) => c.name)
@@ -85,12 +72,16 @@ async function ensureRegistryTables(surreal: Surreal) {
     DEFINE TABLE IF NOT EXISTS _tables SCHEMALESS;
     DEFINE TABLE IF NOT EXISTS _columns SCHEMALESS;
     DEFINE TABLE IF NOT EXISTS _relations SCHEMALESS;
+    DEFINE TABLE IF NOT EXISTS _views SCHEMALESS;
     DEFINE INDEX IF NOT EXISTS idx_tables_name ON _tables FIELDS name UNIQUE;
     DEFINE INDEX IF NOT EXISTS idx_columns_table ON _columns FIELDS table;
     DEFINE INDEX IF NOT EXISTS idx_columns_table_name ON _columns FIELDS table, name UNIQUE;
     DEFINE INDEX IF NOT EXISTS idx_relations_from ON _relations FIELDS fromTable, fromColumn;
     DEFINE INDEX IF NOT EXISTS idx_relations_to ON _relations FIELDS toTable, toColumn;
     DEFINE INDEX IF NOT EXISTS idx_relations_unique ON _relations FIELDS fromTable, fromColumn, toTable, toColumn UNIQUE;
+    DEFINE INDEX IF NOT EXISTS idx_views_table ON _views FIELDS table;
+    DEFINE INDEX IF NOT EXISTS idx_views_table_name ON _views FIELDS table, name UNIQUE;
+    DEFINE INDEX IF NOT EXISTS idx_views_default ON _views FIELDS table, isDefault;
   `)
 }
 
@@ -148,6 +139,45 @@ export async function upsertTable(
   }
 }
 
+function validateColumnFields(fields: ColumnDefinition[] | undefined, path: string[] = []): void {
+  if (!fields || fields.length === 0) return
+
+  const seen = new Set<string>()
+
+  for (const field of fields) {
+    const fieldPath = [...path, field.name]
+    const pathStr = fieldPath.join('.')
+
+    if (!isValidIdentifier(field.name)) {
+      throw new Error(`Invalid nested field name: ${pathStr}`)
+    }
+    if (seen.has(field.name)) {
+      throw new Error(`Duplicate nested field name: ${pathStr}`)
+    }
+    seen.add(field.name)
+
+    if (field.system === true) {
+      throw new Error(`Nested field cannot be a system column: ${pathStr}`)
+    }
+    if (field.unique === true) {
+      throw new Error(`Nested field cannot be unique: ${pathStr}`)
+    }
+    if (field.uniqueScope !== undefined) {
+      throw new Error(`Nested field cannot have a uniqueScope: ${pathStr}`)
+    }
+    if (field.order !== undefined) {
+      throw new Error(`Nested field cannot have an order: ${pathStr}`)
+    }
+
+    if (field.fields && field.fields.length > 0) {
+      if (field.dbType !== 'object' && field.dbType !== 'array') {
+        throw new Error(`Nested fields are only allowed on object or array columns, found '${field.dbType}' at ${pathStr}`)
+      }
+      validateColumnFields(field.fields, fieldPath)
+    }
+  }
+}
+
 export async function upsertColumn(
   namespace: string,
   database: string,
@@ -162,6 +192,12 @@ export async function upsertColumn(
   }
   if (SYSTEM_COLUMN_NAMES.includes(input.name) && input.system !== true) {
     throw new Error(`Cannot upsert system column ${input.name} without system: true`)
+  }
+  if (input.system === true && input.fields !== undefined) {
+    throw new Error(`System column ${input.name} cannot have nested fields`)
+  }
+  if (input.fields !== undefined && input.fields.length > 0 && input.dbType !== 'object' && input.dbType !== 'array') {
+    throw new Error(`Nested fields are only allowed on object or array columns`)
   }
   if (input.system === true) {
     const canonical = SYSTEM_COLUMNS.find((c) => c.name === input.name)
@@ -180,6 +216,7 @@ export async function upsertColumn(
       throw new Error(`Cannot upsert system column ${input.name} with non-canonical config`)
     }
   }
+  validateColumnFields(input.fields)
   const managed = surreal ?? (await getSurreal(namespace, database))
   try {
     await ensureRegistryTables(managed)
@@ -194,6 +231,7 @@ export async function upsertColumn(
         dbType = $dbType,
         displayType = $displayType,
         config = $config,
+        fields = $fields,
         system = $system,
         unique = $unique,
         uniqueScope = $uniqueScope,
@@ -204,7 +242,7 @@ export async function upsertColumn(
         updatedAt = $now,
         createdAt = IF missing THEN $now ELSE createdAt END
       `,
-      { ...input, config: input.config ?? {}, system: input.system ?? false, now }
+      { ...input, config: input.config ?? {}, system: input.system ?? false, fields: input.fields ?? null, now }
     )
     return { id }
   } finally {
@@ -405,5 +443,242 @@ export async function syncTableSchemaFromRecords(
     return { tableName, columnsDiscovered: columnMap.size }
   } finally {
     await closeSurreal(surreal)
+  }
+}
+
+export async function listViews(
+  namespace: string,
+  database: string,
+  tableName?: string,
+  surreal?: Surreal
+): Promise<ViewRow[]> {
+  const managed = surreal ?? (await getSurreal(namespace, database))
+  try {
+    await ensureRegistryTables(managed)
+    const query = tableName
+      ? 'SELECT * FROM _views WHERE table = $tableName ORDER BY name'
+      : 'SELECT * FROM _views ORDER BY name'
+    const [rows] = (await managed.query(query, tableName ? { tableName } : undefined)) as [ViewRow[]]
+    return rows ?? []
+  } finally {
+    await releaseConnection(managed, !!surreal)
+  }
+}
+
+export async function getView(
+  namespace: string,
+  database: string,
+  viewId: string
+): Promise<ViewRow | null> {
+  const surreal = await getSurreal(namespace, database)
+  try {
+    await ensureRegistryTables(surreal)
+    const [rows] = (await surreal.query(
+      'SELECT * FROM type::record($viewId)',
+      { viewId }
+    )) as [ViewRow[]]
+    return normalizeId(rows?.[0]) ?? null
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function getDefaultView(
+  namespace: string,
+  database: string,
+  tableName: string
+): Promise<ViewRow | null> {
+  if (!isValidIdentifier(tableName)) {
+    throw new Error(`Invalid table name: ${tableName}`)
+  }
+  const surreal = await getSurreal(namespace, database)
+  try {
+    await ensureRegistryTables(surreal)
+    const [rows] = (await surreal.query(
+      'SELECT * FROM _views WHERE table = $tableName AND isDefault = true LIMIT 1',
+      { tableName }
+    )) as [ViewRow[]]
+    return rows?.[0] ?? null
+  } finally {
+    await closeSurreal(surreal)
+  }
+}
+
+export async function generateDefaultView(
+  namespace: string,
+  database: string,
+  tableName: string,
+  surreal?: Surreal
+): Promise<ViewRow> {
+  if (!isValidIdentifier(tableName)) {
+    throw new Error(`Invalid table name: ${tableName}`)
+  }
+  const managed = surreal ?? (await getSurreal(namespace, database))
+  const shouldRelease = !surreal
+  try {
+    await ensureRegistryTables(managed)
+    const schema = await getTableSchema(namespace, database, tableName)
+    if (!schema) {
+      throw new Error(`Table not found: ${tableName}`)
+    }
+
+    const columns = schema.columns
+      .filter((col: ColumnRow) => !col.hidden)
+      .sort((a: ColumnRow, b: ColumnRow) => (a.order ?? Infinity) - (b.order ?? Infinity))
+      .map((col: ColumnRow) => ({
+        column: col.name,
+        label: col.label,
+        width: 'auto' as const,
+        visible: true,
+      }))
+
+    const data = {
+      table: tableName,
+      type: 'table' as const,
+      name: 'Default',
+      description: `Default table view for ${tableName}`,
+      isDefault: true,
+      config: { table: { columns } },
+    }
+
+    const [existing] = (await managed.query(
+      'SELECT * FROM _views WHERE table = $tableName AND isDefault = true LIMIT 1',
+      { tableName }
+    )) as [ViewRow[]]
+
+    const now = new Date().toISOString()
+
+    if (existing?.[0]) {
+      const existingId = normalizeId(existing[0])!.id
+      const [updated] = (await managed.query(
+        'UPDATE type::record($id) MERGE $data',
+        { id: existingId, data: { ...data, updatedAt: now } }
+      )) as [ViewRow[]]
+      return normalizeId(updated[0])!
+    }
+
+    const [created] = (await managed.query(
+      'CREATE _views CONTENT $data',
+      { data: { ...data, createdAt: now, updatedAt: now } }
+    )) as [ViewRow[]]
+    return normalizeId(created[0])!
+  } finally {
+    if (shouldRelease) {
+      await closeSurreal(managed)
+    }
+  }
+}
+
+export async function upsertView(
+  namespace: string,
+  database: string,
+  input: ViewInput,
+  surreal?: Surreal
+): Promise<ViewRow> {
+  const managed = surreal ?? (await getSurreal(namespace, database))
+  const shouldRelease = !surreal
+  try {
+    await ensureRegistryTables(managed)
+
+    let merged = { ...input } as ViewInput
+    if (input.id) {
+      const [existing] = (await managed.query(
+        'SELECT * FROM type::record($viewId)',
+        { viewId: input.id }
+      )) as [ViewRow[]]
+      if (!existing?.[0]) {
+        throw new Error(`View not found: ${input.id}`)
+      }
+      merged = { ...normalizeId(existing[0]), ...input }
+    }
+
+    if (!merged.table || !isValidIdentifier(merged.table)) {
+      throw new Error(`Invalid table name: ${merged.table}`)
+    }
+    if (!merged.name || merged.name.trim().length === 0) {
+      throw new Error('View name is required')
+    }
+    if (merged.type !== 'table') {
+      throw new Error(`Unsupported view type: ${merged.type}`)
+    }
+
+    const [[tableRow]] = (await managed.query('SELECT * FROM _tables WHERE name = $tableName', {
+      tableName: merged.table,
+    })) as [[TableRow | undefined]]
+    if (!tableRow) {
+      throw new Error(`Table not found: ${merged.table}`)
+    }
+
+    const [columns] = (await managed.query('SELECT * FROM _columns WHERE table = $tableName', {
+      tableName: merged.table,
+    })) as [ColumnRow[]]
+    const columnNames = new Set(SYSTEM_COLUMNS.map((c) => c.name))
+    for (const col of columns ?? []) {
+      columnNames.add(col.name)
+    }
+
+    for (const col of merged.config?.table?.columns ?? []) {
+      if (!columnNames.has(col.column)) {
+        throw new Error(`Unknown column in view config: ${col.column}`)
+      }
+    }
+
+    const data = {
+      table: merged.table,
+      type: merged.type,
+      name: merged.name,
+      description: merged.description ?? null,
+      isDefault: merged.isDefault ?? false,
+      config: merged.config ?? {},
+      group: merged.group ?? null,
+      filter: merged.filter ?? null,
+      sort: merged.sort ?? null,
+    }
+
+    if (data.isDefault) {
+      await managed.query(
+        'UPDATE _views SET isDefault = false WHERE table = $tableName AND isDefault = true',
+        { tableName: merged.table }
+      )
+    }
+
+    const now = new Date().toISOString()
+
+    if (merged.id) {
+      const [updated] = (await managed.query(
+        'UPDATE type::record($id) MERGE $data',
+        { id: merged.id, data: { ...data, updatedAt: now } }
+      )) as [ViewRow[]]
+      return normalizeId(updated[0])!
+    }
+
+    const [created] = (await managed.query(
+      'CREATE _views CONTENT $data',
+      { data: { ...data, createdAt: now, updatedAt: now } }
+    )) as [ViewRow[]]
+    return normalizeId(created[0])!
+  } finally {
+    if (shouldRelease) {
+      await closeSurreal(managed)
+    }
+  }
+}
+
+export async function deleteView(
+  namespace: string,
+  database: string,
+  viewId: string,
+  surreal?: Surreal
+): Promise<{ id: string }> {
+  const managed = surreal ?? (await getSurreal(namespace, database))
+  const shouldRelease = !surreal
+  try {
+    await ensureRegistryTables(managed)
+    await managed.query('DELETE type::record($viewId)', { viewId })
+    return { id: viewId }
+  } finally {
+    if (shouldRelease) {
+      await closeSurreal(managed)
+    }
   }
 }

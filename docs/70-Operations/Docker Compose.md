@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: ops
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-19
 related:
   - [[SurrealDB Maintenance]]
   - [[Restate Operations]]
@@ -15,7 +15,8 @@ related:
 
 ## Services
 
-- **surrealdb** — Database on port `8000`, backed by RocksDB.
+- **surrealdb** — Development database on port `8000`, backed by RocksDB.
+- **surrealdb-test** — Isolated test database on port `8001`. The test suite loads `.env.test`, which points `SURREAL_URL` at this instance.
 - **restate** — Durable runtime on ports `8080` and `9070`.
 - **workflow-runtime** — Restate service on port `9080` (HTTP/2) with health check on port `9081`.
 - **health-monitor** — Standalone health-check service, built from `apps/health-monitor/Dockerfile`.
@@ -24,6 +25,7 @@ related:
 ## Volumes
 
 - `surreal-data` — Named Docker volume for SurrealDB/RocksDB data.
+- `surreal-test-data` — Named Docker volume for the test SurrealDB instance.
 - `restate-data` — Named Docker volume for Restate state.
 
 ## Environment overrides for health-monitor
@@ -49,6 +51,9 @@ docker compose up -d
 
 # Start only infrastructure (run health monitor via pnpm instead)
 docker compose up -d surrealdb restate
+
+# Start the test SurrealDB instance (needed for `pnpm --filter db test` etc.)
+docker compose up -d surrealdb-test
 
 # Stop
 docker compose down

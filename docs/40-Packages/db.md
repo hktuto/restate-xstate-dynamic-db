@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-20
 package: db
 related:
   - [[Data Model]]
@@ -28,8 +28,28 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 ## Key modules
 
 - `src/platform.ts` — platform-level queries (companies, platform users, platform workflows, identities).
-- `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables, indexes) and seeds the schema registry (`_tables`, `_columns`, `_relations`) from the declarative schemas in `schema-definitions.ts`.
-- `src/seed.ts` — seeds `platform/admin` namespace with default admin user.
+- `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables, indexes) and seeds the schema registry (`_tables`, `_columns`, `_relations`, `_views`) from the declarative schemas in `schema-definitions.ts`. Also generates a default table view for every tenant table.
+- `src/seed.ts` — seeds `platform/admin` namespace with default admin user and platform schema registry.
+- `src/clean-db.ts` — removes every namespace from the SurrealDB instance and drains the connection pool.
+
+## Scripts
+
+```bash
+# Remove every namespace (platform + all tenants)
+pnpm --filter db clean-db
+
+# Recreate a fresh platform namespace/admin user
+pnpm --filter db seed        # runs clean-db first
+
+# Seed a demo company; ensures platform tables exist first
+pnpm --filter db seed-company
+
+# Run tests against the isolated test SurrealDB instance (port 8001)
+docker compose up -d surrealdb-test
+pnpm --filter db test
+```
+
+`seed` starts from a clean database so that repeated runs produce the same state. `seed-company` first runs the platform seed to guarantee the `companies`, `accounts`, `user_profiles`, and related tables exist before creating the demo tenant.
 
 ## Build
 
@@ -100,6 +120,18 @@ Instances reference a `workflow_designs` record via `designId`, store the curren
 ### Workflow actions
 
 - `db/workflow-actions` — helpers for the `workflow_actions` audit table (`upsertWorkflowAction`, `listWorkflowActionsByInstance`).
+
+### Views
+
+- `src/schema-registry.ts`
+  - `listViews(namespace, database, tableName?)`
+  - `getView(namespace, database, viewId)`
+  - `getDefaultView(namespace, database, tableName)`
+  - `upsertView(namespace, database, input)`
+  - `deleteView(namespace, database, viewId)`
+  - `generateDefaultView(namespace, database, tableName)`
+
+Views are stored in the `_views` system table and referenced by auto-generated Surreal record IDs. The registry enforces table existence, valid column references, and a single default view per table.
 
 ### User tasks
 

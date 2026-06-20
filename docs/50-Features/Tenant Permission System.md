@@ -1,19 +1,15 @@
 ---
-title: "Tenant Permission System"
+title: Tenant Permission System
 type: feature
-status: done
-area: architecture
-app:
-  - web
-  - admin
-  - runtime
-related:
-  - "[[Tenant Authentication & Authorization]]"
-  - "[[Data Model]]"
-  - "[[40-Packages/db]]"
-  - "[[Company Management]]"
+status: planned
+area: workflow
 created: 2026-06-19
-updated: 2026-06-19
+updated: 2026-06-20
+related:
+  - [[Tenant Authentication & Authorization]]
+  - [[Data Model]]
+  - [[40-Packages/db]]
+  - [[Company Management]]
 ---
 
 # Tenant Permission System

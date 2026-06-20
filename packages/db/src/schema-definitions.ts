@@ -2,11 +2,14 @@
 import type {
   CardLayoutNode,
   CardViewConfig,
+  ColumnDefinition,
   FilterSetting,
   GroupSetting,
   KanbanViewConfig,
+  RelationDefinition,
   SortSetting,
   TableColumnConfig,
+  TableSchemaDefinition,
   TableViewConfig,
   ViewConfig,
   ViewDefinition,
@@ -15,51 +18,17 @@ import type {
 export type {
   CardLayoutNode,
   CardViewConfig,
+  ColumnDefinition,
   FilterSetting,
   GroupSetting,
   KanbanViewConfig,
+  RelationDefinition,
   SortSetting,
   TableColumnConfig,
+  TableSchemaDefinition,
   TableViewConfig,
   ViewConfig,
   ViewDefinition,
-}
-
-/** Supported SurrealDB column data types. */
-export interface ColumnDefinition {
-  name: string
-  label?: string
-  dbType: 'string' | 'number' | 'boolean' | 'datetime' | 'object' | 'array' | 'record'
-  displayType: 'text' | 'url' | 'email' | 'user' | 'select' | 'checkbox' | 'date' | 'number' | 'relation' | 'formula' | 'richText' | 'json'
-  config?: Record<string, unknown>
-  fields?: ColumnDefinition[]
-  system?: boolean
-  unique?: boolean
-  uniqueScope?: string
-  optional?: boolean
-  defaultValue?: unknown
-  hidden?: boolean
-  order?: number
-}
-
-/** Defines a directed relation between a column in one table and a column in another table. */
-export interface RelationDefinition {
-  fromTable: string
-  fromColumn: string
-  toTable: string
-  toColumn: string
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many'
-  linkTable?: string
-}
-
-/** Complete schema for a single table, including columns and optional relations. */
-export interface TableSchemaDefinition {
-  name: string
-  label?: string
-  description?: string
-  hidden?: boolean
-  columns: ColumnDefinition[]
-  relations?: RelationDefinition[]
 }
 
 /** Build a list of select options from raw string values. */
@@ -113,9 +82,9 @@ export const SYSTEM_COLUMNS: ColumnDefinition[] = [
 export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   table('companies', 'Companies', [
     column('name', 'string', 'text'),
-    column('slug', 'string', 'text', { unique: true }),
+    column('slug', 'string', 'tag', { unique: true, config: { displayType: 'tag', defaultColor: 'gray' } }),
     column('namespace', 'string', 'text'),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['active', 'inactive']) } }),
+    column('status', 'string', 'tag', { config: { displayType: 'tag', tagColors: { active: 'green', inactive: 'red' }, defaultColor: 'gray' } }),
   ]),
   table('sessions', 'Sessions', [
     column('refreshTokenHash', 'string', 'text', { unique: true }),

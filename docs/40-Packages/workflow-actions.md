@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-19
 package: workflow-actions
 related:
   - [[50-Features/Workflow Actions Catalog]]
@@ -33,6 +33,12 @@ Catalog of reusable workflow actions and guards, plus runtime execution helpers.
 
 ```bash
 pnpm --filter workflow-actions typecheck
+```
+
+## Tests
+
+```bash
+pnpm --filter workflow-actions test
 ```
 
 ## Runtime registries
