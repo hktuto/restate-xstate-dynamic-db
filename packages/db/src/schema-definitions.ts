@@ -110,6 +110,10 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('email', 'string', 'email', { unique: true }),
     column('password', 'string', 'text', { hidden: true }),
   ]),
+  table('admin_user_groups', 'Admin User Groups', [
+    column('name', 'string', 'text'),
+    column('description', 'string', 'text', { optional: true }),
+  ]),
   table('accounts', 'Accounts', [
     column('provider', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['email', 'oauth_google', 'oauth_github', 'phone']) } }),
     column('providerKey', 'string', 'text'),
@@ -274,10 +278,6 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('description', 'string', 'text', { optional: true }),
   ]),
   table('user_groups', 'User Groups', [
-    column('name', 'string', 'text'),
-    column('description', 'string', 'text', { optional: true }),
-  ]),
-  table('admin_user_groups', 'Admin User Groups', [
     column('name', 'string', 'text'),
     column('description', 'string', 'text', { optional: true }),
   ]),
