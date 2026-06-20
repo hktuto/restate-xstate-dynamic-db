@@ -1,36 +1,94 @@
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+
+const api = useApi()
 const router = useRouter()
 const auth = useState<{ authenticated: boolean } | null>('adminAuth')
-const api = useApi()
+
+const items = ref<NavigationMenuItem[]>([
+  { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/dashboard' },
+  { label: 'Companies', icon: 'i-lucide-building-2', to: '/companies' },
+  { label: 'Users', icon: 'i-lucide-users', to: '/users' },
+  { label: 'Settings', icon: 'i-lucide-settings', to: '/settings' },
+  { label: 'Workflow Designs', icon: 'i-lucide-workflow', to: '/workflow-designs' },
+  { label: 'Health', icon: 'i-lucide-heart-pulse', to: '/health' },
+])
 
 async function logout() {
-  await api.fetch('/api/auth/admin/logout', { method: 'POST' })
+  await api.fetch('/api/admin/logout', { method: 'POST' })
   auth.value = { authenticated: false }
   await router.push('/login')
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <nav class="bg-white shadow px-4 py-3">
-      <div class="max-w-5xl mx-auto flex items-center justify-between">
-        <NuxtLink to="/" class="font-semibold text-lg">SuperAdmin</NuxtLink>
-        <div class="flex items-center gap-4">
-          <NuxtLink to="/" class="text-sm text-gray-600 hover:text-gray-900">Dashboard</NuxtLink>
-          <NuxtLink to="/workflow-designs" class="text-sm text-gray-600 hover:text-gray-900">Workflow Designs</NuxtLink>
-          <NuxtLink to="/triggers" class="text-sm text-gray-600 hover:text-gray-900">Triggers</NuxtLink>
-          <NuxtLink to="/health" class="text-sm text-gray-600 hover:text-gray-900">Health</NuxtLink>
-          <button
-            class="text-sm text-gray-600 hover:text-red-600"
-            @click="logout"
-          >
-            Logout
-          </button>
+  <UDashboardGroup>
+    <UDashboardSidebar collapsible>
+      <template #header="{ collapsed }">
+        <div class="flex items-center justify-between w-full">
+          <NuxtLink to="/dashboard" class="font-semibold text-lg">
+            SuperAdmin
+          </NuxtLink>
+
+          <UDashboardSidebarCollapse variant="subtle" />
         </div>
-      </div>
-    </nav>
-    <main class="max-w-5xl mx-auto p-4">
-      <slot />
-    </main>
-  </div>
+      </template>
+
+      <UNavigationMenu orientation="vertical" :items="items" />
+
+      <template #footer="{ collapsed }">
+        <UPopover>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :block="!collapsed"
+            :square="collapsed"
+            :avatar="{
+              src: 'https://api.dicebear.com/9.x/initials/svg?seed=Admin',
+            }"
+            :label="collapsed ? undefined : 'Admin User'"
+            :trailing-icon="collapsed ? undefined : 'i-lucide-chevron-up'"
+          />
+
+          <template #content>
+            <div class="flex flex-col gap-1 p-2 w-48">
+              <UButton
+                to="/settings"
+                variant="ghost"
+                color="neutral"
+                icon="i-lucide-user"
+                class="justify-start"
+              >
+                Profile
+              </UButton>
+
+              <UButton
+                to="/settings"
+                variant="ghost"
+                color="neutral"
+                icon="i-lucide-settings"
+                class="justify-start"
+              >
+                Settings
+              </UButton>
+
+              <USeparator />
+
+              <UButton
+                variant="ghost"
+                color="neutral"
+                icon="i-lucide-log-out"
+                class="justify-start"
+                @click="logout"
+              >
+                Logout
+              </UButton>
+            </div>
+          </template>
+        </UPopover>
+      </template>
+    </UDashboardSidebar>
+
+    <slot />
+  </UDashboardGroup>
 </template>

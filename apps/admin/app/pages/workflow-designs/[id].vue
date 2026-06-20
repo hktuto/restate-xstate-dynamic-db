@@ -47,34 +47,42 @@ async function save() {
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-2">
-      <h1 class="text-2xl font-bold">Edit workflow design</h1>
-      <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" @click="runModal?.open()">Run</button>
-    </div>
+  <UDashboardPanel>
+    <template #header>
+      <UDashboardNavbar title="Workflow Design" icon="i-lucide-workflow" />
+    </template>
 
-    <div class="h-[calc(100vh-160px)]">
-      <ClientOnly>
-        <WorkflowEditor
-          v-if="config"
-          v-model="config"
-          :name="name"
-          @update:name="name = $event"
-          @save="save"
-          @error="onError"
+    <template #body>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h1 class="text-2xl font-bold">Edit workflow design</h1>
+          <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" @click="runModal?.open()">Run</button>
+        </div>
+
+        <div class="h-[calc(100vh-160px)]">
+          <ClientOnly>
+            <WorkflowEditor
+              v-if="config"
+              v-model="config"
+              :name="name"
+              @update:name="name = $event"
+              @save="save"
+              @error="onError"
+            />
+          </ClientOnly>
+        </div>
+
+        <WorkflowRunModal
+          ref="runModal"
+          :design-id="id"
+          :definition="config"
+          :starts="starts"
+          :namespace="ADMIN_NAMESPACE"
+          :api-base-path="ADMIN_API_BASE_PATH"
+          database="admin"
+          :error-handler="(message: string) => toast.add({ title: 'Run workflow', description: message, color: 'error' })"
         />
-      </ClientOnly>
-    </div>
-
-    <WorkflowRunModal
-      ref="runModal"
-      :design-id="id"
-      :definition="config"
-      :starts="starts"
-      :namespace="ADMIN_NAMESPACE"
-      :api-base-path="ADMIN_API_BASE_PATH"
-      database="admin"
-      :error-handler="(message: string) => toast.add({ title: 'Run workflow', description: message, color: 'error' })"
-    />
-  </div>
+      </div>
+    </template>
+  </UDashboardPanel>
 </template>

@@ -1,10 +1,15 @@
-export default defineNuxtRouteMiddleware((to) => {
+export default defineNuxtRouteMiddleware(async (to) => {
   if (to.path === '/login' || to.path.startsWith('/api/')) {
     return
   }
 
-  const session = useCookie('admin_session')
-  if (!session.value) {
+  try {
+    const api = useApi()
+    const result = await api.fetch<{ authenticated: boolean }>('/api/admin/me')
+    if (!result.authenticated) {
+      return navigateTo('/login')
+    }
+  } catch {
     return navigateTo('/login')
   }
 })
