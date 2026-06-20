@@ -1,4 +1,29 @@
 // packages/db/src/schema-definitions.ts
+import type {
+  CardLayoutNode,
+  CardViewConfig,
+  FilterSetting,
+  GroupSetting,
+  KanbanViewConfig,
+  SortSetting,
+  TableColumnConfig,
+  TableViewConfig,
+  ViewConfig,
+  ViewDefinition,
+} from 'shared'
+
+export type {
+  CardLayoutNode,
+  CardViewConfig,
+  FilterSetting,
+  GroupSetting,
+  KanbanViewConfig,
+  SortSetting,
+  TableColumnConfig,
+  TableViewConfig,
+  ViewConfig,
+  ViewDefinition,
+}
 
 /** Supported SurrealDB column data types. */
 export interface ColumnDefinition {
@@ -92,13 +117,6 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('namespace', 'string', 'text'),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['active', 'inactive']) } }),
   ]),
-  table('company_policies', 'Company Policies', [
-    column('companyId', 'record', 'relation', { unique: true, config: { relationId: '_relations:⟨company_policies:companyId:companies:id⟩' } }),
-    column('maxSessions', 'number', 'number'),
-    column('sessionOverflowAction', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['revoke_oldest', 'reject']) } }),
-    column('allowImpersonation', 'boolean', 'checkbox'),
-    column('allowApiKeys', 'boolean', 'checkbox'),
-  ], [relation('companyId', 'companies')]),
   table('sessions', 'Sessions', [
     column('refreshTokenHash', 'string', 'text', { unique: true }),
     column('accessTokenJti', 'string', 'text'),
@@ -138,14 +156,29 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   table('workflow_designs', 'Workflow Designs', [
     column('name', 'string', 'text'),
     column('xstateConfig', 'object', 'json'),
-    column('starts', 'object', 'json'),
+    column('starts', 'array', 'json', {
+      fields: [
+        column('type', 'string', 'select', {
+          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
+        }),
+        column('startState', 'string', 'text'),
+        column('options', 'object', 'json', { optional: true }),
+      ],
+    }),
   ]),
   table('workflow_instances', 'Workflow Instances', [
     column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } }),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
     column('currentState', 'string', 'text'),
     column('context', 'object', 'json'),
-    column('triggerBy', 'object', 'json'),
+    column('triggerBy', 'object', 'json', {
+      fields: [
+        column('type', 'string', 'select', {
+          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
+        }),
+        column('startState', 'string', 'text'),
+      ],
+    }),
     column('namespace', 'string', 'text'),
     column('companyId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } }),
   ], [relation('designId', 'workflow_designs'), relation('companyId', 'companies')]),
@@ -213,14 +246,29 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   table('workflow_designs', 'Workflow Designs', [
     column('name', 'string', 'text'),
     column('xstateConfig', 'object', 'json'),
-    column('starts', 'object', 'json'),
+    column('starts', 'array', 'json', {
+      fields: [
+        column('type', 'string', 'select', {
+          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
+        }),
+        column('startState', 'string', 'text'),
+        column('options', 'object', 'json', { optional: true }),
+      ],
+    }),
   ]),
   table('workflow_instances', 'Workflow Instances', [
     column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } }),
     column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
     column('currentState', 'string', 'text'),
     column('context', 'object', 'json'),
-    column('triggerBy', 'object', 'json'),
+    column('triggerBy', 'object', 'json', {
+      fields: [
+        column('type', 'string', 'select', {
+          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
+        }),
+        column('startState', 'string', 'text'),
+      ],
+    }),
     column('namespace', 'string', 'text'),
     column('companyId', 'string', 'text'),
   ], [relation('designId', 'workflow_designs')]),
@@ -259,5 +307,16 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   table('user_groups', 'User Groups', [
     column('name', 'string', 'text'),
     column('description', 'string', 'text', { optional: true }),
+  ]),
+  table('_views', 'Views', [
+    column('table', 'string', 'text'),
+    column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['table']) } }),
+    column('name', 'string', 'text'),
+    column('description', 'string', 'text', { optional: true }),
+    column('isDefault', 'boolean', 'checkbox', { defaultValue: false }),
+    column('config', 'object', 'json'),
+    column('group', 'object', 'json', { optional: true }),
+    column('filter', 'object', 'json', { optional: true }),
+    column('sort', 'array', 'json', { optional: true }),
   ]),
 ]

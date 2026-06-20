@@ -7,7 +7,7 @@ import { listLatestHealthChecks, listHealthCheckHistoryForService, type HealthCh
 import { adminAuth } from '../middleware/admin.js'
 
 const DEFAULT_LIMIT = 20
-const VALID_SERVICES: HealthCheckService[] = ['surrealdb', 'restate', 'workflow-runtime', 'web-api']
+const VALID_SERVICES: HealthCheckService[] = ['surrealdb', 'restate', 'workflow-runtime', 'api']
 
 export function adminRoutes() {
   const app = new Hono()
