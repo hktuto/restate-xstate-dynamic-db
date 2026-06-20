@@ -20,17 +20,17 @@ export function useAuth() {
       user.value = result.user ?? null
       authenticated.value = result.authenticated
     } catch (error) {
-      console.error(error)
+      console.error("error",error)
       user.value = null
       authenticated.value = false
     } finally {
       initialized.value = true
     }
-
     return authenticated.value
   }
 
   async function login(credentials: { email: string; password: string }): Promise<boolean> {
+    initialized.value = false // reset the initialized state, so the init function will fetch the user
     await api.fetch('/api/admin/login', {
       method: 'POST',
       body: credentials,
@@ -44,7 +44,7 @@ export function useAuth() {
     } finally {
       user.value = null
       authenticated.value = false
-      initialized.value = true
+      initialized.value = false
       await navigateTo('/login')
     }
   }
