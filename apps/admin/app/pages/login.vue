@@ -3,19 +3,17 @@ definePageMeta({ layout: 'auth' })
 
 const state = reactive({ email: 'admin@example.com', password: 'admin' })
 const error = ref('')
-const router = useRouter()
-const auth = useState<{ authenticated: boolean } | null>('adminAuth')
-const api = useApi()
+const auth = useAuth()
 
 async function login() {
   error.value = ''
   try {
-    await api.fetch('/api/admin/login', {
-      method: 'POST',
-      body: state,
-    })
-    auth.value = { authenticated: true }
-    await router.push('/dashboard')
+    const ok = await auth.login(state)
+    if (!ok) {
+      error.value = 'Login failed'
+      return
+    }
+    await navigateTo('/dashboard')
   } catch (e: any) {
     error.value = e.message || 'Login failed'
   }

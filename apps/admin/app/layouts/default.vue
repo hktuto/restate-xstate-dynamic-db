@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-const api = useApi()
-const router = useRouter()
-const auth = useState<{ authenticated: boolean } | null>('adminAuth')
+const auth = useAuth()
 
 const items = ref<NavigationMenuItem[]>([
   { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/dashboard' },
@@ -11,14 +9,12 @@ const items = ref<NavigationMenuItem[]>([
   { label: 'Users', icon: 'i-lucide-users', to: '/users' },
   { label: 'Settings', icon: 'i-lucide-settings', to: '/settings' },
   { label: 'Workflow Designs', icon: 'i-lucide-workflow', to: '/workflow-designs' },
+  { label: 'Views', icon: 'i-lucide-eye', to: '/views' },
   { label: 'Health', icon: 'i-lucide-heart-pulse', to: '/health' },
 ])
 
-async function logout() {
-  await api.fetch('/api/admin/logout', { method: 'POST' })
-  auth.value = { authenticated: false }
-  await router.push('/login')
-}
+const displayName = computed(() => auth.user.value?.email ?? 'Admin User')
+const avatarSeed = computed(() => auth.user.value?.email ?? 'Admin')
 </script>
 
 <template>
@@ -43,10 +39,12 @@ async function logout() {
             variant="ghost"
             :block="!collapsed"
             :square="collapsed"
+            :aria-label="displayName"
             :avatar="{
-              src: 'https://api.dicebear.com/9.x/initials/svg?seed=Admin',
+              src: `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(avatarSeed)}`,
+              alt: displayName,
             }"
-            :label="collapsed ? undefined : 'Admin User'"
+            :label="collapsed ? undefined : displayName"
             :trailing-icon="collapsed ? undefined : 'i-lucide-chevron-up'"
           />
 
@@ -79,7 +77,7 @@ async function logout() {
                 color="neutral"
                 icon="i-lucide-log-out"
                 class="justify-start"
-                @click="logout"
+                @click="auth.logout"
               >
                 Logout
               </UButton>

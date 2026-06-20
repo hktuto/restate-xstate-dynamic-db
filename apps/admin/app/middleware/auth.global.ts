@@ -3,13 +3,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  try {
-    const api = useApi()
-    const result = await api.fetch<{ authenticated: boolean }>('/api/admin/me')
-    if (!result.authenticated) {
-      return navigateTo('/login')
-    }
-  } catch {
+  const auth = useAuth()
+  await auth.init()
+
+  if (!auth.authenticated.value) {
     return navigateTo('/login')
   }
 })
