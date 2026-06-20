@@ -10,6 +10,7 @@ const DEFAULT_DB = process.env.SURREALDB_DB || process.env.SURREAL_DB
 let MAX_POOL_SIZE = Number(process.env.SURREALDB_POOL_MAX ?? 20)
 let IDLE_TIMEOUT_MS = Number(process.env.SURREALDB_POOL_IDLE_TIMEOUT_MS ?? 30_000)
 let ACQUIRE_TIMEOUT_MS = Number(process.env.SURREALDB_POOL_ACQUIRE_TIMEOUT_MS ?? 10_000)
+let MAX_CONNECTION_AGE_MS = Number(process.env.SURREALDB_MAX_CONNECTION_AGE_MS ?? 50 * 60 * 1000)
 
 interface PooledConnection {
   surreal: Surreal
@@ -41,12 +42,16 @@ async function createConnection(key: string): Promise<Surreal> {
   return surreal
 }
 
+function isExpired(entry: PooledConnection): boolean {
+  return Date.now() - entry.createdAt > MAX_CONNECTION_AGE_MS
+}
+
 function evictIdleIfOverLimit(): void {
   const now = Date.now()
   for (let i = pool.length - 1; i >= 0; i--) {
     const c = pool[i]!
     if (c.inUse) continue
-    if (pool.length > MAX_POOL_SIZE || now - c.lastUsedAt > IDLE_TIMEOUT_MS) {
+    if (pool.length > MAX_POOL_SIZE || now - c.lastUsedAt > IDLE_TIMEOUT_MS || isExpired(c)) {
       c.surreal.close().catch(() => {})
       pool.splice(i, 1)
     }
@@ -75,12 +80,17 @@ function waitForConnection(key: string): Promise<Surreal> {
     const interval = setInterval(() => {
       // Prefer reusing an idle connection with the same key
       const idleSame = pool.find((c) => !c.inUse && c.key === key)
-      if (idleSame) {
+      if (idleSame && !isExpired(idleSame)) {
         idleSame.inUse = true
         idleSame.lastUsedAt = Date.now()
         clearInterval(interval)
         resolve(idleSame.surreal)
         return
+      }
+      if (idleSame && isExpired(idleSame)) {
+        idleSame.surreal.close().catch(() => {})
+        const idx = pool.indexOf(idleSame)
+        if (idx !== -1) pool.splice(idx, 1)
       }
 
       // Otherwise kick out any idle connection and create one for this key
@@ -114,10 +124,16 @@ export function configurePool(options: {
   max?: number
   idleTimeoutMs?: number
   acquireTimeoutMs?: number
+  maxConnectionAgeMs?: number
 }): void {
   if (options.max !== undefined) MAX_POOL_SIZE = options.max
   if (options.idleTimeoutMs !== undefined) IDLE_TIMEOUT_MS = options.idleTimeoutMs
   if (options.acquireTimeoutMs !== undefined) ACQUIRE_TIMEOUT_MS = options.acquireTimeoutMs
+  if (options.maxConnectionAgeMs !== undefined) MAX_CONNECTION_AGE_MS = options.maxConnectionAgeMs
+}
+
+if (process.env.VITEST) {
+  console.log('[db/client] SURREAL_URL =', SURREAL_URL)
 }
 
 export async function getSurreal(namespace?: string, database?: string): Promise<Surreal> {
@@ -137,10 +153,15 @@ export async function getSurreal(namespace?: string, database?: string): Promise
 
   // 1. Reuse idle connection on the same namespace/database
   const idleSame = pool.find((c) => !c.inUse && c.key === key)
-  if (idleSame) {
+  if (idleSame && !isExpired(idleSame)) {
     idleSame.inUse = true
     idleSame.lastUsedAt = Date.now()
     return idleSame.surreal
+  }
+  if (idleSame && isExpired(idleSame)) {
+    idleSame.surreal.close().catch(() => {})
+    const idx = pool.indexOf(idleSame)
+    if (idx !== -1) pool.splice(idx, 1)
   }
 
   // 2. Create new if under max pool size
