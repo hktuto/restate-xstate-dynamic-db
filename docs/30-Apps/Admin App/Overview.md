@@ -29,6 +29,7 @@ The superadmin Nuxt application for platform-level management.
 - Auth state is encapsulated in the `useAuth()` composable (`apps/admin/app/composables/useAuth.ts`). The composable calls `/api/admin/me` once on app boot and caches the result in `useState`; subsequent client-side navigations reuse the cached state instead of re-calling `/me`.
 - Global auth middleware redirects unauthenticated users to `/login`.
 - Uses a dedicated `auth.vue` layout for the login page.
+- Dashboard layout follows the Nuxt UI dashboard template: a collapsible, resizable `UDashboardSidebar` with the brand in the sidebar header, and a `UDashboardSidebarCollapse` toggle in each page’s `UDashboardNavbar`.
 - Dashboard shows aggregate stats: companies, workflow designs, and triggers. The trigger count is derived from the number of `db_trigger` start rules across all platform workflow designs.
 - The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
 

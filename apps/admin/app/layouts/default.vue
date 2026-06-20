@@ -18,19 +18,21 @@ const avatarSeed = computed(() => auth.user.value?.email ?? 'Admin')
 </script>
 
 <template>
-  <UDashboardGroup>
-    <UDashboardSidebar collapsible>
+  <UDashboardGroup unit="rem">
+    <UDashboardSidebar
+      collapsible
+      resizable
+      class="bg-elevated/25"
+      :ui="{ footer: 'lg:border-t lg:border-default' }"
+    >
       <template #header="{ collapsed }">
-        <div class="flex items-center justify-between w-full">
-          <NuxtLink to="/dashboard" class="font-semibold text-lg">
-            SuperAdmin
-          </NuxtLink>
-
-          <UDashboardSidebarCollapse variant="subtle" />
-        </div>
+        <NuxtLink to="/dashboard" class="font-semibold text-lg">
+          <span v-if="!collapsed">SuperAdmin</span>
+          <UIcon v-else name="i-lucide-shield" class="size-5" />
+        </NuxtLink>
       </template>
 
-      <UNavigationMenu orientation="vertical" :items="items" />
+      <UNavigationMenu orientation="vertical" :items="items" tooltip />
 
       <template #footer="{ collapsed }">
         <UPopover>

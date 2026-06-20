@@ -97,7 +97,11 @@ function formatDate(value: string): string {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Health" icon="i-lucide-heart-pulse" />
+      <UDashboardNavbar title="Health" icon="i-lucide-heart-pulse">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>

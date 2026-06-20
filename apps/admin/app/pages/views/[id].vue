@@ -107,7 +107,11 @@ await loadView()
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="isNew ? 'New View' : 'Edit View'" icon="i-lucide-eye" />
+      <UDashboardNavbar :title="isNew ? 'New View' : 'Edit View'" icon="i-lucide-eye">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>

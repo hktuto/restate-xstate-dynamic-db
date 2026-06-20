@@ -1,7 +1,11 @@
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Settings" icon="i-lucide-settings" />
+      <UDashboardNavbar title="Settings" icon="i-lucide-settings">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>

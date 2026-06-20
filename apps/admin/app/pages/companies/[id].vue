@@ -6,7 +6,11 @@ const id = computed(() => route.params.id)
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Company Detail" icon="i-lucide-building-2" />
+      <UDashboardNavbar title="Company Detail" icon="i-lucide-building-2">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>

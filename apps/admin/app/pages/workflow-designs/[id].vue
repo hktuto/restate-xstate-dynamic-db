@@ -49,7 +49,11 @@ async function save() {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Workflow Design" icon="i-lucide-workflow" />
+      <UDashboardNavbar title="Workflow Design" icon="i-lucide-workflow">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>

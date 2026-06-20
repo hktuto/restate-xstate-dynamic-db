@@ -59,7 +59,11 @@ await load()
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="title" :icon="icon" />
+      <UDashboardNavbar :title="title" :icon="icon">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>

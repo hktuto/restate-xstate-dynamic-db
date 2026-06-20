@@ -41,7 +41,11 @@ await refresh()
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Views" icon="i-lucide-eye" />
+      <UDashboardNavbar title="Views" icon="i-lucide-eye">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>

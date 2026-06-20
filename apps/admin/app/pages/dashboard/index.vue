@@ -16,7 +16,11 @@ onMounted(async () => {
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Dashboard" icon="i-lucide-layout-dashboard" />
+      <UDashboardNavbar title="Dashboard" icon="i-lucide-layout-dashboard">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
     </template>
 
     <template #body>
