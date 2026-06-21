@@ -14,7 +14,7 @@ const VALID_STATUSES = new Set(['active', 'inactive', 'pending'])
 export function usersRoutes() {
   const app = new Hono()
 
-  app.get('/', tenantAuth, requirePermission('company', 'view'), async (c) => {
+  app.get('/', tenantAuth, requirePermission('member', 'view'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const members = await listMembers(scope.namespace)
     const profileIds = [...new Set(members.map((m) => m.profileId).filter((id): id is string => Boolean(id)))]
@@ -32,7 +32,7 @@ export function usersRoutes() {
     )
   })
 
-  app.post('/', tenantAuth, requirePermission('company', 'invite_member'), async (c) => {
+  app.post('/', tenantAuth, requirePermission('member', 'create'), async (c) => {
     const scope = c.get('scope') as TenantScope
 
     let body: Record<string, unknown>
@@ -85,7 +85,7 @@ export function usersRoutes() {
     return c.json(safeMember)
   })
 
-  app.patch('/:id', tenantAuth, requirePermission('company', 'manage_permissions'), async (c) => {
+  app.patch('/:id', tenantAuth, requirePermission('member', 'manage_permissions'), async (c) => {
     const scope = c.get('scope') as TenantScope
 
     const id = c.req.param('id')
@@ -171,7 +171,7 @@ export function usersRoutes() {
     return c.json({ ok: true })
   })
 
-  app.delete('/:id', tenantAuth, requirePermission('company', 'remove_member'), async (c) => {
+  app.delete('/:id', tenantAuth, requirePermission('member', 'delete'), async (c) => {
     const scope = c.get('scope') as TenantScope
 
     const id = c.req.param('id')

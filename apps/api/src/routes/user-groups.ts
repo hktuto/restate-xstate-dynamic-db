@@ -17,12 +17,12 @@ export function userGroupsRoutes() {
   const app = new Hono()
   app.use(tenantAuth)
 
-  app.get('/', requirePermission('company', 'manage_user_groups'), async (c) => {
+  app.get('/', requirePermission('user_group', 'view'), async (c) => {
     const scope = c.get('scope') as TenantScope
     return c.json(await listUserGroups(scope.namespace))
   })
 
-  app.post('/', requirePermission('company', 'manage_user_groups'), async (c) => {
+  app.post('/', requirePermission('user_group', 'create'), async (c) => {
     const scope = c.get('scope') as TenantScope
     let body: Record<string, unknown>
     try {
@@ -42,14 +42,14 @@ export function userGroupsRoutes() {
     return c.json(group)
   })
 
-  app.get('/:id', requirePermission('user_group', 'view', 'id'), async (c) => {
+  app.get('/:id', requirePermission('user_group_detail', 'view', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const group = await getUserGroupById(scope.namespace, c.req.param('id'))
     if (!group) return c.json({ error: 'Not found' }, 404)
     return c.json(group)
   })
 
-  app.patch('/:id', requirePermission('user_group', 'update', 'id'), async (c) => {
+  app.patch('/:id', requirePermission('user_group_detail', 'edit_info', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const id = c.req.param('id')
     let body: Record<string, unknown>
@@ -64,18 +64,18 @@ export function userGroupsRoutes() {
     return c.json(await updateUserGroup(scope.namespace, id, update))
   })
 
-  app.delete('/:id', requirePermission('user_group', 'delete', 'id'), async (c) => {
+  app.delete('/:id', requirePermission('user_group_detail', 'delete', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     await deleteUserGroup(scope.namespace, c.req.param('id'))
     return c.json({ ok: true })
   })
 
-  app.get('/:id/members', requirePermission('user_group', 'view', 'id'), async (c) => {
+  app.get('/:id/members', requirePermission('user_group_detail', 'view', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     return c.json(await listUserGroupMembers(scope.namespace, c.req.param('id')))
   })
 
-  app.post('/:id/members', requirePermission('user_group', 'add_member', 'id'), async (c) => {
+  app.post('/:id/members', requirePermission('user_group_detail', 'add_member', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     let body: Record<string, unknown>
     try {
@@ -91,7 +91,7 @@ export function userGroupsRoutes() {
     return c.json({ ok: true })
   })
 
-  app.delete('/:id/members/:memberId', requirePermission('user_group', 'remove_member', 'id'), async (c) => {
+  app.delete('/:id/members/:memberId', requirePermission('user_group_detail', 'remove_member', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     await removeUserGroupMember(scope.namespace, c.req.param('memberId'), c.req.param('id'))
     return c.json({ ok: true })

@@ -105,14 +105,27 @@ export async function seedE2E(): Promise<TestFixture> {
 
     const adminSurreal = await getSurreal('platform', 'admin')
     let platformAdminId: string
+    const platformOwnerGroupIds: string[] = []
     try {
       const [rows] = await adminSurreal.query<[{ id: string }[]]>(
         'CREATE platform_users CONTENT $data RETURN id',
         { data: { email: `platform-admin-${suffix}@test.co`, password: await hashPassword(password) } }
       )
       platformAdminId = normalizeRecordId(rows[0].id)
+
+      const [groupRows] = await adminSurreal.query<[{ id: string }[]]>(
+        'SELECT id FROM permission_groups WHERE name = $name',
+        { name: 'owner' }
+      )
+      for (const row of groupRows) {
+        platformOwnerGroupIds.push(normalizeRecordId(row.id))
+      }
     } finally {
       await closeSurreal(adminSurreal)
+    }
+
+    for (const groupId of platformOwnerGroupIds) {
+      await assignPermissionGroup('platform', 'admin', platformAdminId, groupId)
     }
 
     async function createUser(role: 'owner' | 'admin' | 'member', prefix: string): Promise<SeededUser> {
@@ -142,7 +155,7 @@ export async function seedE2E(): Promise<TestFixture> {
 
     const tenantSurreal = await getSurreal(company.namespace, 'main')
     let adminGroupId: string
-    let adminPermissionGroupId: string | undefined
+    const adminPermissionGroupIds: string[] = []
     try {
       const [groupRows] = await tenantSurreal.query<[{ id: string }[]]>(
         'SELECT id FROM user_groups WHERE name = $name LIMIT 1',
@@ -152,16 +165,18 @@ export async function seedE2E(): Promise<TestFixture> {
       adminGroupId = adminGroup ? normalizeRecordId(adminGroup.id) : (await createUserGroup(company.namespace, { name: 'Admins' })).id
 
       const [permRows] = await tenantSurreal.query<[{ id: string }[]]>(
-        'SELECT id FROM permission_groups WHERE name = $name AND resourceType = $resourceType LIMIT 1',
-        { name: 'Admin', resourceType: 'company' }
+        'SELECT id FROM permission_groups WHERE name = $name AND resourceType IN $resourceTypes',
+        { name: 'admin', resourceTypes: ['member', 'user_group', 'workflow_design'] }
       )
-      adminPermissionGroupId = permRows[0] ? normalizeRecordId(permRows[0].id) : undefined
+      for (const row of permRows) {
+        adminPermissionGroupIds.push(normalizeRecordId(row.id))
+      }
     } finally {
       await closeSurreal(tenantSurreal)
     }
     await addUserGroupMember(company.namespace, admin.memberId, adminGroupId)
-    if (adminPermissionGroupId) {
-      await assignPermissionGroup(company.namespace, admin.memberId, adminPermissionGroupId)
+    for (const groupId of adminPermissionGroupIds) {
+      await assignPermissionGroup(company.namespace, 'main', admin.memberId, groupId)
     }
 
     fixture = {

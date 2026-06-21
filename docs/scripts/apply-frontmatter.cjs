@@ -176,6 +176,7 @@ function inferApp(relPath, type, title) {
     if (t.includes('user management')) return ['admin', 'web']
     if (t.includes('company management')) return ['admin']
     if (t.includes('tenant authentication')) return ['web']
+    if (t.includes('tenant permission')) return ['admin', 'web']
     if (t.includes('workflow designer')) return ['web', 'admin']
     if (t.includes('workflow engine')) return ['runtime']
     if (t.includes('workflow actions catalog')) return ['web', 'admin', 'runtime']
@@ -243,6 +244,7 @@ const STATUS_OVERRIDES = {
   '50-Features/User Management.md': 'planned',
   '50-Features/Company Management.md': 'done',
   '50-Features/Tenant Authentication & Authorization.md': 'in-progress',
+  '50-Features/Tenant Permission System.md': 'done',
   '50-Features/Workflow Designer.md': 'done',
   '50-Features/Workflow Engine.md': 'planned',
   '50-Features/Workflow Actions Catalog.md': 'planned',

@@ -1,18 +1,18 @@
 import { Hono } from 'hono'
-import { RESOURCE_ACTIONS } from 'shared'
+import { RESOURCE_CATALOG } from 'shared'
 
 export function permissionsRoutes() {
   const app = new Hono()
 
   app.get('/actions', (c) => {
     const resourceType = c.req.query('resourceType')
-    if (!resourceType || !(resourceType in RESOURCE_ACTIONS)) {
+    if (!resourceType || !(resourceType in RESOURCE_CATALOG)) {
       return c.json({ error: 'Invalid or missing resourceType' }, 400)
     }
-    const actions = RESOURCE_ACTIONS[resourceType as keyof typeof RESOURCE_ACTIONS]
-    const result = actions.map((action, i) => ({
-      action,
-      value: 1 << i,
+    const def = RESOURCE_CATALOG[resourceType as keyof typeof RESOURCE_CATALOG]
+    const result = def.bitMapping.map((entry) => ({
+      action: entry.name,
+      value: entry.bit,
     }))
     return c.json({ resourceType, actions: result })
   })

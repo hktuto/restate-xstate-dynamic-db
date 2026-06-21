@@ -1,7 +1,7 @@
 ---
 title: New Permission System Implementation Plan
 type: note
-status: planned
+status: in-progress
 area: architecture
 created: 2026-06-21
 updated: 2026-06-21
@@ -536,7 +536,7 @@ describe('permissions', () => {
 
   it('builds and decodes a bitmask using compound values', () => {
     const mask = actionsToBitmask('user_group', ['view', 'edit_info', 'add_member'])
-    expect(mask).toBe('23')
+    expect(mask).toBe('19')
     expect(bitmaskToActions('user_group', mask)).toEqual(['view', 'edit_info', 'add_member'])
   })
 
@@ -544,7 +544,7 @@ describe('permissions', () => {
     const mask = actionsToBitmask('company', ['view', 'add_member'])
     expect(hasAction(mask, 'company', 'view')).toBe(true)
     expect(hasAction(mask, 'company', 'remove_member')).toBe(false)
-    expect(hasAction(mask, 'company', 'edit_info')).toBe(false)
+    expect(hasAction(mask, 'company', 'edit_info')).toBe(true)
   })
 
   it('returns all actions for a resource type', () => {
@@ -2532,52 +2532,35 @@ git commit -m "feat(api): add platform permission middleware and guard admin rou
 
 ```ts
 import { useApi } from './useApi'
+import { hasAction, type ResourceType, type PermissionAction } from 'shared'
 
 export function useAdminPermission() {
   const api = useApi()
-  const cache = useState<Record<string, string>>('adminPermissions', () => ({}))
+  const cache = useState<Record<string, string | undefined>>('adminPermissions', () => ({}))
 
-  async function can(resourceType: string, action: string, recordId?: string): Promise<boolean> {
+  async function can<T extends ResourceType>(
+    resourceType: T,
+    action: PermissionAction<T>,
+    recordId?: string
+  ): Promise<boolean> {
     const key = recordId ? `${resourceType}:${recordId}` : resourceType
-    if (cache.value[key] !== undefined) {
-      return hasBit(cache.value[key]!, action)
+    let mask = cache.value[key]
+    if (mask === undefined) {
+      try {
+        const result = await api.fetch<{ bitmask: string }>(
+          `/api/admin/permissions/effective?resourceType=${encodeURIComponent(resourceType)}${recordId ? `&recordId=${encodeURIComponent(recordId)}` : ''}`
+        )
+        mask = result.bitmask
+        cache.value[key] = mask
+      } catch (err) {
+        console.error('Failed to load admin permissions:', err)
+        return false
+      }
     }
-    try {
-      const result = await api.fetch<{ bitmask: string }>(
-        `/api/admin/permissions/effective?resourceType=${encodeURIComponent(resourceType)}${recordId ? `&recordId=${encodeURIComponent(recordId)}` : ''}`
-      )
-      cache.value[key] = result.bitmask
-      return hasBit(result.bitmask, action)
-    } catch {
-      return false
-    }
+    return hasAction(mask, resourceType, action)
   }
 
   return { can }
-}
-
-function hasBit(bitmask: string, action: string): boolean {
-  // The admin UI only needs coarse action checks for now.
-  // The API already enforces the real compound check.
-  return (Number(bitmask) & actionValue(action)) !== 0
-}
-
-function actionValue(action: string): number {
-  switch (action) {
-    case 'view':
-      return 1
-    case 'create':
-      return 5
-    case 'edit':
-    case 'edit_info':
-      return 3
-    case 'delete':
-      return 9
-    case 'manage_permissions':
-      return 512
-    default:
-      return 0
-  }
 }
 ```
 
@@ -2627,9 +2610,11 @@ Wrap the delete button:
 **Files:**
 - Modify: `apps/admin/app/pages/user-groups/index.vue`
 
-- [ ] **Step 1: Apply the same pattern with `admin_user_group` actions**
+- [ ] **Step 1: Gate the new-link prop**
 
-Use `can('admin_user_group', 'create')` for the Add group button and `can('admin_user_group', 'delete')` for delete actions.
+This page uses `<DataTablePage>`, which does not expose row-level delete actions. Gate only the Add group link by setting `config.newLink` to `undefined` when the user lacks `admin_user_group.create`.
+
+Use `can('admin_user_group', 'create')` for the Add group link.
 
 ### Task 6.4: Update `apps/admin/app/pages/workflow-designs/index.vue`
 
@@ -2641,19 +2626,26 @@ Use `can('admin_user_group', 'create')` for the Add group button and `can('admin
 Change the config to:
 
 ```ts
-const config = ref({
+const config = ref<{
+  title: string
+  icon: string
+  table: string
+  nsdb: string
+  newLink?: string
+  newLabel: string
+}>({
   title: 'Workflow Designs',
   icon: 'i-lucide-workflow',
   table: 'workflow_designs',
   nsdb: 'platform--admin',
-  newLink: '/workflow-designs/new',
+  newLink: undefined,
   newLabel: 'New workflow design',
 })
 
 const { can } = useAdminPermission()
 onMounted(async () => {
-  if (!(await can('workflow_design', 'create'))) {
-    config.value.newLink = undefined
+  if (await can('workflow_design', 'create')) {
+    config.value.newLink = '/workflow-designs/new'
   }
 })
 ```

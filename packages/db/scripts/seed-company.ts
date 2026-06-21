@@ -27,6 +27,7 @@ const COMPANY = {
   namespace: 'company_seedco_test',
 }
 
+// Non-production test data only.
 const PASSWORD = 'SeedPass123!'
 
 interface SeedPerson {
@@ -85,9 +86,9 @@ async function seedMembers(
   namespace: string,
   credential: string
 ): Promise<Map<string, MemberRecord>> {
-  const groups = await listPermissionGroups(namespace, 'company')
-  const adminGroup = groups.find((g) => g.name === 'Admin')!
-  const memberGroup = groups.find((g) => g.name === 'Member')!
+  const groups = await listPermissionGroups(namespace, 'main', 'member')
+  const adminGroup = groups.find((g) => g.name === 'admin')!
+  const memberGroup = groups.find((g) => g.name === 'user')!
 
   const members = new Map<string, MemberRecord>()
 
@@ -95,7 +96,7 @@ async function seedMembers(
     const { profile } = await createPersonAccount(person, credential)
     const member = await createCompanyMember(namespace, person, profile.id)
     const group = ADMIN_EMAILS.has(person.email) ? adminGroup : memberGroup
-    await assignPermissionGroup(namespace, member.id, group.id)
+    await assignPermissionGroup(namespace, 'main', member.id, group.id)
     members.set(person.email, member)
   }
 
@@ -138,8 +139,8 @@ async function seedUserGroups(
   for (const groupDef of USER_GROUPS) {
     const group = await createUserGroupWithDefaults(namespace, { name: groupDef.name, description: groupDef.description }, ownerMember.id)
 
-    const recordGroups = await listPermissionGroups(namespace, 'user_group', group.id)
-    const ownerGroup = recordGroups.find((g) => g.name === 'Owner')!
+    const recordGroups = await listPermissionGroups(namespace, 'main', 'user_group_detail', group.id)
+    const ownerGroup = recordGroups.find((g) => g.name === 'owner')!
 
     await addUserGroupMember(namespace, ownerMember.id, group.id)
 
@@ -154,7 +155,7 @@ async function seedUserGroups(
       const member = members.get(email)
       if (member) {
         await addUserGroupMember(namespace, member.id, group.id)
-        await assignPermissionGroup(namespace, member.id, ownerGroup.id)
+        await assignPermissionGroup(namespace, 'main', member.id, ownerGroup.id)
       }
     }
   }

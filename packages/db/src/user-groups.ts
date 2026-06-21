@@ -1,8 +1,14 @@
 import { StringRecordId } from 'surrealdb'
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
-import { actionsToBitmask, DEFAULT_GROUPS } from 'shared'
-import { createPermissionGroup, assignPermissionGroup, listPermissionGroups } from './permissions.js'
+import { defaultGroups, type ResourceType } from 'shared'
+import {
+  createPermissionGroup,
+  assignPermissionGroup,
+  listPermissionGroups,
+  applyPermissionToResource,
+  deletePermissionGroup,
+} from './permissions.js'
 
 export interface UserGroupRecord {
   id: string
@@ -84,10 +90,9 @@ export async function deleteUserGroup(namespace: string, id: string): Promise<vo
   const surreal = await getSurreal(namespace, 'main')
   try {
     await surreal.query('DELETE user_group_memberships WHERE out = type::record($id)', { id })
-    const groups = await listPermissionGroups(namespace, 'user_group', id)
+    const groups = await listPermissionGroups(namespace, 'main', 'user_group_detail', id)
     for (const group of groups) {
-      await surreal.query('DELETE permission_assignments WHERE out = type::record($id)', { id: group.id })
-      await surreal.query('DELETE type::record($id)', { id: group.id })
+      await deletePermissionGroup(namespace, 'main', group.id)
     }
     await surreal.query('DELETE permission_assignments WHERE in = type::record($id)', { id })
     await surreal.query('DELETE type::record($id)', { id })
@@ -149,30 +154,32 @@ export async function listUserGroupMembers(
   }
 }
 
+/**
+ * Creates a user group and auto-assigns the creator to the owner permission group.
+ */
 export async function createUserGroupWithDefaults(
   namespace: string,
   input: UserGroupInput,
   creatorMemberId: string
 ): Promise<UserGroupRecord> {
   const group = await createUserGroup(namespace, input)
-  let memberGroupId: string | undefined
-  for (const defaultGroup of DEFAULT_GROUPS.user_group) {
-    const created = await createPermissionGroup(namespace, {
-      resourceType: 'user_group',
+  const groups = defaultGroups('user_group_detail')
+  for (const groupDef of groups) {
+    const created = await createPermissionGroup(namespace, 'main', {
+      resourceType: 'user_group_detail',
       recordId: group.id,
-      name: defaultGroup.name,
-      bitmask: actionsToBitmask('user_group', defaultGroup.actions),
+      name: groupDef.name,
       isSystem: true,
     })
-    if (defaultGroup.name === 'Owner') {
-      await assignPermissionGroup(namespace, creatorMemberId, created.id)
+    await applyPermissionToResource(namespace, 'main', {
+      groupId: created.id,
+      resourceType: 'user_group_detail',
+      bitmask: groupDef.bitmask,
+      propagateMask: groupDef.propagateMask,
+    })
+    if (groupDef.name === 'owner') {
+      await assignPermissionGroup(namespace, 'main', creatorMemberId, created.id)
     }
-    if (defaultGroup.name === 'Member') {
-      memberGroupId = created.id
-    }
-  }
-  if (memberGroupId) {
-    await assignPermissionGroup(namespace, group.id, memberGroupId)
   }
   return group
 }

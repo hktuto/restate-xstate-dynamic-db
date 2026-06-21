@@ -1,10 +1,12 @@
 // packages/db/src/seed.ts
 import { fileURLToPath } from 'node:url'
-import { hashPassword } from 'shared'
+import { hashPassword, defaultGroups, allActionsBitmask, type ResourceType } from 'shared'
 import { getSurreal, closeSurreal, closeSurrealPool } from './client.js'
 import { PLATFORM_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
 import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
 import { cleanDb } from './clean-db.js'
+import { seedResourceTypes } from './resource-types.js'
+import { createPermissionGroup, assignPermissionGroup, applyPermissionToResource } from './permissions.js'
 
 export async function seed() {
   const surreal = await getSurreal()
@@ -46,6 +48,17 @@ export async function seed() {
       DEFINE INDEX IF NOT EXISTS idx_accounts_provider_key ON accounts FIELDS provider, providerKey UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_platform_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
 
+      DEFINE TABLE IF NOT EXISTS resource_types SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_resource_types_name ON resource_types FIELDS name UNIQUE;
+
+      DEFINE TABLE IF NOT EXISTS resource_parent TYPE RELATION SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_resource_parent_in ON resource_parent FIELDS in;
+      DEFINE INDEX IF NOT EXISTS idx_resource_parent_out ON resource_parent FIELDS out;
+
+      DEFINE TABLE IF NOT EXISTS permission_apply_to TYPE RELATION SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_permission_apply_to_out_in ON permission_apply_to FIELDS out, in;
+      DEFINE INDEX IF NOT EXISTS idx_permission_apply_to_recordId ON permission_apply_to FIELDS recordId;
+
       UPSERT platform_users:admin SET email = 'admin@example.com', password = $password;
       UPSERT admin_user_groups:superadmin SET name = 'Super Admin', description = 'Full platform access';
       DELETE admin_user_group_memberships WHERE in = type::record('platform_users:admin') AND out = type::record('admin_user_groups:superadmin');
@@ -69,9 +82,51 @@ export async function seed() {
       await generateDefaultView('platform', 'admin', table.name)
     }
 
+    await seedResourceTypes('platform', 'admin', 'platform')
+    await seedPlatformDefaultGroups()
+
     console.log('Platform namespace seeded')
   } finally {
     await closeSurreal(surreal)
+  }
+}
+
+async function seedPlatformDefaultGroups(): Promise<void> {
+  const platformOwnerGroup = await createPermissionGroup('platform', 'admin', {
+    resourceType: 'platform',
+    name: 'owner',
+    isSystem: true,
+    description: 'Full platform access',
+  })
+  const platformOwnerBitmask = Number(allActionsBitmask('platform'))
+
+  await applyPermissionToResource('platform', 'admin', {
+    groupId: platformOwnerGroup.id,
+    resourceType: 'platform',
+    bitmask: platformOwnerBitmask,
+    propagateMask: platformOwnerBitmask,
+  })
+  await assignPermissionGroup('platform', 'admin', 'platform_users:admin', platformOwnerGroup.id)
+
+  const resourceNames: ResourceType[] = ['admin_user', 'admin_user_group', 'company', 'company_member', 'workflow_design']
+  for (const resourceName of resourceNames) {
+    const groups = defaultGroups(resourceName)
+    for (const groupDef of groups) {
+      const group = await createPermissionGroup('platform', 'admin', {
+        resourceType: resourceName,
+        name: groupDef.name,
+        isSystem: true,
+      })
+      await applyPermissionToResource('platform', 'admin', {
+        groupId: group.id,
+        resourceType: resourceName,
+        bitmask: groupDef.bitmask,
+        propagateMask: groupDef.propagateMask,
+      })
+      if (groupDef.name === 'owner') {
+        await assignPermissionGroup('platform', 'admin', 'platform_users:admin', group.id)
+      }
+    }
   }
 }
 

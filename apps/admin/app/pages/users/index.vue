@@ -13,9 +13,12 @@ interface PlatformUser {
 }
 
 const api = useApi()
+const { can } = useAdminPermission()
 const users = ref<PlatformUser[]>([])
 const loading = ref(true)
 const error = ref('')
+const canCreate = ref(false)
+const canDelete = ref(false)
 
 async function load() {
   loading.value = true
@@ -39,7 +42,11 @@ async function remove(id: string) {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  canCreate.value = await can('admin_user', 'create')
+  canDelete.value = await can('admin_user', 'delete')
+  await load()
+})
 </script>
 
 <template>
@@ -51,7 +58,7 @@ onMounted(load)
         </template>
 
         <template #right>
-          <UButton to="/users/new" icon="i-lucide-plus">
+          <UButton v-if="canCreate" to="/users/new" icon="i-lucide-plus">
             Add user
           </UButton>
         </template>
@@ -108,6 +115,7 @@ onMounted(load)
                   class="mr-1"
                 />
                 <UButton
+                  v-if="canDelete"
                   color="error"
                   variant="ghost"
                   icon="i-lucide-trash"

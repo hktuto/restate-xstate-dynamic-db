@@ -2,6 +2,7 @@
 import { getSurreal, closeSurreal } from './client.js'
 import { TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
 import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
+import { seedResourceTypes } from './resource-types.js'
 
 export async function provisionCompanyNamespace(namespace: string) {
   if (!/^[a-z_][a-z0-9_]*$/.test(namespace)) {
@@ -38,8 +39,8 @@ export async function provisionCompanyNamespace(namespace: string) {
 
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
       DEFINE INDEX IF NOT EXISTS idx_members_inviteCode ON members FIELDS inviteCode UNIQUE;
+      DEFINE INDEX IF NOT EXISTS idx_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_company_policies_companyId ON company_policies FIELDS companyId UNIQUE;
-      DEFINE INDEX IF NOT EXISTS idx_platform_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
 
       DEFINE TABLE IF NOT EXISTS user_group_memberships TYPE RELATION SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_user_group_memberships_in ON user_group_memberships FIELDS in;
@@ -51,6 +52,17 @@ export async function provisionCompanyNamespace(namespace: string) {
       DEFINE INDEX IF NOT EXISTS idx_permission_assignments_out ON permission_assignments FIELDS out;
       DEFINE INDEX IF NOT EXISTS idx_permission_assignments_resource ON permission_assignments FIELDS resourceType, recordId;
       DEFINE INDEX IF NOT EXISTS idx_permission_assignments_unique ON permission_assignments FIELDS in, resourceType, recordId UNIQUE;
+
+      DEFINE TABLE IF NOT EXISTS resource_types SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_resource_types_name ON resource_types FIELDS name UNIQUE;
+
+      DEFINE TABLE IF NOT EXISTS resource_parent TYPE RELATION SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_resource_parent_in ON resource_parent FIELDS in;
+      DEFINE INDEX IF NOT EXISTS idx_resource_parent_out ON resource_parent FIELDS out;
+
+      DEFINE TABLE IF NOT EXISTS permission_apply_to TYPE RELATION SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_permission_apply_to_out_in ON permission_apply_to FIELDS out, in;
+      DEFINE INDEX IF NOT EXISTS idx_permission_apply_to_recordId ON permission_apply_to FIELDS recordId;
     `)
 
     for (const table of TENANT_TABLE_SCHEMAS) {
@@ -69,6 +81,8 @@ export async function provisionCompanyNamespace(namespace: string) {
     for (const table of TENANT_TABLE_SCHEMAS) {
       await generateDefaultView(namespace, 'main', table.name)
     }
+
+    await seedResourceTypes(namespace, 'main', 'tenant')
 
     return { ok: true, namespace }
   } finally {

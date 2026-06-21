@@ -1,34 +1,36 @@
 ---
 title: Tenant Permission System
 type: feature
-status: planned
+status: done
 area: workflow
 created: 2026-06-19
-updated: 2026-06-20
+updated: 2026-06-21
+app:
+  - admin
+  - web
 related:
   - [[Tenant Authentication & Authorization]]
   - [[Data Model]]
   - [[40-Packages/db]]
+  - [[40-Packages/shared]]
   - [[Company Management]]
+  - [[20-Architecture/Decision Log/ADR-005 compound-bitmask-permissions]]
 ---
 
 # Tenant Permission System
 
 ## Overview
 
-A tenant-scoped permission layer that separates organizational **user groups** from **permission groups**, stores each group's rights as a bitwise bitmask, and uses SurrealDB graph edges for membership and assignment. Company owners keep a short-cut flag that grants full access.
-
-This feature covers tenant permissions only; super-admin permissions are out of scope for now.
+A unified permission layer for tenant and admin scopes. Resource types are declared in a shared catalog with compound bit mappings. `permission_groups` are named containers, while actual grants are stored on `permission_apply_to` graph edges so the same resolver can evaluate access for platform administrators and tenant members.
 
 ## Requirements
 
-- Users can belong to many **user groups**.
-- For each resource type or record, a user or user group can be assigned to exactly one **permission group**.
-- Permissions are stored bitwise: each action maps to a power-of-two value (1, 2, 4, 8, …).
-- Effective permission is the bitwise OR of the user's direct assignment and the assignments of all user groups the user belongs to.
-- Use SurrealDB graph edges for user-group membership and permission-group assignment.
-- Company owners bypass all checks.
-- The first slice focuses on `company` (global actions) and `user_group` (record-level ACLs).
+- Resource types, actions, default groups, and parent relationships are declared once in `packages/shared/src/resource-catalog.ts`.
+- `permission_groups` are named containers with no bitmask of their own.
+- Grants move to `permission_apply_to` edges carrying `bitmask`, `propagateMask`, optional `recordId`, and future `conditions`.
+- Membership is modelled through `user_group_memberships` edges for tenant members and `admin_user_group_memberships` edges for platform administrators.
+- Permission assignments (`permission_assignments` edges) link a member or group to a permission group.
+- Effective permission uses compound-bit checks: `(effectiveMask & actionValue) === actionValue`.
 
 ## Design
 
@@ -36,37 +38,38 @@ This feature covers tenant permissions only; super-admin permissions are out of 
 
 | Concept | Meaning |
 |---------|---------|
-| **Resource type** | A class of object that can be protected, e.g. `company`, `user_group`, `workflow_design`. |
-| **Permission group** | A named access tier for exactly one resource type or record. Stores a bitmask. |
-| **Record-level permission group** | A permission group scoped to one specific record, e.g. one `user_group` instance. |
+| **Resource type** | A class of object that can be protected, e.g. `tenant`, `member`, `user_group`, `user_group_detail`, `workflow_design`, `workflow_design_detail`. |
+| **Permission group** | A named access tier for one resource type. Stores no bitmask; rights are held on linked `permission_apply_to` edges. |
+| **Permission grant** | An edge from a permission group to a resource type (and optional record) defining the allowed bitmask and propagation mask. |
 | **User group** | An organizational group inside a company, e.g. "Finance Team". |
-| **Permission assignment** | A user or user group is linked to one permission group per scope. |
-| **Company owner** | A flag on the `members` record that grants every action. |
+| **Permission assignment** | A member or user group is linked to one permission group. |
+| **Compound bitmask** | Each action is an integer mask; actions like `edit` combine `view` with a high bit so checks are `(effectiveMask & actionValue) === actionValue`. |
 
-### Bitwise permissions
+### Resource catalog
 
-Each action maps to a single bit:
+Resource types are declared in `packages/shared/src/resource-catalog.ts` with:
 
-| Bit position | Decimal value |
-|--------------|---------------|
-| 0 | 1 |
-| 1 | 2 |
-| 2 | 4 |
-| 3 | 8 |
-| 4 | 16 |
+- `bitMapping` — action name to integer mask.
+- `parentResourceType` — the singular parent resource type this resource inherits from (rendered as the `resource_parent` graph edge).
+- `defaultGroups` — lowercase group names such as `owner`, `admin`, `user` with optional grants and propagation masks.
 
-Example `user_group` record actions:
+Example default group names are lowercase: `owner`, `admin`, `user`.
 
-| Action | Value |
-|--------|-------|
-| view | 1 |
-| update | 2 |
-| delete | 4 |
-| add_member | 8 |
-| remove_member | 16 |
-| manage_permissions | 32 |
+### Effective permission resolution
 
-A permission group that allows `view`, `update`, and `add_member` stores bitmask `1 | 2 | 8 = 11`. Permission checks use bitwise AND: `(bitmask & actionValue) != 0`.
+1. Load the resource type and its ancestors from the `resource_parent` graph.
+2. Collect the member's direct assignments and assignments of every user group the member belongs to.
+3. For each assignment, read the linked permission group's `permission_apply_to` edges, applying `propagateMask` when walking up to parent resource types.
+4. Compute `effectiveMask = OR of all collected bitmasks`.
+5. Allow if `(effectiveMask & actionValue) === actionValue`.
+
+The same resolver serves tenant and admin scopes by parameterizing the membership edge (`user_group_memberships` for tenants, `admin_user_group_memberships` for platform administrators) and table names.
+
+### Tenant root and member management
+
+- The tenant root resource is `tenant`.
+- Member management uses the `member` resource type.
+- Record-scoped detail resources (for example `user_group_detail`) carry only basic actions and inherit from their parent resource type.
 
 ### Data model
 
@@ -74,48 +77,28 @@ Inside each tenant namespace:
 
 | Table / Edge | Purpose |
 |--------------|---------|
-| `user_groups` | Organizational groups (name, description). |
-| `user_group_memberships` | Edge: member → many user groups. |
-| `permission_groups` | Access tier for a resource type or record (`resourceType`, optional `recordId`, `name`, `bitmask`, `isSystem`). |
-| `permission_assignments` | Edge: member **or** user group → one permission group per scope. |
-
-`permission_assignments` stores `resourceType` and `recordId` copied from the linked group. A unique index on `(in, resourceType, recordId)` enforces one assignment per assignee per scope.
-
-### Permission resolution
-
-1. If `members.role = owner`, allow.
-2. Collect relevant permission groups: record-level (if a `recordId` is provided), resource-type-level, and `company`-level for global actions.
-3. Load the user's direct assignment and the assignments of every user group the user belongs to.
-4. Compute `effectiveBitmask = OR of all collected bitmasks`.
-5. Allow if `(effectiveBitmask & actionValue) != 0`.
+| `members` | Tenant members, including an `owner` flag for full access. |
+| `user_group_memberships` | Edge: tenant member → many user groups. |
+| `permission_groups` | Named access tier for a resource type (`resourceType`, `name`, `isSystem`). |
+| `permission_assignments` | Edge: member **or** user group → one permission group. |
+| `permission_apply_to` | Edge: permission group → resource type (or record) with `bitmask`, `propagateMask`, optional `recordId`, and future `conditions`. |
+| `resource_types` | Upserted from the shared catalog. |
+| `resource_parent` | Edge: child resource type → parent resource type. |
 
 ### Default groups
 
-- **`company`** — Owner, Admin, Member. Actions include `manage_settings`, `manage_permissions`, `manage_user_groups`, `invite_member`, `remove_member`, `view`.
-- **`user_group` record-level** — When a user group is created, auto-create Owner, Admin, Member groups scoped to that record. The creator becomes Owner.
-- **Other resource types** (e.g. `workflow_design`) can start with resource-type-level groups only: Owner, Editor, Viewer.
-
-### First slice
-
-1. **`company`** resource type for global actions.
-2. **`user_group`** resource type with record-level ACLs.
-
-Workflow-related resources come later and can use resource-type-level groups initially.
-
-## Frontend mapping
-
-The API should expose the permission registry (resource type → ordered action list and values) so the UI can decode bitmasks without hard-coding bit positions. A registry endpoint such as `GET /api/permissions/actions?resourceType=user_group` is the recommended approach.
-
-## Open questions
-
-- Should record-level permission groups be created for resources other than `user_group` in the first slice?
-- Should system default permission groups be immutable, or editable only by users with `company:manage_permissions`?
-- Should permission groups support inheritance (e.g. "Admin" always includes all bits from "Member")?
-- Should a user group's permission assignment ever override the user's direct assignment, or is OR always sufficient?
+- `tenant` — `owner`, `admin`, `user`.
+- `member` — `owner`, `admin`, `user`.
+- `user_group` — resource-type and record-level groups for `owner`, `admin`, `user`.
+- `workflow_design` — resource-type groups for `owner`, `admin`, `user`.
+- `workflow_design_detail` — record-scoped detail resource carrying only basic actions inherited from `workflow_design`.
+- Record-scoped detail resources such as `user_group_detail` carry only basic actions inherited from their parent.
 
 ## Related
 
 - [[Tenant Authentication & Authorization]]
 - [[Data Model]]
 - [[40-Packages/db]]
+- [[40-Packages/shared]]
 - [[Company Management]]
+- [[20-Architecture/Decision Log/ADR-005 compound-bitmask-permissions|ADR-005]]
