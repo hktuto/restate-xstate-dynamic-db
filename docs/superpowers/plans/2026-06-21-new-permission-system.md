@@ -1,7 +1,7 @@
 ---
 title: New Permission System Implementation Plan
 type: note
-status: planned
+status: in-progress
 area: architecture
 created: 2026-06-21
 updated: 2026-06-21
@@ -332,6 +332,7 @@ export const TENANT_RESOURCE_TYPES: ResourceTypeDefinition[] = [
     defaultGroups: [
       { name: 'owner', bitmask: 911, propagateMask: 911 },
       { name: 'admin', bitmask: 911, propagateMask: 911 },
+      { name: 'user', bitmask: 1, propagateMask: 0 },
     ],
     isSystem: true,
     scope: 'tenant',
@@ -1729,7 +1730,7 @@ describe('permissions', () => {
     const owner = await createMember(namespace, { email: 'o2@example.com', role: 'owner' })
     await provisionDefaultCompanyGroups(namespace, owner.id)
     const groups = await listPermissionGroups(namespace, 'main', 'tenant')
-    expect(groups.map((g) => g.name)).toEqual(['owner', 'admin'])
+    expect(groups.map((g) => g.name)).toEqual(['owner', 'admin', 'user'])
   })
 
   it('inherits permissions from user-group membership', async () => {
