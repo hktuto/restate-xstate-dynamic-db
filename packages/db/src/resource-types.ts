@@ -1,5 +1,5 @@
 import { StringRecordId } from 'surrealdb'
-import { RESOURCE_CATALOG, type ResourceTypeDefinition } from 'shared'
+import { PLATFORM_CATALOG, TENANT_CATALOG, type ResourceTypeDefinition } from 'shared'
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
 
@@ -46,7 +46,8 @@ export async function seedResourceTypes(
   database: string,
   scope: 'platform' | 'tenant'
 ): Promise<void> {
-  const defs = Object.values(RESOURCE_CATALOG).filter((r) => r.scope === scope)
+  const catalog = scope === 'platform' ? PLATFORM_CATALOG : TENANT_CATALOG
+  const defs = Object.values(catalog)
   for (const def of defs) {
     await upsertResourceType(namespace, database, def)
   }

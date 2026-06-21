@@ -1,5 +1,7 @@
 export {
   RESOURCE_CATALOG,
+  PLATFORM_CATALOG,
+  TENANT_CATALOG,
   resourceType,
   actionValue,
   actionsToBitmask,

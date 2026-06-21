@@ -464,6 +464,8 @@ const TENANT_CATALOG = {
  */
 export const RESOURCE_CATALOG = { ...PLATFORM_CATALOG, ...TENANT_CATALOG } as const
 
+export { PLATFORM_CATALOG, TENANT_CATALOG }
+
 export type ResourceType = keyof typeof RESOURCE_CATALOG
 export type PermissionAction<T extends ResourceType = ResourceType> =
   (typeof RESOURCE_CATALOG)[T]['bitMapping'][number]['name']

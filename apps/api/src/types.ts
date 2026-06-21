@@ -19,6 +19,7 @@ export interface AdminScope {
   userId: string
   email: string
   session: AdminSession
+  permissions?: Record<string, string>
 }
 
 export type ApiScope = TenantScope | AdminScope

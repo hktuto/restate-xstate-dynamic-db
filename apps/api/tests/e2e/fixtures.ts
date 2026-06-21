@@ -105,14 +105,27 @@ export async function seedE2E(): Promise<TestFixture> {
 
     const adminSurreal = await getSurreal('platform', 'admin')
     let platformAdminId: string
+    const platformOwnerGroupIds: string[] = []
     try {
       const [rows] = await adminSurreal.query<[{ id: string }[]]>(
         'CREATE platform_users CONTENT $data RETURN id',
         { data: { email: `platform-admin-${suffix}@test.co`, password: await hashPassword(password) } }
       )
       platformAdminId = normalizeRecordId(rows[0].id)
+
+      const [groupRows] = await adminSurreal.query<[{ id: string }[]]>(
+        'SELECT id FROM permission_groups WHERE name = $name',
+        { name: 'owner' }
+      )
+      for (const row of groupRows) {
+        platformOwnerGroupIds.push(normalizeRecordId(row.id))
+      }
     } finally {
       await closeSurreal(adminSurreal)
+    }
+
+    for (const groupId of platformOwnerGroupIds) {
+      await assignPermissionGroup('platform', 'admin', platformAdminId, groupId)
     }
 
     async function createUser(role: 'owner' | 'admin' | 'member', prefix: string): Promise<SeededUser> {
