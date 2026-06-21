@@ -8,28 +8,20 @@ import {
 } from 'db/tenant'
 import type { WorkflowDefinition, StartRule } from 'shared'
 import { tenantAuth } from '../middleware/tenant.js'
+import { requirePermission } from '../middleware/permission.js'
 import type { TenantScope } from '../types.js'
-
-function requireRole(scope: TenantScope, roles: Array<'owner' | 'admin' | 'member'>) {
-  if (!roles.includes(scope.role)) {
-    return { error: 'Forbidden', status: 403 } as const
-  }
-  return null
-}
 
 export function workflowDesignsRoutes() {
   const app = new Hono()
   app.use(tenantAuth)
 
-  app.get('/', async (c) => {
+  app.get('/', requirePermission('workflow_design', 'view'), async (c) => {
     const scope = c.get('scope') as TenantScope
     return c.json(await listWorkflowDesigns(scope.namespace))
   })
 
-  app.post('/', async (c) => {
+  app.post('/', requirePermission('workflow_design', 'create'), async (c) => {
     const scope = c.get('scope') as TenantScope
-    const forbidden = requireRole(scope, ['owner', 'admin'])
-    if (forbidden) return c.json({ error: forbidden.error }, forbidden.status)
 
     let body: { name?: string; xstateConfig?: WorkflowDefinition; starts?: StartRule[] }
     try {
@@ -45,7 +37,7 @@ export function workflowDesignsRoutes() {
     }))
   })
 
-  app.get('/:id', async (c) => {
+  app.get('/:id', requirePermission('workflow_design_detail', 'view', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const id = c.req.param('id')
     const workflowDesign = await getWorkflowDesign(scope.namespace, id)
@@ -55,11 +47,8 @@ export function workflowDesignsRoutes() {
     return c.json(workflowDesign)
   })
 
-  app.patch('/:id', async (c) => {
+  app.patch('/:id', requirePermission('workflow_design_detail', 'edit', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
-    const forbidden = requireRole(scope, ['owner', 'admin'])
-    if (forbidden) return c.json({ error: forbidden.error }, forbidden.status)
-
     const id = c.req.param('id')
     const existing = await getWorkflowDesign(scope.namespace, id)
     if (!existing) {
@@ -79,11 +68,8 @@ export function workflowDesignsRoutes() {
     }))
   })
 
-  app.delete('/:id', async (c) => {
+  app.delete('/:id', requirePermission('workflow_design_detail', 'delete', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
-    const forbidden = requireRole(scope, ['owner', 'admin'])
-    if (forbidden) return c.json({ error: forbidden.error }, forbidden.status)
-
     const id = c.req.param('id')
     const existing = await getWorkflowDesign(scope.namespace, id)
     if (!existing) {

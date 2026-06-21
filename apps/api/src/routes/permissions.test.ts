@@ -4,7 +4,7 @@ import { permissionsRoutes } from './permissions.js'
 const app = permissionsRoutes()
 
 describe('GET /actions', () => {
-  it('returns ordered actions with power-of-two values for a valid resourceType', async () => {
+  it('returns compound action values for a valid resourceType', async () => {
     const res = await app.request('/actions?resourceType=user_group')
     expect(res.status).toBe(200)
     const body = (await res.json()) as {
@@ -12,19 +12,19 @@ describe('GET /actions', () => {
       actions: Array<{ action: string; value: number }>
     }
     expect(body.resourceType).toBe('user_group')
-    expect(body.actions).toHaveLength(6)
     expect(body.actions.map((a) => a.action)).toEqual([
       'view',
-      'update',
+      'edit_info',
+      'create',
       'delete',
       'add_member',
       'remove_member',
+      'update_default_view_settings',
+      'edit_schema',
       'manage_permissions',
     ])
-    body.actions.forEach((action, i) => {
-      expect(action.value).toBe(1 << i)
-      expect(action.value & (action.value - 1)).toBe(0)
-    })
+    expect(body.actions.find((a) => a.action === 'create')?.value).toBe(5)
+    expect(body.actions.find((a) => a.action === 'add_member')?.value).toBe(19)
   })
 
   it('returns 400 for an invalid resourceType', async () => {

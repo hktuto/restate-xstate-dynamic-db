@@ -142,7 +142,7 @@ export async function seedE2E(): Promise<TestFixture> {
 
     const tenantSurreal = await getSurreal(company.namespace, 'main')
     let adminGroupId: string
-    let adminPermissionGroupId: string | undefined
+    const adminPermissionGroupIds: string[] = []
     try {
       const [groupRows] = await tenantSurreal.query<[{ id: string }[]]>(
         'SELECT id FROM user_groups WHERE name = $name LIMIT 1',
@@ -152,16 +152,18 @@ export async function seedE2E(): Promise<TestFixture> {
       adminGroupId = adminGroup ? normalizeRecordId(adminGroup.id) : (await createUserGroup(company.namespace, { name: 'Admins' })).id
 
       const [permRows] = await tenantSurreal.query<[{ id: string }[]]>(
-        'SELECT id FROM permission_groups WHERE name = $name AND resourceType = $resourceType LIMIT 1',
-        { name: 'Admin', resourceType: 'company' }
+        'SELECT id FROM permission_groups WHERE name = $name AND resourceType IN $resourceTypes',
+        { name: 'admin', resourceTypes: ['member', 'user_group', 'workflow_design'] }
       )
-      adminPermissionGroupId = permRows[0] ? normalizeRecordId(permRows[0].id) : undefined
+      for (const row of permRows) {
+        adminPermissionGroupIds.push(normalizeRecordId(row.id))
+      }
     } finally {
       await closeSurreal(tenantSurreal)
     }
     await addUserGroupMember(company.namespace, admin.memberId, adminGroupId)
-    if (adminPermissionGroupId) {
-      await assignPermissionGroup(company.namespace, admin.memberId, adminPermissionGroupId)
+    for (const groupId of adminPermissionGroupIds) {
+      await assignPermissionGroup(company.namespace, 'main', admin.memberId, groupId)
     }
 
     fixture = {

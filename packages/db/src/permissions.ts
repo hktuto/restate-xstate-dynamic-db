@@ -220,7 +220,7 @@ export async function provisionDefaultCompanyGroups(
   namespace: string,
   ownerMemberId: string
 ): Promise<void> {
-  for (const resourceName of ['tenant', 'member'] as ResourceType[]) {
+  for (const resourceName of ['tenant', 'member', 'user_group', 'workflow_design'] as ResourceType[]) {
     const groups = defaultGroups(resourceName)
     for (const groupDef of groups) {
       const group = await createPermissionGroup(namespace, 'main', {

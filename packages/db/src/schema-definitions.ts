@@ -311,4 +311,11 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     column('filter', 'object', 'json', { optional: true }),
     column('sort', 'array', 'json', { optional: true }),
   ]),
+  table('company_policies', 'Company Policies', [
+    column('companyId', 'string', 'text'),
+    column('maxSessions', 'number', 'number', { optional: true }),
+    column('sessionOverflowAction', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['revoke_oldest', 'reject']) } }),
+    column('allowImpersonation', 'boolean', 'checkbox'),
+    column('allowApiKeys', 'boolean', 'checkbox'),
+  ]),
 ]

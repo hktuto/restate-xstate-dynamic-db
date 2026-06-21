@@ -15,7 +15,7 @@ describe('requirePermission', () => {
         profileId: 'user_profiles:1',
         memberId: 'members:1',
         role,
-        permissions: bitmask ? { company: bitmask } : undefined,
+        permissions: bitmask ? { member: bitmask } : undefined,
         session: {
           sessionId: 'sessions:1',
           accountId: 'accounts:1',
@@ -26,12 +26,12 @@ describe('requirePermission', () => {
       } satisfies TenantScope)
       await next()
     })
-    app.get('/settings', requirePermission('company', 'manage_settings'), (c) => c.json({ ok: true }))
+    app.get('/settings', requirePermission('member', 'edit'), (c) => c.json({ ok: true }))
     return app
   }
 
-  it('allows the action when the bit is set', async () => {
-    const app = buildApp('3', 'member') // view + manage_settings
+  it('allows the action when the compound bit is set', async () => {
+    const app = buildApp('3', 'member') // view + edit
     const res = await app.request('/settings')
     expect(res.status).toBe(200)
   })
