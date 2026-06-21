@@ -1,11 +1,10 @@
 ---
 title: permission-poc package (retired)
-type: note
+type: package
 status: done
-area: db
+area: architecture
 created: 2026-06-20
 updated: 2026-06-21
-package: permission-poc
 related:
   - [[db package]]
   - [[20-Architecture/Decision Log/ADR-005 compound-bitmask-permissions]]

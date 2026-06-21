@@ -1,10 +1,8 @@
 ---
 title: Admin Authentication & Authorization
 type: feature
-status: done
-area: admin
-app:
-  - admin
+status: planned
+area: workflow
 created: 2026-06-21
 updated: 2026-06-21
 related:

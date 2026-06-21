@@ -2,9 +2,12 @@
 title: New Permission System Implementation Plan
 type: note
 status: in-progress
-area: architecture
+area: docs
 created: 2026-06-21
 updated: 2026-06-21
+related:
+  - [[db package]]
+  - [[20-Architecture/Decision Log/ADR-005 compound-bitmask-permissions]]
 ---
 
 # New Permission System Implementation Plan

@@ -1,10 +1,10 @@
 ---
 title: Views
 type: feature
-status: done
+status: planned
 area: workflow
 created: 2026-06-20
-updated: 2026-06-20
+updated: 2026-06-21
 related:
   - [[40-Packages/db]]
   - [[40-Packages/data-table-layer]]
