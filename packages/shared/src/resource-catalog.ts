@@ -392,7 +392,7 @@ const TENANT_CATALOG = {
     table: 'none',
     hasRecordId: false,
     bitMapping: tenantCrudFullBits,
-    defaultGroupActions: ownerFullAccessGroups(tenantCrudFullBits),
+    defaultGroupActions: fullAccessGroups(tenantCrudFullBits),
     isSystem: true,
     scope: 'tenant',
   }),

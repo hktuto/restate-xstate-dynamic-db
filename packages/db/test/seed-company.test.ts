@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { defaultGroups } from 'shared'
 import { seedCompany } from '../scripts/seed-company.js'
 import { getCompanyBySlug, getAccountByProviderKey } from '../src/platform.js'
 import { getMemberByProfileId, listMembers } from '../src/tenant.js'
@@ -31,21 +32,25 @@ describe('seedCompany', () => {
     const members = await listMembers('company_seedco_test')
     expect(members).toHaveLength(13)
 
-    const companyGroups = await listPermissionGroups('company_seedco_test', 'company')
-    const adminGroup = companyGroups.find((g) => g.name === 'Admin')
-    const memberGroup = companyGroups.find((g) => g.name === 'Member')
+    const companyGroups = await listPermissionGroups('company_seedco_test', 'main', 'tenant')
+    const adminGroup = companyGroups.find((g) => g.name === 'admin')
+    const memberGroup = companyGroups.find((g) => g.name === 'user')
     expect(adminGroup).toBeDefined()
     expect(memberGroup).toBeDefined()
+
+    const tenantDefaults = defaultGroups('tenant')
+    const adminMask = tenantDefaults.find((g) => g.name === 'admin')!.bitmask.toString()
+    const userMask = tenantDefaults.find((g) => g.name === 'user')!.bitmask.toString()
 
     const alice = members.find((m) => m.email === 'alice@seedco.test')
     const charlie = members.find((m) => m.email === 'charlie@seedco.test')
     expect(alice).toBeDefined()
     expect(charlie).toBeDefined()
 
-    const aliceMask = await getEffectivePermissions('company_seedco_test', alice!.id, 'company', alice!.role)
-    const charlieMask = await getEffectivePermissions('company_seedco_test', charlie!.id, 'company', charlie!.role)
-    expect(aliceMask).toBe(adminGroup!.bitmask)
-    expect(charlieMask).toBe(memberGroup!.bitmask)
+    const aliceMask = await getEffectivePermissions('company_seedco_test', alice!.id, 'tenant', alice!.role)
+    const charlieMask = await getEffectivePermissions('company_seedco_test', charlie!.id, 'tenant', charlie!.role)
+    expect(aliceMask).toBe(adminMask)
+    expect(charlieMask).toBe(userMask)
 
     const userGroups = await listUserGroups('company_seedco_test')
     expect(userGroups).toHaveLength(3)
@@ -63,10 +68,12 @@ describe('seedCompany', () => {
     expect(productMembers).toHaveLength(4)
     expect(financeMembers).toHaveLength(3)
 
-    const engineeringGroups = await listPermissionGroups('company_seedco_test', 'user_group', engineering!.id)
-    const engineeringOwnerGroup = engineeringGroups.find((g) => g.name === 'Owner')
+    const engineeringGroups = await listPermissionGroups('company_seedco_test', 'main', 'user_group_detail', engineering!.id)
+    const engineeringOwnerGroup = engineeringGroups.find((g) => g.name === 'owner')
     expect(engineeringOwnerGroup).toBeDefined()
-    const aliceEngineeringMask = await getEffectivePermissions('company_seedco_test', alice!.id, 'user_group', alice!.role, engineering!.id)
-    expect(aliceEngineeringMask).toBe(engineeringOwnerGroup!.bitmask)
+    const detailDefaults = defaultGroups('user_group_detail')
+    const ownerMask = detailDefaults.find((g) => g.name === 'owner')!.bitmask.toString()
+    const aliceEngineeringMask = await getEffectivePermissions('company_seedco_test', alice!.id, 'user_group_detail', alice!.role, engineering!.id)
+    expect((Number(aliceEngineeringMask) & Number(ownerMask)).toString()).toBe(ownerMask)
   })
 })

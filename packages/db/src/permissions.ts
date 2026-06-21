@@ -1,14 +1,23 @@
 import { StringRecordId } from 'surrealdb'
+import { defaultGroups, type ResourceType } from 'shared'
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
-import { actionsToBitmask, allActionsBitmask, type ResourceType } from 'shared'
+import { resourceTypeRecordId } from './resource-types.js'
+import * as resolver from './permission-resolver.js'
+
+export {
+  getEffectivePermissions,
+  getMemberResourcePermissions,
+  batchCheckPermissions,
+  explainPermission,
+  listResourceMembers,
+} from './permission-resolver.js'
 
 export interface PermissionGroupRecord {
   id: string
   resourceType: string
   recordId?: string
   name: string
-  bitmask: string
   isSystem: boolean
   description?: string
   createdAt: string
@@ -20,16 +29,16 @@ export interface PermissionGroupInput {
   resourceType: string
   recordId?: string
   name: string
-  bitmask: string
   isSystem?: boolean
   description?: string
 }
 
 export async function createPermissionGroup(
   namespace: string,
+  database: string,
   input: PermissionGroupInput
 ): Promise<PermissionGroupRecord> {
-  const surreal = await getSurreal(namespace, 'main')
+  const surreal = await getSurreal(namespace, database)
   try {
     const now = new Date().toISOString()
     const data = {
@@ -50,10 +59,11 @@ export async function createPermissionGroup(
 
 export async function listPermissionGroups(
   namespace: string,
+  database: string,
   resourceType: string,
   recordId?: string
 ): Promise<PermissionGroupRecord[]> {
-  const surreal = await getSurreal(namespace, 'main')
+  const surreal = await getSurreal(namespace, database)
   try {
     const query = recordId
       ? 'SELECT * FROM permission_groups WHERE resourceType = $resourceType AND recordId = $recordId ORDER BY createdAt'
@@ -67,9 +77,10 @@ export async function listPermissionGroups(
 
 export async function getPermissionGroupById(
   namespace: string,
+  database: string,
   id: string
 ): Promise<PermissionGroupRecord | undefined> {
-  const surreal = await getSurreal(namespace, 'main')
+  const surreal = await getSurreal(namespace, database)
   try {
     const [result] = await surreal.query<[PermissionGroupRecord[]]>(
       'SELECT * FROM type::record($id)',
@@ -83,10 +94,11 @@ export async function getPermissionGroupById(
 
 export async function updatePermissionGroup(
   namespace: string,
+  database: string,
   id: string,
   input: Partial<PermissionGroupInput>
 ): Promise<PermissionGroupRecord | undefined> {
-  const surreal = await getSurreal(namespace, 'main')
+  const surreal = await getSurreal(namespace, database)
   try {
     const data = { ...input, updatedAt: new Date().toISOString() }
     const [updated] = await surreal.query<[PermissionGroupRecord[]]>(
@@ -99,11 +111,12 @@ export async function updatePermissionGroup(
   }
 }
 
-export async function deletePermissionGroup(namespace: string, id: string): Promise<void> {
-  const surreal = await getSurreal(namespace, 'main')
+export async function deletePermissionGroup(namespace: string, database: string, id: string): Promise<void> {
+  const surreal = await getSurreal(namespace, database)
   try {
-    await surreal.query('DELETE type::record($id)', { id })
     await surreal.query('DELETE permission_assignments WHERE out = type::record($id)', { id })
+    await surreal.query('DELETE permission_apply_to WHERE in = type::record($id)', { id })
+    await surreal.query('DELETE type::record($id)', { id })
   } finally {
     await closeSurreal(surreal)
   }
@@ -111,13 +124,14 @@ export async function deletePermissionGroup(namespace: string, id: string): Prom
 
 export async function assignPermissionGroup(
   namespace: string,
+  database: string,
   assigneeId: string,
   groupId: string
 ): Promise<void> {
-  const group = await getPermissionGroupById(namespace, groupId)
+  const group = await getPermissionGroupById(namespace, database, groupId)
   if (!group) throw new Error(`Permission group not found: ${groupId}`)
 
-  const surreal = await getSurreal(namespace, 'main')
+  const surreal = await getSurreal(namespace, database)
   try {
     await surreal.query(
       'RELATE $assigneeId->permission_assignments->$groupId SET resourceType = $resourceType, recordId = $recordId',
@@ -135,10 +149,11 @@ export async function assignPermissionGroup(
 
 export async function removePermissionGroup(
   namespace: string,
+  database: string,
   assigneeId: string,
   groupId: string
 ): Promise<void> {
-  const surreal = await getSurreal(namespace, 'main')
+  const surreal = await getSurreal(namespace, database)
   try {
     await surreal.query(
       'DELETE permission_assignments WHERE in = type::record($assigneeId) AND out = type::record($groupId)',
@@ -151,9 +166,10 @@ export async function removePermissionGroup(
 
 export async function listPermissionAssignments(
   namespace: string,
+  database: string,
   assigneeId: string
 ): Promise<PermissionGroupRecord[]> {
-  const surreal = await getSurreal(namespace, 'main')
+  const surreal = await getSurreal(namespace, database)
   try {
     const [rows] = await surreal.query<
       [Array<{ out: PermissionGroupRecord }>]
@@ -167,63 +183,35 @@ export async function listPermissionAssignments(
   }
 }
 
-export async function getEffectivePermissions(
-  namespace: string,
-  memberId: string,
-  resourceType: ResourceType,
-  role?: string,
+export interface ApplyPermissionInput {
+  groupId: string
+  resourceType: string
+  bitmask: number
+  propagateMask?: number
   recordId?: string
-): Promise<string> {
-  if (role === 'owner') {
-    return allActionsBitmask(resourceType)
-  }
-
-  const memberGroups = await getMemberUserGroups(namespace, memberId)
-  let mask = 0
-
-  const directGroups = await listPermissionAssignments(namespace, memberId)
-  for (const group of directGroups) {
-    if (groupMatches(group, resourceType, recordId)) {
-      mask |= Number(group.bitmask)
-    }
-  }
-
-  for (const userGroup of memberGroups) {
-    const groupAssignments = await listPermissionAssignments(namespace, userGroup.id)
-    for (const group of groupAssignments) {
-      if (groupMatches(group, resourceType, recordId)) {
-        mask |= Number(group.bitmask)
-      }
-    }
-  }
-
-  return mask.toString()
+  conditions?: Record<string, unknown>
 }
 
-function groupMatches(
-  group: PermissionGroupRecord,
-  resourceType: string,
-  recordId?: string
-): boolean {
-  return (
-    group.resourceType === resourceType &&
-    (group.recordId === recordId || (recordId !== undefined && group.recordId === undefined))
-  )
-}
-
-async function getMemberUserGroups(
+export async function applyPermissionToResource(
   namespace: string,
-  memberId: string
-): Promise<Array<{ id: string }>> {
-  const surreal = await getSurreal(namespace, 'main')
+  database: string,
+  input: ApplyPermissionInput
+): Promise<void> {
+  const { groupId, resourceType: resourceName, bitmask, propagateMask = 0, recordId, conditions } = input
+  const surreal = await getSurreal(namespace, database)
   try {
-    const [rows] = await surreal.query<
-      [Array<{ id: string }>]
-    >(
-      'SELECT out.id AS id FROM user_group_memberships WHERE in = type::record($memberId)',
-      { memberId }
+    const resourceId = resourceTypeRecordId(resourceName)
+    const data: Record<string, unknown> = { bitmask, propagateMask }
+    if (recordId) data.recordId = recordId
+    if (conditions) data.conditions = conditions
+    await surreal.query(
+      'RELATE $groupId->permission_apply_to->$resourceId CONTENT $data',
+      {
+        groupId: new StringRecordId(groupId),
+        resourceId: new StringRecordId(resourceId),
+        data,
+      }
     )
-    return rows.map((r) => ({ id: String(r.id) }))
   } finally {
     await closeSurreal(surreal)
   }
@@ -233,16 +221,23 @@ export async function provisionDefaultCompanyGroups(
   namespace: string,
   ownerMemberId: string
 ): Promise<void> {
-  const { DEFAULT_GROUPS } = await import('shared')
-  for (const group of DEFAULT_GROUPS.company) {
-    const created = await createPermissionGroup(namespace, {
-      resourceType: 'company',
-      name: group.name,
-      bitmask: actionsToBitmask('company', group.actions),
-      isSystem: true,
-    })
-    if (group.name === 'Owner') {
-      await assignPermissionGroup(namespace, ownerMemberId, created.id)
+  for (const resourceName of ['tenant', 'member'] as ResourceType[]) {
+    const groups = defaultGroups(resourceName)
+    for (const groupDef of groups) {
+      const group = await createPermissionGroup(namespace, 'main', {
+        resourceType: resourceName,
+        name: groupDef.name,
+        isSystem: true,
+      })
+      await applyPermissionToResource(namespace, 'main', {
+        groupId: group.id,
+        resourceType: resourceName,
+        bitmask: groupDef.bitmask,
+        propagateMask: groupDef.propagateMask,
+      })
+      if (groupDef.name === 'owner') {
+        await assignPermissionGroup(namespace, 'main', ownerMemberId, group.id)
+      }
     }
   }
 }

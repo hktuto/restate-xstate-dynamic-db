@@ -32,7 +32,7 @@ describe('user groups', () => {
     const groups = await listUserGroups(namespace)
     expect(groups).toHaveLength(1)
 
-    const mask = await getEffectivePermissions(namespace, member.id, 'user_group', member.role, group.id)
+    const mask = await getEffectivePermissions(namespace, member.id, 'user_group_detail', member.role, group.id)
     expect(mask).toBe('63')
   })
 
