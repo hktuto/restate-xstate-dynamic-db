@@ -2627,9 +2627,11 @@ Wrap the delete button:
 **Files:**
 - Modify: `apps/admin/app/pages/user-groups/index.vue`
 
-- [ ] **Step 1: Apply the same pattern with `admin_user_group` actions**
+- [ ] **Step 1: Gate the new-link prop**
 
-Use `can('admin_user_group', 'create')` for the Add group button and `can('admin_user_group', 'delete')` for delete actions.
+This page uses `<DataTablePage>`, which does not expose row-level delete actions. Gate only the Add group link by setting `config.newLink` to `undefined` when the user lacks `admin_user_group.create`.
+
+Use `can('admin_user_group', 'create')` for the Add group link.
 
 ### Task 6.4: Update `apps/admin/app/pages/workflow-designs/index.vue`
 
