@@ -20,7 +20,7 @@ import {
 } from 'db/admin-user-groups'
 import { listLatestHealthChecks, listHealthCheckHistoryForService, type HealthCheckService } from 'db/health-checks'
 import { hashPassword } from 'shared'
-import { RESOURCE_CATALOG, type ResourceType } from 'shared'
+import { RESOURCE_CATALOG } from 'shared'
 import { adminAuth } from '../middleware/admin.js'
 import { requireAdminPermission, resolveAdminPermissions } from '../middleware/admin-permission.js'
 import type { AdminScope } from '../types.js'
