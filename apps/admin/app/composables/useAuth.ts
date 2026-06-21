@@ -44,7 +44,6 @@ export function useAuth() {
     } finally {
       user.value = null
       authenticated.value = false
-      initialized.value = false
       await navigateTo('/login')
     }
   }

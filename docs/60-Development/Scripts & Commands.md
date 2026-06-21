@@ -30,7 +30,7 @@ related:
 | `pnpm --filter workflow-actions typecheck` | Typecheck the `workflow-actions` package. |
 | `pnpm --filter db clean-db` | Remove every namespace from SurrealDB. |
 | `pnpm --filter db seed` | Clean DB and seed platform namespace. |
-| `pnpm --filter db seed-company` | Seed the `SeedCo Test` tenant company. |
+| `pnpm --filter db seed-company` | Clean DB, then seed platform namespace and the `SeedCo Test` tenant company. |
 | `pnpm --filter api dev` | Run API service (loads root `.env`). |
 | `pnpm --filter admin dev` | Run admin app. |
 | `pnpm --filter web dev` | Run web app. |

@@ -21,6 +21,7 @@ export async function seed() {
       ${tableDefinitions}
 
       DEFINE TABLE IF NOT EXISTS admin_user_group_memberships TYPE RELATION SCHEMALESS;
+      DEFINE INDEX IF NOT EXISTS idx_admin_user_group_memberships_unique ON admin_user_group_memberships FIELDS in, out UNIQUE;
 
       DEFINE TABLE IF NOT EXISTS _tables SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_tables_name ON _tables FIELDS name UNIQUE;
@@ -47,6 +48,7 @@ export async function seed() {
 
       UPSERT platform_users:admin SET email = 'admin@example.com', password = $password;
       UPSERT admin_user_groups:superadmin SET name = 'Super Admin', description = 'Full platform access';
+      DELETE admin_user_group_memberships WHERE in = type::record('platform_users:admin') AND out = type::record('admin_user_groups:superadmin');
       RELATE platform_users:admin->admin_user_group_memberships->admin_user_groups:superadmin;
     `, { password: passwordHash })
 
