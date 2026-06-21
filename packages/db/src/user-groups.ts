@@ -161,7 +161,7 @@ export async function createUserGroupWithDefaults(
   creatorMemberId: string
 ): Promise<UserGroupRecord> {
   const group = await createUserGroup(namespace, input)
-  const groups = defaultGroups('user_group_detail' as ResourceType)
+  const groups = defaultGroups('user_group_detail')
   for (const groupDef of groups) {
     const created = await createPermissionGroup(namespace, 'main', {
       resourceType: 'user_group_detail',

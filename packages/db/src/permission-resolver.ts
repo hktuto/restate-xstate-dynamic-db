@@ -1,7 +1,9 @@
 import type { Surreal } from 'surrealdb'
 import { getSurreal, closeSurreal } from './client.js'
 import { resourceTypeRecordId } from './resource-types.js'
-import { allActionsBitmask, bitmaskToActions, hasAction, resourceType, type ResourceType } from 'shared'
+import { actionValue, allActionsBitmask, bitmaskToActions, hasAction, resourceType, type ResourceType } from 'shared'
+
+const VIEW_BIT = actionValue('platform', 'view')
 
 export interface ResolveOptions {
   recordId?: string
@@ -208,7 +210,7 @@ export function computeMaskFromEdges(
   }
 
   for (const [, list] of byAncestor) {
-    const visible = list.some((edge) => (edge.bitmask & 1) !== 0)
+    const visible = list.some((edge) => (edge.bitmask & VIEW_BIT) !== 0)
     if (!visible) continue
     for (const edge of list) {
       mask |= edge.bitmask & (edge.propagateMask ?? 0)
@@ -286,7 +288,7 @@ export async function getMemberResourcePermissions(
           }
         }
         for (const [ancestorId, ancestorEdges] of byAncestor) {
-          const visible = ancestorEdges.some((edge) => (edge.bitmask & 1) !== 0)
+          const visible = ancestorEdges.some((edge) => (edge.bitmask & VIEW_BIT) !== 0)
           if (!visible) continue
           for (const edge of ancestorEdges) {
             const propagateMask = edge.propagateMask ?? 0
@@ -360,13 +362,14 @@ export async function listResourceMembers(
     const def = resourceType(resourceName)
     const resourceId = resourceTypeRecordId(resourceName)
 
+    // Note: this currently returns only direct assignments (inherited permissions are not included).
     const query = `
       LET $resource = type::record($resourceId);
       LET $groupBitmasks = (
         SELECT in AS groupId, bitmask FROM permission_apply_to WHERE out = $resource
       );
       LET $members = (
-        SELECT in AS memberId, in.name AS memberName, array::group(out) AS groupIds
+        SELECT in AS memberId, in.email AS memberName, array::group(out) AS groupIds
         FROM $resource<-permission_apply_to<-permission_groups<-permission_assignments
         WHERE meta::tb(in) != $userGroupTable
         GROUP BY in

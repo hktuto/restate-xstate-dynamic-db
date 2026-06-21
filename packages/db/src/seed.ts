@@ -1,6 +1,6 @@
 // packages/db/src/seed.ts
 import { fileURLToPath } from 'node:url'
-import { hashPassword, defaultGroups, actionValue } from 'shared'
+import { hashPassword, defaultGroups, allActionsBitmask, type ResourceType } from 'shared'
 import { getSurreal, closeSurreal, closeSurrealPool } from './client.js'
 import { PLATFORM_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
 import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
@@ -97,16 +97,19 @@ async function seedPlatformDefaultGroups(): Promise<void> {
     isSystem: true,
     description: 'Full platform access',
   })
+  const platformOwnerBitmask = Number(allActionsBitmask('platform'))
+
   await applyPermissionToResource('platform', 'admin', {
     groupId: platformOwnerGroup.id,
     resourceType: 'platform',
-    bitmask: 897,
-    propagateMask: 897,
+    bitmask: platformOwnerBitmask,
+    propagateMask: platformOwnerBitmask,
   })
   await assignPermissionGroup('platform', 'admin', 'platform_users:admin', platformOwnerGroup.id)
 
-  for (const resourceName of ['admin_user', 'admin_user_group', 'company', 'company_member', 'workflow_design']) {
-    const groups = defaultGroups(resourceName as any)
+  const resourceNames: ResourceType[] = ['admin_user', 'admin_user_group', 'company', 'company_member', 'workflow_design']
+  for (const resourceName of resourceNames) {
+    const groups = defaultGroups(resourceName)
     for (const groupDef of groups) {
       const group = await createPermissionGroup('platform', 'admin', {
         resourceType: resourceName,

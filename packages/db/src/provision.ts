@@ -39,7 +39,6 @@ export async function provisionCompanyNamespace(namespace: string) {
 
       DEFINE INDEX IF NOT EXISTS idx_members_profileId ON members FIELDS profileId;
       DEFINE INDEX IF NOT EXISTS idx_members_inviteCode ON members FIELDS inviteCode UNIQUE;
-      DEFINE INDEX IF NOT EXISTS idx_company_policies_companyId ON company_policies FIELDS companyId UNIQUE;
       DEFINE INDEX IF NOT EXISTS idx_platform_sessions_refreshTokenHash ON sessions FIELDS refreshTokenHash UNIQUE;
 
       DEFINE TABLE IF NOT EXISTS user_group_memberships TYPE RELATION SCHEMALESS;

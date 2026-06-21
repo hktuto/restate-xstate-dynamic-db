@@ -3,7 +3,6 @@ import { defaultGroups, type ResourceType } from 'shared'
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
 import { resourceTypeRecordId } from './resource-types.js'
-import * as resolver from './permission-resolver.js'
 
 export {
   getEffectivePermissions,
