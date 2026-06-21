@@ -89,17 +89,6 @@ export async function seedE2E(): Promise<TestFixture> {
   }
 
   try {
-    const root = await getSurreal()
-    try {
-      await root.query(`
-        DEFINE NAMESPACE IF NOT EXISTS platform;
-        USE NS platform DB admin;
-        DEFINE DATABASE IF NOT EXISTS admin;
-      `)
-    } finally {
-      await closeSurreal(root)
-    }
-
     const company = await createCompany({ name: 'E2E Test Co', slug: ns, namespace: ns })
     await provisionCompanyNamespace(company.namespace)
 
