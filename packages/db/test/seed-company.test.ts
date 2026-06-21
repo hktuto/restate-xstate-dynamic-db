@@ -52,6 +52,22 @@ describe('seedCompany', () => {
     expect(aliceMask).toBe(adminMask)
     expect(charlieMask).toBe(userMask)
 
+    const tenantGroups = await listPermissionGroups('company_seedco_test', 'main', 'tenant')
+    const tenantOwnerGroup = tenantGroups.find((g) => g.name === 'owner')
+    const tenantAdminGroup = tenantGroups.find((g) => g.name === 'admin')
+    expect(tenantOwnerGroup).toBeDefined()
+    expect(tenantAdminGroup).toBeDefined()
+
+    const tenantDefaults = defaultGroups('tenant')
+    const tenantOwnerMask = tenantDefaults.find((g) => g.name === 'owner')!.bitmask.toString()
+    const tenantOwnerEffectiveMask = await getEffectivePermissions(
+      'company_seedco_test',
+      ownerMember!.id,
+      'tenant',
+      ownerMember!.role
+    )
+    expect(tenantOwnerEffectiveMask).toBe(tenantOwnerMask)
+
     const userGroups = await listUserGroups('company_seedco_test')
     expect(userGroups).toHaveLength(3)
     const engineering = userGroups.find((g) => g.name === 'Engineering')
