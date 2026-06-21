@@ -17,11 +17,11 @@
  *   9 (0b0000001001) - delete; includes view but is otherwise standalone.
  *  17 (0b0000010001) - manage_groups; includes view.
  *  19 (0b0000010011) - add_member / publish; includes edit and view.
- *  33 (0b0010000001) - impersonate; includes view.
+ *  33 (0b0000100001) - impersonate; includes view.
  *  35 (0b0000100011) - remove_member; includes edit and view.
- * 128 (0b0100000000) - update_default_view_settings; standalone special bit.
- * 256 (0b1000000000) - edit_schema; standalone special bit.
- * 512 (0b10000000000) - manage_permissions; standalone special bit.
+ * 128 (0b0010000000) - update_default_view_settings; standalone special bit.
+ * 256 (0b0100000000) - edit_schema; standalone special bit.
+ * 512 (0b1000000000) - manage_permissions; standalone special bit.
  *
  * The special standalone bits (128, 256, 512) do not imply any other actions.
  * They are used for elevated platform/tenant operations such as changing the
