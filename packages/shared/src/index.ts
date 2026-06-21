@@ -1,7 +1,4 @@
-export * from './session.js'
-export * from './auth.js'
 export * from './permissions.js'
-export * from './crypto.js'
 
 export interface CompanyRecord {
   id: string
@@ -197,34 +194,6 @@ export interface TableViewConfig {
   columns: TableColumnConfig[]
 }
 
-/** Reserved layout node shape for future card view support. */
-export interface CardLayoutNode {
-  type: 'col' | 'row'
-  width?: string
-  children?: (CardLayoutNode | { column: string })[]
-}
-
-/** Reserved configuration for future card view support. */
-export interface CardViewConfig {
-  layout: CardLayoutNode[]
-}
-
-/** Reserved configuration for future kanban view support. */
-export interface KanbanViewConfig {
-  groupBy?: string
-}
-
-/** Saved grouping preferences (reserved for future phases). */
-export interface GroupSetting {
-  field?: string
-}
-
-/** Saved filter preferences (reserved for future phases). */
-export interface FilterSetting {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
-}
-
 /** Saved sort preferences. */
 export interface SortSetting {
   field: string
@@ -234,8 +203,6 @@ export interface SortSetting {
 /** Per-view-type configuration. */
 export interface ViewConfig {
   table?: TableViewConfig
-  card?: CardViewConfig
-  kanban?: KanbanViewConfig
 }
 
 /** Defines a saved view for a table. */
@@ -247,7 +214,5 @@ export interface ViewDefinition {
   description?: string
   isDefault?: boolean
   config: ViewConfig
-  group?: GroupSetting
-  filter?: FilterSetting
   sort?: SortSetting[]
 }

@@ -1,10 +1,9 @@
 import { Hono } from 'hono'
 import { RESOURCE_CATALOG } from 'shared'
 
-export function permissionsRoutes() {
-  const app = new Hono()
+const app = new Hono()
 
-  app.get('/actions', (c) => {
+app.get('/actions', (c) => {
     const resourceType = c.req.query('resourceType')
     if (!resourceType || !(resourceType in RESOURCE_CATALOG)) {
       return c.json({ error: 'Invalid or missing resourceType' }, 400)
@@ -17,5 +16,4 @@ export function permissionsRoutes() {
     return c.json({ resourceType, actions: result })
   })
 
-  return app
-}
+export const permissionsRoutes = app

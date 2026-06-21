@@ -28,7 +28,3 @@ export async function cleanDb() {
   await closeSurrealPool()
 }
 
-export async function cleanDbUnsafe() {
-  console.warn('cleanDbUnsafe() is deprecated; use cleanDb()')
-  return cleanDb()
-}

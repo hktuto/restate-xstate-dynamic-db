@@ -53,12 +53,17 @@ export interface SyncResult {
   columnsDiscovered: number
 }
 
-export interface ViewInput extends Partial<ViewDefinition> {}
+export interface ViewInput extends Partial<ViewDefinition> {
+  group?: unknown
+  filter?: unknown
+}
 
 export interface ViewRow extends ViewDefinition {
   id: string
   createdAt?: string
   updatedAt?: string
+  group?: unknown
+  filter?: unknown
 }
 
 const SYSTEM_COLUMN_NAMES = SYSTEM_COLUMNS.map((c) => c.name)

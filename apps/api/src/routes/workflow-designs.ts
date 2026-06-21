@@ -11,16 +11,15 @@ import { tenantAuth } from '../middleware/tenant.js'
 import { requirePermission } from '../middleware/permission.js'
 import type { TenantScope } from '../types.js'
 
-export function workflowDesignsRoutes() {
-  const app = new Hono()
-  app.use(tenantAuth)
+const app = new Hono()
+app.use(tenantAuth)
 
-  app.get('/', requirePermission('workflow_design', 'view'), async (c) => {
+app.get('/', requirePermission('workflow_design', 'view'), async (c) => {
     const scope = c.get('scope') as TenantScope
     return c.json(await listWorkflowDesigns(scope.namespace))
   })
 
-  app.post('/', requirePermission('workflow_design', 'create'), async (c) => {
+app.post('/', requirePermission('workflow_design', 'create'), async (c) => {
     const scope = c.get('scope') as TenantScope
 
     let body: { name?: string; xstateConfig?: WorkflowDefinition; starts?: StartRule[] }
@@ -37,7 +36,7 @@ export function workflowDesignsRoutes() {
     }))
   })
 
-  app.get('/:id', requirePermission('workflow_design_detail', 'view', 'id'), async (c) => {
+app.get('/:id', requirePermission('workflow_design_detail', 'view', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const id = c.req.param('id')
     const workflowDesign = await getWorkflowDesign(scope.namespace, id)
@@ -47,7 +46,7 @@ export function workflowDesignsRoutes() {
     return c.json(workflowDesign)
   })
 
-  app.patch('/:id', requirePermission('workflow_design_detail', 'edit', 'id'), async (c) => {
+app.patch('/:id', requirePermission('workflow_design_detail', 'edit', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const id = c.req.param('id')
     const existing = await getWorkflowDesign(scope.namespace, id)
@@ -68,7 +67,7 @@ export function workflowDesignsRoutes() {
     }))
   })
 
-  app.delete('/:id', requirePermission('workflow_design_detail', 'delete', 'id'), async (c) => {
+app.delete('/:id', requirePermission('workflow_design_detail', 'delete', 'id'), async (c) => {
     const scope = c.get('scope') as TenantScope
     const id = c.req.param('id')
     const existing = await getWorkflowDesign(scope.namespace, id)
@@ -80,5 +79,4 @@ export function workflowDesignsRoutes() {
     return c.json({ ok: true })
   })
 
-  return app
-}
+export const workflowDesignsRoutes = app

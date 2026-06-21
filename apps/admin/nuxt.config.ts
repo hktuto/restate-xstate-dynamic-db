@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  extends: ['../../layers/workflow-editor', '../../layers/data-table'],
+  extends: ['../../layers/shared-api', '../../layers/workflow-editor', '../../layers/data-table'],
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
   ssr:false,

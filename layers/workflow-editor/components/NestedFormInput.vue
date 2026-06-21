@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
 import type { ActionInputMetadata } from 'shared'
+import { isPlainObject } from './workflow-run-modal-helpers.js'
 
 const props = defineProps<{
   input: ActionInputMetadata
@@ -17,10 +18,6 @@ const value = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v),
 })
-
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
 
 const objectValue = computed<Record<string, unknown>>(() => {
   return isPlainObject(value.value) ? value.value : {}

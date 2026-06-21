@@ -23,7 +23,7 @@ import {
   countActiveTenantSessions,
   findOldestActiveTenantSession,
 } from 'db/tenant'
-import { comparePassword, hashPassword } from 'shared'
+import { comparePassword, hashPassword } from 'shared/server'
 import type { Context } from 'hono'
 import {
   clearAdminSession,
@@ -137,10 +137,9 @@ async function revokePlatformSessionTree(platformSessionId: string) {
   // is left to a future cleanup job. For now we revoke when the company namespace is known.
 }
 
-export function authRoutes() {
-  const app = new Hono()
+const app = new Hono()
 
-  app.post('/login', async (c) => {
+app.post('/login', async (c) => {
     let body: Record<string, unknown>
     try {
       body = await c.req.json<Record<string, unknown>>()
@@ -188,7 +187,7 @@ export function authRoutes() {
     return c.json({ ok: true, companies })
   })
 
-  app.post('/register', async (c) => {
+app.post('/register', async (c) => {
     let body: Record<string, unknown>
     try {
       body = await c.req.json<Record<string, unknown>>()
@@ -243,7 +242,7 @@ export function authRoutes() {
     return c.json({ ok: true, companies: [] })
   })
 
-  app.post('/logout', async (c) => {
+app.post('/logout', async (c) => {
     const accessToken = readTenantAccessToken(c)
     if (accessToken) {
       const payload = verifyAccessTokenCookie(accessToken)
@@ -256,7 +255,7 @@ export function authRoutes() {
     return c.json({ ok: true })
   })
 
-  app.post('/company', async (c) => {
+app.post('/company', async (c) => {
     const accessToken = readTenantAccessToken(c)
     if (!accessToken) {
       return c.json(badRequest('Unauthorized'), 401)
@@ -328,7 +327,7 @@ export function authRoutes() {
     return c.json({ ok: true, company: companyCookie })
   })
 
-  app.post('/accept-invite', async (c) => {
+app.post('/accept-invite', async (c) => {
     let body: Record<string, unknown>
     try {
       body = await c.req.json<Record<string, unknown>>()
@@ -422,7 +421,7 @@ export function authRoutes() {
     return c.json({ ok: true, member: updated })
   })
 
-  app.post('/admin/login', async (c) => {
+app.post('/admin/login', async (c) => {
     let body: Record<string, unknown>
     try {
       body = await c.req.json<Record<string, unknown>>()
@@ -453,7 +452,7 @@ export function authRoutes() {
     }
   })
 
-  app.post('/admin/logout', async (c) => {
+app.post('/admin/logout', async (c) => {
     const accessToken = readAdminAccessToken(c)
     if (accessToken) {
       const payload = verifyAccessTokenCookie(accessToken)
@@ -465,13 +464,12 @@ export function authRoutes() {
     return c.json({ ok: true })
   })
 
-  app.get('/admin/me', adminSessionMiddleware, (c) => {
+app.get('/admin/me', adminSessionMiddleware, (c) => {
     const session = c.get('adminSession')
     return c.json({ authenticated: true, user: { userId: session.userId, email: session.email } })
   })
 
-  return app
-}
+export const authRoutes = app
 
 interface AdminUser {
   id: string

@@ -31,10 +31,10 @@ export function createActionActors(
   runtime: { designId: string; tableName?: string; companyId?: string; namespace?: string; config: { id: string } },
   promises: Promise<unknown>[] = []
 ): ActionActors {
-  const actors: Record<string, PromiseActorLogic<ActionActorOutput, ActionActorInput>> = {}
-
-  for (const [actionId, runtimeAction] of Object.entries(runtimeActions)) {
-    actors[actionId] = fromPromise(async ({ input }: { input: ActionActorInput }) => {
+  const createActor = (
+    actionId: string
+  ): PromiseActorLogic<ActionActorOutput, ActionActorInput> =>
+    fromPromise(async ({ input }: { input: ActionActorInput }) => {
       const runtimeMeta = (input.context as any).__runtime as
         | { tableName?: string; companyId?: string; namespace?: string }
         | undefined
@@ -72,7 +72,7 @@ export function createActionActors(
         })
 
         try {
-          const data = await runtimeAction.execute(executorCtx)
+          const data = await runtimeActions[actionId].execute(executorCtx)
           const isCondition = actionId === 'condition'
           const resultEvent = isCondition
             ? (data === true ? 'true' : 'false')
@@ -121,9 +121,16 @@ export function createActionActors(
       promises.push(runPromise.catch(() => {}))
       return runPromise
     })
-  }
 
-  return { actors }
+  return {
+    actors: {
+      getRecord: createActor('getRecord'),
+      createRecord: createActor('createRecord'),
+      updateRecord: createActor('updateRecord'),
+      deleteRecord: createActor('deleteRecord'),
+      condition: createActor('condition'),
+    }
+  }
 }
 
 export interface GuardRegistry {

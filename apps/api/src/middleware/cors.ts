@@ -1,8 +1,8 @@
 import { cors } from 'hono/cors'
-import { getEnv } from '../env.js'
 
 export function createCorsMiddleware() {
-  const { webUrl, adminUrl } = getEnv()
+  const webUrl = process.env.WEB_URL ?? 'http://localhost:3000'
+  const adminUrl = process.env.ADMIN_URL ?? 'http://localhost:3001'
   return cors({
     origin: [webUrl, adminUrl],
     credentials: true,

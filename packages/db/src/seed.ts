@@ -1,6 +1,7 @@
 // packages/db/src/seed.ts
 import { fileURLToPath } from 'node:url'
-import { hashPassword, defaultGroups, allActionsBitmask, type ResourceType } from 'shared'
+import { defaultGroups, allActionsBitmask, type ResourceType } from 'shared'
+import { hashPassword } from 'shared/server'
 import { getSurreal, closeSurreal, closeSurrealPool } from './client.js'
 import { PLATFORM_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
 import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'

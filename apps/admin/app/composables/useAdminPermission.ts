@@ -1,4 +1,3 @@
-import { useApi } from './useApi'
 import { hasAction, type ResourceType, type PermissionAction } from 'shared'
 
 export function useAdminPermission() {

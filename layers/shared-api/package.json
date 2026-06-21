@@ -1,0 +1,8 @@
+{
+  "name": "shared-api-layer",
+  "type": "module",
+  "devDependencies": {
+    "nuxt": "^4.4.8",
+    "typescript": "^5.8.3"
+  }
+}

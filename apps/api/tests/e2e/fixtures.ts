@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { hashPassword } from 'shared'
+import { hashPassword } from 'shared/server'
 import { getSurreal, closeSurreal } from 'db/client'
 import { createCompany, createUserProfile, createAccount } from 'db/platform'
 import { createMember } from 'db/tenant'

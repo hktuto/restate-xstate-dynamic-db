@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { permissionsRoutes } from './permissions.js'
 
-const app = permissionsRoutes()
+const app = permissionsRoutes
 
 describe('GET /actions', () => {
   it('returns compound action values for a valid resourceType', async () => {

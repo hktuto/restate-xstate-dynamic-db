@@ -3,14 +3,13 @@ import { updateWorkflowInstanceStatus, getWorkflowInstance, getWorkflowDesign } 
 import type { WorkflowInstanceStatus } from 'db/tenant'
 import { tenantAuth } from '../middleware/tenant.js'
 import type { TenantScope } from '../types.js'
-import { dispatchUserTrigger } from '../lib/start-user-trigger.js'
+import { dispatchUserTrigger } from '../lib/dispatch.js'
 
 const VALID_STATUSES: WorkflowInstanceStatus[] = ['pending', 'running', 'waiting', 'done', 'error']
 
-export function workflowInstancesRoutes() {
-  const app = new Hono()
+const app = new Hono()
 
-  app.post('/', tenantAuth, async (c) => {
+app.post('/', tenantAuth, async (c) => {
     const scope = c.get('scope') as TenantScope
     let body: { designId?: string; values?: unknown }
     try {
@@ -41,7 +40,7 @@ export function workflowInstancesRoutes() {
     }
   })
 
-  app.patch('/:id/status', async (c) => {
+app.patch('/:id/status', async (c) => {
     const id = c.req.param('id')
     if (!id) {
       return c.json({ error: 'ID required' }, 400)
@@ -78,5 +77,4 @@ export function workflowInstancesRoutes() {
     return c.json(updated)
   })
 
-  return app
-}
+export const workflowInstancesRoutes = app

@@ -1,11 +1,6 @@
 // packages/db/src/schema-definitions.ts
 import type {
-  CardLayoutNode,
-  CardViewConfig,
   ColumnDefinition,
-  FilterSetting,
-  GroupSetting,
-  KanbanViewConfig,
   RelationDefinition,
   SortSetting,
   TableColumnConfig,
@@ -16,12 +11,7 @@ import type {
 } from 'shared'
 
 export type {
-  CardLayoutNode,
-  CardViewConfig,
   ColumnDefinition,
-  FilterSetting,
-  GroupSetting,
-  KanbanViewConfig,
   RelationDefinition,
   SortSetting,
   TableColumnConfig,
@@ -30,42 +20,6 @@ export type {
   ViewConfig,
   ViewDefinition,
 }
-
-/** Build a list of select options from raw string values. */
-const buildOptions = (values: string[]) => values.map((v) => ({ label: v, value: v }))
-
-/** Declare a relation from a column in the current table to another table. */
-const relation = (
-  fromColumn: string,
-  toTable: string,
-  type: RelationDefinition['type'] = 'many-to-many'
-): Omit<RelationDefinition, 'fromTable'> => ({
-  fromColumn,
-  toTable,
-  toColumn: 'id',
-  type,
-})
-
-/** Build a table schema, injecting the table name into each declared relation. */
-const table = (
-  name: string,
-  label: string,
-  columns: ColumnDefinition[],
-  relations?: Omit<RelationDefinition, 'fromTable'>[]
-): TableSchemaDefinition => ({
-  name,
-  label,
-  columns,
-  relations: relations?.map((r) => ({ ...r, fromTable: name })),
-})
-
-/** Build a column definition. Name, dbType, and displayType cannot be overridden via `extra`. */
-const column = (
-  name: string,
-  dbType: ColumnDefinition['dbType'],
-  displayType: ColumnDefinition['displayType'],
-  extra: Omit<Partial<ColumnDefinition>, 'name' | 'dbType' | 'displayType'> = {}
-): ColumnDefinition => ({ name, dbType, displayType, optional: true, ...extra })
 
 /** System columns added automatically to every table. */
 export const SYSTEM_COLUMNS: ColumnDefinition[] = [
@@ -80,242 +34,372 @@ export const SYSTEM_COLUMNS: ColumnDefinition[] = [
 
 /** Platform-level table schemas, available across all tenants. */
 export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
-  table('companies', 'Companies', [
-    column('name', 'string', 'text'),
-    column('slug', 'string', 'tag', { unique: true, config: { displayType: 'tag', defaultColor: 'gray' } }),
-    column('namespace', 'string', 'text'),
-    column('status', 'string', 'tag', { config: { displayType: 'tag', tagColors: { active: 'green', inactive: 'red' }, defaultColor: 'gray' } }),
-  ]),
-  table('sessions', 'Sessions', [
-    column('refreshTokenHash', 'string', 'text', { unique: true }),
-    column('accessTokenJti', 'string', 'text'),
-    column('accountId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:accountId:accounts:id⟩' } }),
-    column('profileId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:profileId:user_profiles:id⟩' } }),
-    column('platformUserId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:platformUserId:platform_users:id⟩' } }),
-    column('email', 'string', 'text'),
-    column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['user', 'impersonation']) } }),
-    column('impersonatorId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:impersonatorId:user_profiles:id⟩' } }),
-    column('companyId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:companyId:companies:id⟩' } }),
-    column('deviceFingerprint', 'string', 'text'),
-    column('deviceName', 'string', 'text'),
-    column('ip', 'string', 'text'),
-    column('userAgent', 'string', 'text'),
-    column('refreshExpiresAt', 'datetime', 'date'),
-    column('accessExpiresAt', 'datetime', 'date'),
-    column('lastUsedAt', 'datetime', 'date'),
-    column('revokedAt', 'datetime', 'date'),
-    column('revokeReason', 'string', 'text'),
-  ], [relation('accountId', 'accounts'), relation('profileId', 'user_profiles'), relation('platformUserId', 'platform_users'), relation('impersonatorId', 'user_profiles'), relation('companyId', 'companies')]),
-  table('platform_users', 'Platform Users', [
-    column('email', 'string', 'email', { unique: true }),
-    column('password', 'string', 'text', { hidden: true }),
-  ]),
-  table('admin_user_groups', 'Admin User Groups', [
-    column('name', 'string', 'text'),
-    column('description', 'string', 'text', { optional: true }),
-  ]),
-  table('resource_types', 'Resource Types', [
-    column('name', 'string', 'text'),
-    column('table', 'string', 'text'),
-    column('hasRecordId', 'boolean', 'checkbox'),
-    column('bitMapping', 'array', 'json'),
-    column('defaultGroups', 'array', 'json'),
-    column('parentResourceType', 'string', 'text', { optional: true }),
-    column('isSystem', 'boolean', 'checkbox'),
-    column('scope', 'string', 'text'),
-  ]),
-  table('accounts', 'Accounts', [
-    column('provider', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['email', 'oauth_google', 'oauth_github', 'phone']) } }),
-    column('providerKey', 'string', 'text'),
-    column('credential', 'string', 'text', { hidden: true }),
-    column('profileId', 'record', 'relation', { config: { relationId: '_relations:⟨accounts:profileId:user_profiles:id⟩' } }),
-  ], [relation('profileId', 'user_profiles')]),
-  table('user_profiles', 'User Profiles', [
-    column('name', 'string', 'text'),
-    column('gender', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['male', 'female', 'other', 'prefer_not_to_say']) } }),
-    column('birthday', 'datetime', 'date'),
-    column('preferences', 'object', 'text'),
-  ]),
-  table('workflow_designs', 'Workflow Designs', [
-    column('name', 'string', 'text'),
-    column('xstateConfig', 'object', 'json'),
-    column('starts', 'array', 'json', {
-      fields: [
-        column('type', 'string', 'select', {
-          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
-        }),
-        column('startState', 'string', 'text'),
-        column('options', 'object', 'json', { optional: true }),
-      ],
-    }),
-  ]),
-  table('workflow_instances', 'Workflow Instances', [
-    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } }),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
-    column('currentState', 'string', 'text'),
-    column('context', 'object', 'json'),
-    column('triggerBy', 'object', 'json', {
-      fields: [
-        column('type', 'string', 'select', {
-          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
-        }),
-        column('startState', 'string', 'text'),
-      ],
-    }),
-    column('namespace', 'string', 'text'),
-    column('companyId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } }),
-  ], [relation('designId', 'workflow_designs'), relation('companyId', 'companies')]),
-  table('user_tasks', 'User Tasks', [
-    column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:instanceId:workflow_instances:id⟩' } }),
-    column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['approval', 'review', 'manual']) } }),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'completed', 'cancelled', 'rejected']) } }),
-    column('tableName', 'string', 'text'),
-    column('recordId', 'record', 'text'),
-    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:designId:workflow_designs:id⟩' } }),
-    column('resolvedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
-  table('workflow_actions', 'Workflow Actions', [
-    column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:instanceId:workflow_instances:id⟩' } }),
-    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:designId:workflow_designs:id⟩' } }),
-    column('stateId', 'string', 'text'),
-    column('action', 'string', 'text'),
-    column('params', 'object', 'text'),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['started', 'completed', 'failed']) } }),
-    column('inputContext', 'object', 'text'),
-    column('outputContext', 'object', 'text'),
-    column('outputData', 'object', 'text'),
-    column('resultEvent', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['ok', 'error', 'true', 'false']) } }),
-    column('errorMessage', 'string', 'text'),
-    column('startedAt', 'datetime', 'date'),
-    column('completedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
-  table('health_checks', 'Health Checks', [
-    column('service', 'string', 'text'),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['healthy', 'unhealthy']) } }),
-    column('checkedAt', 'datetime', 'date'),
-    column('responseTimeMs', 'number', 'number'),
-    column('message', 'string', 'text'),
-    column('details', 'object', 'text'),
-  ]),
+  {
+    name: 'companies',
+    label: 'Companies',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'slug', dbType: 'string', displayType: 'tag', optional: true, unique: true, config: { displayType: 'tag', defaultColor: 'gray' } },
+      { name: 'namespace', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'status', dbType: 'string', displayType: 'tag', optional: true, config: { displayType: 'tag', tagColors: { active: 'green', inactive: 'red' }, defaultColor: 'gray' } },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'sessions',
+    label: 'Sessions',
+    columns: [
+      { name: 'refreshTokenHash', dbType: 'string', displayType: 'text', optional: true, unique: true },
+      { name: 'accessTokenJti', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'accountId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:accountId:accounts:id⟩' } },
+      { name: 'profileId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:profileId:user_profiles:id⟩' } },
+      { name: 'platformUserId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:platformUserId:platform_users:id⟩' } },
+      { name: 'email', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'user', value: 'user' }, { label: 'impersonation', value: 'impersonation' }] } },
+      { name: 'impersonatorId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:impersonatorId:user_profiles:id⟩' } },
+      { name: 'companyId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:companyId:companies:id⟩' } },
+      { name: 'deviceFingerprint', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'deviceName', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'ip', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'userAgent', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'refreshExpiresAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'accessExpiresAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'lastUsedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'revokedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'revokeReason', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: [
+      { fromColumn: 'accountId', toTable: 'accounts', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { fromColumn: 'platformUserId', toTable: 'platform_users', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { fromColumn: 'impersonatorId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+    ],
+  },
+  {
+    name: 'platform_users',
+    label: 'Platform Users',
+    columns: [
+      { name: 'email', dbType: 'string', displayType: 'email', optional: true, unique: true },
+      { name: 'password', dbType: 'string', displayType: 'text', optional: true, hidden: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'admin_user_groups',
+    label: 'Admin User Groups',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'description', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'resource_types',
+    label: 'Resource Types',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'table', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'hasRecordId', dbType: 'boolean', displayType: 'checkbox', optional: true },
+      { name: 'bitMapping', dbType: 'array', displayType: 'json', optional: true },
+      { name: 'defaultGroups', dbType: 'array', displayType: 'json', optional: true },
+      { name: 'parentResourceType', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'isSystem', dbType: 'boolean', displayType: 'checkbox', optional: true },
+      { name: 'scope', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'accounts',
+    label: 'Accounts',
+    columns: [
+      { name: 'provider', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'email', value: 'email' }, { label: 'oauth_google', value: 'oauth_google' }, { label: 'oauth_github', value: 'oauth_github' }, { label: 'phone', value: 'phone' }] } },
+      { name: 'providerKey', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'credential', dbType: 'string', displayType: 'text', optional: true, hidden: true },
+      { name: 'profileId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨accounts:profileId:user_profiles:id⟩' } },
+    ],
+    relations: [
+      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'accounts' },
+    ],
+  },
+  {
+    name: 'user_profiles',
+    label: 'User Profiles',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'gender', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'male', value: 'male' }, { label: 'female', value: 'female' }, { label: 'other', value: 'other' }, { label: 'prefer_not_to_say', value: 'prefer_not_to_say' }] } },
+      { name: 'birthday', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'preferences', dbType: 'object', displayType: 'text', optional: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'workflow_designs',
+    label: 'Workflow Designs',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'xstateConfig', dbType: 'object', displayType: 'json', optional: true },
+      { name: 'starts', dbType: 'array', displayType: 'json', optional: true, fields: [
+        { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { options: [{ label: 'db_trigger', value: 'db_trigger' }, { label: 'user_trigger', value: 'user_trigger' }, { label: 'cron', value: 'cron' }, { label: 'webhook', value: 'webhook' }] } },
+        { name: 'startState', dbType: 'string', displayType: 'text', optional: true },
+        { name: 'options', dbType: 'object', displayType: 'json', optional: true },
+      ] },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'workflow_instances',
+    label: 'Workflow Instances',
+    columns: [
+      { name: 'designId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'pending', value: 'pending' }, { label: 'running', value: 'running' }, { label: 'waiting', value: 'waiting' }, { label: 'done', value: 'done' }, { label: 'error', value: 'error' }] } },
+      { name: 'currentState', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'context', dbType: 'object', displayType: 'json', optional: true },
+      { name: 'triggerBy', dbType: 'object', displayType: 'json', optional: true, fields: [
+        { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { options: [{ label: 'db_trigger', value: 'db_trigger' }, { label: 'user_trigger', value: 'user_trigger' }, { label: 'cron', value: 'cron' }, { label: 'webhook', value: 'webhook' }] } },
+        { name: 'startState', dbType: 'string', displayType: 'text', optional: true },
+      ] },
+      { name: 'namespace', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'companyId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } },
+    ],
+    relations: [
+      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+    ],
+  },
+  {
+    name: 'user_tasks',
+    label: 'User Tasks',
+    columns: [
+      { name: 'instanceId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨user_tasks:instanceId:workflow_instances:id⟩' } },
+      { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'approval', value: 'approval' }, { label: 'review', value: 'review' }, { label: 'manual', value: 'manual' }] } },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'pending', value: 'pending' }, { label: 'completed', value: 'completed' }, { label: 'cancelled', value: 'cancelled' }, { label: 'rejected', value: 'rejected' }] } },
+      { name: 'tableName', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'recordId', dbType: 'record', displayType: 'text', optional: true },
+      { name: 'designId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨user_tasks:designId:workflow_designs:id⟩' } },
+      { name: 'resolvedAt', dbType: 'datetime', displayType: 'date', optional: true },
+    ],
+    relations: [
+      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+    ],
+  },
+  {
+    name: 'workflow_actions',
+    label: 'Workflow Actions',
+    columns: [
+      { name: 'instanceId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_actions:instanceId:workflow_instances:id⟩' } },
+      { name: 'designId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_actions:designId:workflow_designs:id⟩' } },
+      { name: 'stateId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'action', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'params', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'started', value: 'started' }, { label: 'completed', value: 'completed' }, { label: 'failed', value: 'failed' }] } },
+      { name: 'inputContext', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'outputContext', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'outputData', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'resultEvent', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'ok', value: 'ok' }, { label: 'error', value: 'error' }, { label: 'true', value: 'true' }, { label: 'false', value: 'false' }] } },
+      { name: 'errorMessage', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'startedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'completedAt', dbType: 'datetime', displayType: 'date', optional: true },
+    ],
+    relations: [
+      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+    ],
+  },
+  {
+    name: 'health_checks',
+    label: 'Health Checks',
+    columns: [
+      { name: 'service', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'healthy', value: 'healthy' }, { label: 'unhealthy', value: 'unhealthy' }] } },
+      { name: 'checkedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'responseTimeMs', dbType: 'number', displayType: 'number', optional: true },
+      { name: 'message', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'details', dbType: 'object', displayType: 'text', optional: true },
+    ],
+    relations: undefined,
+  },
 ]
 
 /** Tenant-level table schemas, provisioned inside each company namespace. */
 export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
-  table('members', 'Members', [
-    column('profileId', 'record', 'relation', { config: { relationId: '_relations:⟨members:profileId:user_profiles:id⟩' } }),
-    column('email', 'string', 'email'),
-    column('role', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['owner', 'admin', 'member']) } }),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'active', 'inactive']) } }),
-    column('inviteCode', 'string', 'text', { unique: true }),
-    column('joinedAt', 'datetime', 'date'),
-    column('invitedBy', 'record', 'relation', { config: { relationId: '_relations:⟨members:invitedBy:members:id⟩' } }),
-  ], [relation('profileId', 'user_profiles'), relation('invitedBy', 'members', 'one-to-many')]),
-  table('sessions', 'Sessions', [
-    column('platformSessionId', 'string', 'text'),
-    column('memberId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:memberId:members:id⟩' } }),
-    column('profileId', 'string', 'text'),
-    column('email', 'string', 'text'),
-    column('companyId', 'string', 'text'),
-    column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['user', 'impersonation']) } }),
-    column('impersonatorId', 'record', 'relation', { config: { relationId: '_relations:⟨sessions:impersonatorId:members:id⟩' } }),
-    column('deviceFingerprint', 'string', 'text'),
-    column('deviceName', 'string', 'text'),
-    column('ip', 'string', 'text'),
-    column('userAgent', 'string', 'text'),
-    column('lastUsedAt', 'datetime', 'date'),
-    column('revokedAt', 'datetime', 'date'),
-    column('revokeReason', 'string', 'text'),
-  ], [relation('memberId', 'members'), relation('impersonatorId', 'members')]),
-  table('workflow_designs', 'Workflow Designs', [
-    column('name', 'string', 'text'),
-    column('xstateConfig', 'object', 'json'),
-    column('starts', 'array', 'json', {
-      fields: [
-        column('type', 'string', 'select', {
-          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
-        }),
-        column('startState', 'string', 'text'),
-        column('options', 'object', 'json', { optional: true }),
-      ],
-    }),
-  ]),
-  table('workflow_instances', 'Workflow Instances', [
-    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } }),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'running', 'waiting', 'done', 'error']) } }),
-    column('currentState', 'string', 'text'),
-    column('context', 'object', 'json'),
-    column('triggerBy', 'object', 'json', {
-      fields: [
-        column('type', 'string', 'select', {
-          config: { options: buildOptions(['db_trigger', 'user_trigger', 'cron', 'webhook']) },
-        }),
-        column('startState', 'string', 'text'),
-      ],
-    }),
-    column('namespace', 'string', 'text'),
-    column('companyId', 'string', 'text'),
-  ], [relation('designId', 'workflow_designs')]),
-  table('user_tasks', 'User Tasks', [
-    column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:instanceId:workflow_instances:id⟩' } }),
-    column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['approval', 'review', 'manual']) } }),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['pending', 'completed', 'cancelled', 'rejected']) } }),
-    column('tableName', 'string', 'text'),
-    column('recordId', 'record', 'text'),
-    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨user_tasks:designId:workflow_designs:id⟩' } }),
-    column('resolvedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
-  table('workflow_actions', 'Workflow Actions', [
-    column('instanceId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:instanceId:workflow_instances:id⟩' } }),
-    column('designId', 'record', 'relation', { config: { relationId: '_relations:⟨workflow_actions:designId:workflow_designs:id⟩' } }),
-    column('stateId', 'string', 'text'),
-    column('action', 'string', 'text'),
-    column('params', 'object', 'text'),
-    column('status', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['started', 'completed', 'failed']) } }),
-    column('inputContext', 'object', 'text'),
-    column('outputContext', 'object', 'text'),
-    column('outputData', 'object', 'text'),
-    column('resultEvent', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['ok', 'error', 'true', 'false']) } }),
-    column('errorMessage', 'string', 'text'),
-    column('startedAt', 'datetime', 'date'),
-    column('completedAt', 'datetime', 'date'),
-  ], [relation('instanceId', 'workflow_instances'), relation('designId', 'workflow_designs')]),
-  table('permission_groups', 'Permission Groups', [
-    column('resourceType', 'string', 'text'),
-    column('recordId', 'string', 'text', { optional: true }),
-    column('name', 'string', 'text'),
-    column('isSystem', 'boolean', 'checkbox'),
-    column('description', 'string', 'text', { optional: true }),
-  ]),
-  table('resource_types', 'Resource Types', [
-    column('name', 'string', 'text'),
-    column('table', 'string', 'text'),
-    column('hasRecordId', 'boolean', 'checkbox'),
-    column('bitMapping', 'array', 'json'),
-    column('defaultGroups', 'array', 'json'),
-    column('parentResourceType', 'string', 'text', { optional: true }),
-    column('isSystem', 'boolean', 'checkbox'),
-    column('scope', 'string', 'text'),
-  ]),
-  table('user_groups', 'User Groups', [
-    column('name', 'string', 'text'),
-    column('description', 'string', 'text', { optional: true }),
-  ]),
-  table('_views', 'Views', [
-    column('table', 'string', 'text'),
-    column('type', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['table']) } }),
-    column('name', 'string', 'text'),
-    column('description', 'string', 'text', { optional: true }),
-    column('isDefault', 'boolean', 'checkbox', { defaultValue: false }),
-    column('config', 'object', 'json'),
-    column('group', 'object', 'json', { optional: true }),
-    column('filter', 'object', 'json', { optional: true }),
-    column('sort', 'array', 'json', { optional: true }),
-  ]),
-  table('company_policies', 'Company Policies', [
-    column('companyId', 'string', 'text'),
-    column('maxSessions', 'number', 'number', { optional: true }),
-    column('sessionOverflowAction', 'string', 'select', { config: { displayType: 'select', options: buildOptions(['revoke_oldest', 'reject']) } }),
-    column('allowImpersonation', 'boolean', 'checkbox'),
-    column('allowApiKeys', 'boolean', 'checkbox'),
-  ]),
+  {
+    name: 'members',
+    label: 'Members',
+    columns: [
+      { name: 'profileId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨members:profileId:user_profiles:id⟩' } },
+      { name: 'email', dbType: 'string', displayType: 'email', optional: true },
+      { name: 'role', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'owner', value: 'owner' }, { label: 'admin', value: 'admin' }, { label: 'member', value: 'member' }] } },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'pending', value: 'pending' }, { label: 'active', value: 'active' }, { label: 'inactive', value: 'inactive' }] } },
+      { name: 'inviteCode', dbType: 'string', displayType: 'text', optional: true, unique: true },
+      { name: 'joinedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'invitedBy', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨members:invitedBy:members:id⟩' } },
+    ],
+    relations: [
+      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'members' },
+      { fromColumn: 'invitedBy', toTable: 'members', toColumn: 'id', type: 'one-to-many', fromTable: 'members' },
+    ],
+  },
+  {
+    name: 'sessions',
+    label: 'Sessions',
+    columns: [
+      { name: 'platformSessionId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'memberId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:memberId:members:id⟩' } },
+      { name: 'profileId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'email', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'companyId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'user', value: 'user' }, { label: 'impersonation', value: 'impersonation' }] } },
+      { name: 'impersonatorId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:impersonatorId:members:id⟩' } },
+      { name: 'deviceFingerprint', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'deviceName', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'ip', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'userAgent', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'lastUsedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'revokedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'revokeReason', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: [
+      { fromColumn: 'memberId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { fromColumn: 'impersonatorId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+    ],
+  },
+  {
+    name: 'workflow_designs',
+    label: 'Workflow Designs',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'xstateConfig', dbType: 'object', displayType: 'json', optional: true },
+      { name: 'starts', dbType: 'array', displayType: 'json', optional: true, fields: [
+        { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { options: [{ label: 'db_trigger', value: 'db_trigger' }, { label: 'user_trigger', value: 'user_trigger' }, { label: 'cron', value: 'cron' }, { label: 'webhook', value: 'webhook' }] } },
+        { name: 'startState', dbType: 'string', displayType: 'text', optional: true },
+        { name: 'options', dbType: 'object', displayType: 'json', optional: true },
+      ] },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'workflow_instances',
+    label: 'Workflow Instances',
+    columns: [
+      { name: 'designId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_instances:designId:workflow_designs:id⟩' } },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'pending', value: 'pending' }, { label: 'running', value: 'running' }, { label: 'waiting', value: 'waiting' }, { label: 'done', value: 'done' }, { label: 'error', value: 'error' }] } },
+      { name: 'currentState', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'context', dbType: 'object', displayType: 'json', optional: true },
+      { name: 'triggerBy', dbType: 'object', displayType: 'json', optional: true, fields: [
+        { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { options: [{ label: 'db_trigger', value: 'db_trigger' }, { label: 'user_trigger', value: 'user_trigger' }, { label: 'cron', value: 'cron' }, { label: 'webhook', value: 'webhook' }] } },
+        { name: 'startState', dbType: 'string', displayType: 'text', optional: true },
+      ] },
+      { name: 'namespace', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'companyId', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: [
+      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+    ],
+  },
+  {
+    name: 'user_tasks',
+    label: 'User Tasks',
+    columns: [
+      { name: 'instanceId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨user_tasks:instanceId:workflow_instances:id⟩' } },
+      { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'approval', value: 'approval' }, { label: 'review', value: 'review' }, { label: 'manual', value: 'manual' }] } },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'pending', value: 'pending' }, { label: 'completed', value: 'completed' }, { label: 'cancelled', value: 'cancelled' }, { label: 'rejected', value: 'rejected' }] } },
+      { name: 'tableName', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'recordId', dbType: 'record', displayType: 'text', optional: true },
+      { name: 'designId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨user_tasks:designId:workflow_designs:id⟩' } },
+      { name: 'resolvedAt', dbType: 'datetime', displayType: 'date', optional: true },
+    ],
+    relations: [
+      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+    ],
+  },
+  {
+    name: 'workflow_actions',
+    label: 'Workflow Actions',
+    columns: [
+      { name: 'instanceId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_actions:instanceId:workflow_instances:id⟩' } },
+      { name: 'designId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_actions:designId:workflow_designs:id⟩' } },
+      { name: 'stateId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'action', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'params', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'started', value: 'started' }, { label: 'completed', value: 'completed' }, { label: 'failed', value: 'failed' }] } },
+      { name: 'inputContext', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'outputContext', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'outputData', dbType: 'object', displayType: 'text', optional: true },
+      { name: 'resultEvent', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'ok', value: 'ok' }, { label: 'error', value: 'error' }, { label: 'true', value: 'true' }, { label: 'false', value: 'false' }] } },
+      { name: 'errorMessage', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'startedAt', dbType: 'datetime', displayType: 'date', optional: true },
+      { name: 'completedAt', dbType: 'datetime', displayType: 'date', optional: true },
+    ],
+    relations: [
+      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+    ],
+  },
+  {
+    name: 'permission_groups',
+    label: 'Permission Groups',
+    columns: [
+      { name: 'resourceType', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'recordId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'isSystem', dbType: 'boolean', displayType: 'checkbox', optional: true },
+      { name: 'description', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'resource_types',
+    label: 'Resource Types',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'table', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'hasRecordId', dbType: 'boolean', displayType: 'checkbox', optional: true },
+      { name: 'bitMapping', dbType: 'array', displayType: 'json', optional: true },
+      { name: 'defaultGroups', dbType: 'array', displayType: 'json', optional: true },
+      { name: 'parentResourceType', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'isSystem', dbType: 'boolean', displayType: 'checkbox', optional: true },
+      { name: 'scope', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'user_groups',
+    label: 'User Groups',
+    columns: [
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'description', dbType: 'string', displayType: 'text', optional: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: '_views',
+    label: 'Views',
+    columns: [
+      { name: 'table', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'table', value: 'table' }] } },
+      { name: 'name', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'description', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'isDefault', dbType: 'boolean', displayType: 'checkbox', optional: true, defaultValue: false },
+      { name: 'config', dbType: 'object', displayType: 'json', optional: true },
+      { name: 'group', dbType: 'object', displayType: 'json', optional: true },
+      { name: 'filter', dbType: 'object', displayType: 'json', optional: true },
+      { name: 'sort', dbType: 'array', displayType: 'json', optional: true },
+    ],
+    relations: undefined,
+  },
+  {
+    name: 'company_policies',
+    label: 'Company Policies',
+    columns: [
+      { name: 'companyId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'maxSessions', dbType: 'number', displayType: 'number', optional: true },
+      { name: 'sessionOverflowAction', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'revoke_oldest', value: 'revoke_oldest' }, { label: 'reject', value: 'reject' }] } },
+      { name: 'allowImpersonation', dbType: 'boolean', displayType: 'checkbox', optional: true },
+      { name: 'allowApiKeys', dbType: 'boolean', displayType: 'checkbox', optional: true },
+    ],
+    relations: undefined,
+  },
 ]

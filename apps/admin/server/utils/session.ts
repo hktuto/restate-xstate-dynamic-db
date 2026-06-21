@@ -1,4 +1,4 @@
-import { signObject, unsignObject } from 'shared'
+import { signObject, unsignObject } from 'shared/server'
 import type { H3Event } from 'h3'
 
 export interface AdminSession {

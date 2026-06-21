@@ -137,9 +137,7 @@ function adminViewsRouter() {
   return r
 }
 
-export function viewsRoutes() {
-  const app = new Hono()
-  app.route('/views', tenantViewsRouter())
-  app.route('/admin/views/:nsdb', adminViewsRouter())
-  return app
-}
+const app = new Hono()
+app.route('/views', tenantViewsRouter())
+app.route('/admin/views/:nsdb', adminViewsRouter())
+export const viewsRoutes = app

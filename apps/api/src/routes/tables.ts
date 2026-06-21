@@ -117,9 +117,7 @@ function adminTablesRouter() {
   return r
 }
 
-export function tablesRoutes() {
-  const app = new Hono()
-  app.route('/tables', tenantTablesRouter())
-  app.route('/admin/tables/:nsdb', adminTablesRouter())
-  return app
-}
+const app = new Hono()
+app.route('/tables', tenantTablesRouter())
+app.route('/admin/tables/:nsdb', adminTablesRouter())
+export const tablesRoutes = app

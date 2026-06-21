@@ -2,13 +2,12 @@ import { Hono } from 'hono'
 import { getPlatformWorkflowDesign } from 'db/platform'
 import { adminAuth } from '../middleware/admin.js'
 import type { AdminScope } from '../types.js'
-import { dispatchPlatformUserTrigger } from '../lib/start-user-trigger.js'
+import { dispatchUserTrigger } from '../lib/dispatch.js'
 
-export function adminWorkflowInstancesRoutes() {
-  const app = new Hono()
-  app.use(adminAuth())
+const app = new Hono()
+app.use(adminAuth())
 
-  app.post('/', async (c) => {
+app.post('/', async (c) => {
     const scope = c.get('scope') as AdminScope
     let body: { designId?: string; values?: unknown }
     try {
@@ -28,7 +27,7 @@ export function adminWorkflowInstancesRoutes() {
     if (!rule) return c.json({ error: 'Design has no user trigger' }, 400)
 
     try {
-      const instance = await dispatchPlatformUserTrigger(scope.namespace, design, rule, body.values as Record<string, unknown>, scope.userId, scope.database)
+      const instance = await dispatchUserTrigger(scope.namespace, design, rule, body.values as Record<string, unknown>, scope.userId, scope.database, 'platform')
       return c.json({ id: instance.id })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -39,5 +38,4 @@ export function adminWorkflowInstancesRoutes() {
     }
   })
 
-  return app
-}
+export const adminWorkflowInstancesRoutes = app

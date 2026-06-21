@@ -1,7 +1,8 @@
 import { getSurreal, closeSurreal } from './client.js'
 import { normalizeId, normalizeIds } from './normalize.js'
-import type { WorkflowInstanceStatus } from './tenant.js'
-import type { WorkflowDefinition, StartRule, TriggerBy } from 'shared'
+import type { WorkflowInstanceStatus } from './crud.js'
+import type { TriggerBy } from 'shared'
+import * as Crud from './crud.js'
 
 export interface CompanyInput {
   name: string
@@ -16,18 +17,30 @@ export interface CompanyRecord extends CompanyInput {
   [key: string]: unknown
 }
 
-export interface PlatformWorkflowDesignRecord {
-  id: string
-  name: string
-  xstateConfig: WorkflowDefinition
-  starts?: StartRule[]
-  [key: string]: unknown
+export type PlatformWorkflowDesignRecord = Crud.WorkflowDesignRecord
+export type PlatformWorkflowDesignInput = Crud.WorkflowDesignInput
+
+export async function listPlatformWorkflowDesigns(): Promise<PlatformWorkflowDesignRecord[]> {
+  return Crud.listWorkflowDesigns('platform', 'admin')
 }
 
-export interface PlatformWorkflowDesignInput {
-  name: string
-  xstateConfig: WorkflowDefinition
-  starts?: StartRule[]
+export async function createPlatformWorkflowDesign(input: PlatformWorkflowDesignInput): Promise<PlatformWorkflowDesignRecord> {
+  return Crud.createWorkflowDesign('platform', 'admin', input)
+}
+
+export async function getPlatformWorkflowDesign(id: string): Promise<PlatformWorkflowDesignRecord | undefined> {
+  return Crud.getWorkflowDesign('platform', 'admin', id)
+}
+
+export async function updatePlatformWorkflowDesign(
+  id: string,
+  input: Partial<PlatformWorkflowDesignInput>
+): Promise<PlatformWorkflowDesignRecord | undefined> {
+  return Crud.updateWorkflowDesign('platform', 'admin', id, input)
+}
+
+export async function deletePlatformWorkflowDesign(id: string): Promise<void> {
+  return Crud.deleteWorkflowDesign('platform', 'admin', id)
 }
 
 export interface PlatformSessionRecord {
@@ -169,82 +182,7 @@ export async function findOldestActivePlatformSession(namespace: string, account
   }
 }
 
-export async function listPlatformWorkflowDesigns(): Promise<PlatformWorkflowDesignRecord[]> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [designs] = await surreal.query<[PlatformWorkflowDesignRecord[]]>('SELECT * FROM workflow_designs')
-    return normalizeIds(designs)
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export async function createPlatformWorkflowDesign(input: PlatformWorkflowDesignInput): Promise<PlatformWorkflowDesignRecord> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const data = {
-      name: input.name,
-      xstateConfig: input.xstateConfig,
-      starts: input.starts
-    }
-    const [created] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
-      'CREATE workflow_designs CONTENT $data',
-      { data }
-    )
-    return normalizeId(created[0])!
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export async function getPlatformWorkflowDesign(id: string): Promise<PlatformWorkflowDesignRecord | undefined> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [result] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
-      'SELECT * FROM type::record($id)',
-      { id }
-    )
-    return normalizeId(result[0])
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export async function updatePlatformWorkflowDesign(id: string, input: Partial<PlatformWorkflowDesignInput>): Promise<PlatformWorkflowDesignRecord | undefined> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [updated] = await surreal.query<[PlatformWorkflowDesignRecord[]]>(
-      'UPDATE type::record($id) MERGE $data',
-      { id, data: input }
-    )
-    return normalizeId(updated[0])
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export async function deletePlatformWorkflowDesign(id: string): Promise<void> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    await surreal.query('DELETE type::record($id)', { id })
-  } finally {
-    await closeSurreal(surreal)
-  }
-}
-
-export interface PlatformWorkflowInstanceRecord {
-  id: string
-  designId: string
-  status: WorkflowInstanceStatus
-  currentState?: string
-  context?: Record<string, unknown>
-  triggerBy?: TriggerBy
-  namespace: string
-  companyId?: string
-  createdAt: string
-  updatedAt: string
-  [key: string]: unknown
-}
+export type PlatformWorkflowInstanceRecord = Crud.WorkflowInstanceRecord
 
 export interface PlatformWorkflowInstanceInput {
   designId: string
@@ -257,51 +195,18 @@ export interface PlatformWorkflowInstanceInput {
 }
 
 export async function listPlatformWorkflowInstances(): Promise<PlatformWorkflowInstanceRecord[]> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [instances] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>('SELECT * FROM workflow_instances ORDER BY createdAt DESC')
-    return normalizeIds(instances)
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.listWorkflowInstances('platform', 'admin')
 }
 
 export async function getPlatformWorkflowInstance(id: string): Promise<PlatformWorkflowInstanceRecord | undefined> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [result] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
-      'SELECT * FROM type::record($id)',
-      { id }
-    )
-    return normalizeId(result[0])
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.getWorkflowInstance('platform', 'admin', id)
 }
 
 export async function createPlatformWorkflowInstance(input: PlatformWorkflowInstanceInput): Promise<PlatformWorkflowInstanceRecord> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const now = new Date().toISOString()
-    const data = {
-      designId: input.designId,
-      status: input.status ?? 'pending',
-      currentState: input.currentState,
-      context: input.context,
-      triggerBy: input.triggerBy,
-      namespace: 'platform',
-      companyId: input.companyId,
-      createdAt: now,
-      updatedAt: now
-    }
-    const [created] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
-      'CREATE workflow_instances CONTENT $data',
-      { data }
-    )
-    return normalizeId(created[0])!
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.createWorkflowInstance('platform', 'admin', {
+    ...input,
+    namespace: input.namespace ?? 'platform'
+  })
 }
 
 export async function updatePlatformWorkflowInstanceStatus(
@@ -309,49 +214,16 @@ export async function updatePlatformWorkflowInstanceStatus(
   status: WorkflowInstanceStatus,
   currentState?: string
 ): Promise<PlatformWorkflowInstanceRecord | undefined> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const data: { status: WorkflowInstanceStatus; currentState?: string; updatedAt: string } = {
-      status,
-      updatedAt: new Date().toISOString()
-    }
-    if (currentState !== undefined) {
-      data.currentState = currentState
-    }
-    const [updated] = await surreal.query<[PlatformWorkflowInstanceRecord[]]>(
-      'UPDATE type::record($id) MERGE $data',
-      { id, data }
-    )
-    return normalizeId(updated[0])
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.updateWorkflowInstanceStatus('platform', 'admin', id, status, currentState)
 }
 
 export async function deletePlatformWorkflowInstance(id: string): Promise<void> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    await surreal.query('DELETE type::record($id)', { id })
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.deleteWorkflowInstance('platform', 'admin', id)
 }
 
-export type PlatformUserTaskStatus = 'pending' | 'completed' | 'cancelled' | 'rejected'
-export type PlatformUserTaskType = 'approval' | 'review' | 'manual'
-
-export interface PlatformUserTaskRecord {
-  id: string
-  instanceId: string
-  type: PlatformUserTaskType
-  status: PlatformUserTaskStatus
-  tableName: string
-  recordId: string
-  designId: string
-  createdAt: string
-  resolvedAt?: string
-  [key: string]: unknown
-}
+export type PlatformUserTaskStatus = Crud.UserTaskStatus
+export type PlatformUserTaskType = Crud.UserTaskType
+export type PlatformUserTaskRecord = Crud.UserTaskRecord
 
 export interface PlatformUserTaskInput {
   instanceId: string
@@ -362,74 +234,26 @@ export interface PlatformUserTaskInput {
 }
 
 export async function listPlatformUserTasks(): Promise<PlatformUserTaskRecord[]> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [tasks] = await surreal.query<[PlatformUserTaskRecord[]]>('SELECT * FROM user_tasks ORDER BY createdAt DESC')
-    return normalizeIds(tasks)
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.listUserTasks('platform', 'admin')
 }
 
 export async function getPlatformUserTaskById(id: string): Promise<PlatformUserTaskRecord | undefined> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const [result] = await surreal.query<[PlatformUserTaskRecord[]]>(
-      'SELECT * FROM type::record($id)',
-      { id }
-    )
-    return normalizeId(result[0])
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.getUserTaskById('platform', 'admin', id)
 }
 
 export async function createPlatformUserTask(input: PlatformUserTaskInput): Promise<PlatformUserTaskRecord> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const data = {
-      ...input,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    }
-    const [created] = await surreal.query<[PlatformUserTaskRecord[]]>(
-      'CREATE user_tasks CONTENT $data',
-      { data }
-    )
-    return normalizeId(created[0])!
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.createUserTask('platform', 'admin', input)
 }
 
 export async function updatePlatformUserTaskStatus(
   id: string,
   status: PlatformUserTaskStatus
 ): Promise<PlatformUserTaskRecord | undefined> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    const terminalStatuses: PlatformUserTaskStatus[] = ['completed', 'rejected', 'cancelled']
-    const data: { status: PlatformUserTaskStatus; resolvedAt?: string } = { status }
-    if (terminalStatuses.includes(status)) {
-      data.resolvedAt = new Date().toISOString()
-    }
-    const [updated] = await surreal.query<[PlatformUserTaskRecord[]]>(
-      'UPDATE type::record($id) MERGE $data',
-      { id, data }
-    )
-    return normalizeId(updated[0])
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.updateUserTaskStatus('platform', 'admin', id, status)
 }
 
 export async function deletePlatformUserTask(id: string): Promise<void> {
-  const surreal = await getSurreal('platform', 'admin')
-  try {
-    await surreal.query('DELETE type::record($id)', { id })
-  } finally {
-    await closeSurreal(surreal)
-  }
+  return Crud.deleteUserTask('platform', 'admin', id)
 }
 
 export async function deleteCompanyBySlug(slug: string): Promise<void> {
@@ -539,7 +363,6 @@ export async function listCompaniesForProfile(profileId: string): Promise<Compan
   )
   return memberships.filter((c): c is CompanyRecord => c !== null)
 }
-
 
 export interface PlatformUserRecord {
   id: string

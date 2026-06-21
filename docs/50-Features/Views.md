@@ -36,15 +36,11 @@ interface ViewDefinition {
   description?: string
   isDefault?: boolean
   config: ViewConfig
-  group?: GroupSetting
-  filter?: FilterSetting
   sort?: SortSetting[]
 }
 
 interface ViewConfig {
   table?: TableViewConfig
-  card?: CardViewConfig      // reserved
-  kanban?: KanbanViewConfig  // reserved
 }
 
 interface TableViewConfig {

@@ -13,10 +13,9 @@ import type { TenantScope } from '../types.js'
 const RESTATE_INGRESS = process.env.RESTATE_INGRESS || 'http://localhost:8080'
 const VALID_TYPES: UserTaskType[] = ['approval', 'review', 'manual']
 
-export function userTasksRoutes() {
-  const app = new Hono()
+const app = new Hono()
 
-  app.get('/', tenantAuth, async (c) => {
+app.get('/', tenantAuth, async (c) => {
     const scope = c.get('scope') as TenantScope
     const tasks = await listUserTasks(scope.namespace)
     return c.json(
@@ -30,7 +29,7 @@ export function userTasksRoutes() {
     )
   })
 
-  app.post('/', async (c) => {
+app.post('/', async (c) => {
     let body: {
       instanceId?: string
       type?: UserTaskType
@@ -74,7 +73,7 @@ export function userTasksRoutes() {
     return c.json(task)
   })
 
-  app.post('/:id/approve', tenantAuth, async (c) => {
+app.post('/:id/approve', tenantAuth, async (c) => {
     const scope = c.get('scope') as TenantScope
     const id = c.req.param('id')
     if (!id) {
@@ -103,7 +102,7 @@ export function userTasksRoutes() {
     return c.json({ ok: true })
   })
 
-  app.post('/:id/reject', tenantAuth, async (c) => {
+app.post('/:id/reject', tenantAuth, async (c) => {
     const scope = c.get('scope') as TenantScope
     const id = c.req.param('id')
     if (!id) {
@@ -132,5 +131,4 @@ export function userTasksRoutes() {
     return c.json({ ok: true })
   })
 
-  return app
-}
+export const userTasksRoutes = app

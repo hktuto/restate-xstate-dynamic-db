@@ -1,8 +1,7 @@
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import type { Context } from 'hono'
 import type { AccessTokenPayload } from 'shared'
-import { signAccessToken, verifyAccessToken, generateToken, hashToken } from 'shared'
-import { getEnv } from '../env.js'
+import { signAccessToken, verifyAccessToken, generateToken, hashToken } from 'shared/server'
 
 const ACCESS_TOKEN_COOKIE = 'tenant_access_token'
 const REFRESH_TOKEN_COOKIE = 'tenant_refresh_token'
@@ -16,7 +15,11 @@ const COOKIE_OPTIONS = {
 }
 
 function getSessionSecret(): string {
-  return getEnv().sessionSecret
+  const sessionSecret = process.env.SESSION_SECRET
+  if (!sessionSecret) {
+    throw new Error('SESSION_SECRET is required')
+  }
+  return sessionSecret
 }
 
 function accessTokenExpiry(): Date {

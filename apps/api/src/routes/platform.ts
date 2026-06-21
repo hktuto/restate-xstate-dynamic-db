@@ -1,16 +1,15 @@
 import { Hono } from 'hono'
 import { getPlatformStatus } from 'db/platform-status'
 
-export function platformRoutes() {
-  const app = new Hono()
+const app = new Hono()
 
-  app.get('/health', (c) => c.json({ status: 'ok' }))
+app.get('/health', (c) => c.json({ status: 'ok' }))
 
-  app.get('/platform-status', async (c) => {
+app.get('/platform-status', async (c) => {
     return c.json(await getPlatformStatus())
   })
 
-  app.post('/webhook', async (c) => {
+app.post('/webhook', async (c) => {
     let body: unknown
     try {
       body = await c.req.json()
@@ -21,5 +20,4 @@ export function platformRoutes() {
     return c.json({ ok: true })
   })
 
-  return app
-}
+export const platformRoutes = app

@@ -25,8 +25,8 @@ Shared utilities used across apps and packages.
 
 ## Key modules
 
-- `src/auth.ts` — `hashPassword()` and `comparePassword()` using bcryptjs.
-- `src/resource-catalog.ts` — canonical resource type catalog with compound bit mappings, default groups, and parent relationships for both platform and tenant scopes.
+- `src/index.ts` — isomorphic exports: permissions/resource catalog and shared type definitions.
+- `src/server.ts` — Node-only exports: `hashPassword()`, `comparePassword()`, session signing (`signObject`, `verifyAccessToken`), and token helpers. Imported via `shared/server`.
 
 ## Build
 
