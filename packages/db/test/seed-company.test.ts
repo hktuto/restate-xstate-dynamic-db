@@ -32,23 +32,23 @@ describe('seedCompany', () => {
     const members = await listMembers('company_seedco_test')
     expect(members).toHaveLength(13)
 
-    const companyGroups = await listPermissionGroups('company_seedco_test', 'main', 'tenant')
-    const adminGroup = companyGroups.find((g) => g.name === 'admin')
-    const memberGroup = companyGroups.find((g) => g.name === 'user')
+    const memberGroups = await listPermissionGroups('company_seedco_test', 'main', 'member')
+    const adminGroup = memberGroups.find((g) => g.name === 'admin')
+    const userGroup = memberGroups.find((g) => g.name === 'user')
     expect(adminGroup).toBeDefined()
-    expect(memberGroup).toBeDefined()
+    expect(userGroup).toBeDefined()
 
-    const tenantDefaults = defaultGroups('tenant')
-    const adminMask = tenantDefaults.find((g) => g.name === 'admin')!.bitmask.toString()
-    const userMask = tenantDefaults.find((g) => g.name === 'user')!.bitmask.toString()
+    const memberDefaults = defaultGroups('member')
+    const adminMask = memberDefaults.find((g) => g.name === 'admin')!.bitmask.toString()
+    const userMask = memberDefaults.find((g) => g.name === 'user')!.bitmask.toString()
 
     const alice = members.find((m) => m.email === 'alice@seedco.test')
     const charlie = members.find((m) => m.email === 'charlie@seedco.test')
     expect(alice).toBeDefined()
     expect(charlie).toBeDefined()
 
-    const aliceMask = await getEffectivePermissions('company_seedco_test', alice!.id, 'tenant', alice!.role)
-    const charlieMask = await getEffectivePermissions('company_seedco_test', charlie!.id, 'tenant', charlie!.role)
+    const aliceMask = await getEffectivePermissions('company_seedco_test', alice!.id, 'member', alice!.role)
+    const charlieMask = await getEffectivePermissions('company_seedco_test', charlie!.id, 'member', charlie!.role)
     expect(aliceMask).toBe(adminMask)
     expect(charlieMask).toBe(userMask)
 

@@ -85,7 +85,7 @@ async function seedMembers(
   namespace: string,
   credential: string
 ): Promise<Map<string, MemberRecord>> {
-  const groups = await listPermissionGroups(namespace, 'main', 'tenant')
+  const groups = await listPermissionGroups(namespace, 'main', 'member')
   const adminGroup = groups.find((g) => g.name === 'admin')!
   const memberGroup = groups.find((g) => g.name === 'user')!
 
