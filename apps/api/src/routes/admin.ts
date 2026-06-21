@@ -20,7 +20,7 @@ import {
 } from 'db/admin-user-groups'
 import { listLatestHealthChecks, listHealthCheckHistoryForService, type HealthCheckService } from 'db/health-checks'
 import { hashPassword } from 'shared'
-import type { ResourceType } from 'shared'
+import { RESOURCE_CATALOG, type ResourceType } from 'shared'
 import { adminAuth } from '../middleware/admin.js'
 import { requireAdminPermission, resolveAdminPermissions } from '../middleware/admin-permission.js'
 import type { AdminScope } from '../types.js'
@@ -150,7 +150,10 @@ export function adminRoutes() {
   })
 
   app.delete('/platform-users/:id', requireAdminPermission('admin_user', 'delete'), async (c) => {
-    await deletePlatformUser(c.req.param('id'))
+    const id = c.req.param('id')
+    const user = await getPlatformUserById(id)
+    if (!user) return c.json({ error: 'Not found' }, 404)
+    await deletePlatformUser(id)
     return c.json({ ok: true })
   })
 
@@ -206,10 +209,11 @@ export function adminRoutes() {
     const scope = c.get('scope') as AdminScope
     const resourceType = c.req.query('resourceType')
     const recordId = c.req.query('recordId') ?? undefined
-    if (!resourceType) {
-      return c.json({ error: 'resourceType required' }, 400)
+    if (!resourceType || !(resourceType in RESOURCE_CATALOG)) {
+      return c.json({ error: 'Invalid resourceType' }, 400)
     }
-    const mask = await resolveAdminPermissions(scope, resourceType as ResourceType, recordId)
+    const def = RESOURCE_CATALOG[resourceType as keyof typeof RESOURCE_CATALOG]
+    const mask = await resolveAdminPermissions(scope, def.name, recordId)
     return c.json({ resourceType, recordId, bitmask: mask })
   })
 
