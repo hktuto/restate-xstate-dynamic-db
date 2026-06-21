@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-20
+updated: 2026-06-21
 package: db
 related:
   - [[Data Model]]
@@ -13,6 +13,8 @@ related:
   - [[Benchmarking]]
   - [[SurrealDB Performance Benchmark]]
   - [[Dynamic Table Schema Registry — Backend Implementation Plan]]
+  - [[20-Architecture/Decision Log/ADR-005 compound-bitmask-permissions]]
+  - [[Tenant Permission System]]
 ---
 
 # db package
@@ -31,6 +33,12 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 - `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables, indexes) and seeds the schema registry (`_tables`, `_columns`, `_relations`, `_views`) from the declarative schemas in `schema-definitions.ts`. Also generates a default table view for every tenant table.
 - `src/seed.ts` — seeds `platform/admin` namespace with default admin user and platform schema registry.
 - `src/clean-db.ts` — removes every namespace from the SurrealDB instance and drains the connection pool.
+
+### Permission resolver
+
+- `src/resource-types.ts` — upserts `resource_types` records from the shared catalog and builds `resource_parent` edges.
+- `src/permission-resolver.ts` — resolves effective permissions by traversing `permission_assignments` and `permission_apply_to` graph edges, including ancestor propagation. Uses compound-bit checks: `(effectiveMask & actionValue) === actionValue`.
+- `src/permissions.ts` — permission group CRUD, assignment, and default group provisioning.
 
 ## Scripts
 
