@@ -27,6 +27,7 @@ const COMPANY = {
   namespace: 'company_seedco_test',
 }
 
+// Non-production test data only.
 const PASSWORD = 'SeedPass123!'
 
 interface SeedPerson {

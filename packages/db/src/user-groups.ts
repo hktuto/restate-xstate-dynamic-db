@@ -7,6 +7,7 @@ import {
   assignPermissionGroup,
   listPermissionGroups,
   applyPermissionToResource,
+  deletePermissionGroup,
 } from './permissions.js'
 
 export interface UserGroupRecord {
@@ -91,9 +92,7 @@ export async function deleteUserGroup(namespace: string, id: string): Promise<vo
     await surreal.query('DELETE user_group_memberships WHERE out = type::record($id)', { id })
     const groups = await listPermissionGroups(namespace, 'main', 'user_group_detail', id)
     for (const group of groups) {
-      await surreal.query('DELETE permission_assignments WHERE out = type::record($id)', { id: group.id })
-      await surreal.query('DELETE permission_apply_to WHERE in = type::record($id)', { id: group.id })
-      await surreal.query('DELETE type::record($id)', { id: group.id })
+      await deletePermissionGroup(namespace, 'main', group.id)
     }
     await surreal.query('DELETE permission_assignments WHERE in = type::record($id)', { id })
     await surreal.query('DELETE type::record($id)', { id })
@@ -155,6 +154,9 @@ export async function listUserGroupMembers(
   }
 }
 
+/**
+ * Creates a user group and auto-assigns the creator to the owner permission group.
+ */
 export async function createUserGroupWithDefaults(
   namespace: string,
   input: UserGroupInput,
