@@ -1,9 +1,24 @@
 import type { Surreal } from 'surrealdb'
 import { getSurreal, closeSurreal } from './client.js'
 import { resourceTypeRecordId } from './resource-types.js'
-import { actionValue, allActionsBitmask, bitmaskToActions, hasAction, resourceType, type ResourceType } from 'shared'
+import { allActionsBitmask, bitmaskToActions, hasAction, resourceType, type ResourceType } from 'shared'
 
-const VIEW_BIT = actionValue('platform', 'view')
+// The permission catalog defines view = 1 for every resource, so the view bit is resource-independent.
+const VIEW_BIT = 1
+
+const ALLOWED_MEMBERSHIP_EDGES = ['user_group_memberships', 'admin_user_group_memberships'] as const
+const ALLOWED_USER_GROUP_TABLES = ['user_groups', 'admin_user_groups'] as const
+
+function validateIdentifier(
+  name: 'membershipEdge' | 'userGroupTable',
+  value: string,
+  allowed: readonly string[]
+): string {
+  if (!allowed.includes(value)) {
+    throw new Error(`Invalid ${name}: ${value}. Must be one of: ${allowed.join(', ')}`)
+  }
+  return value
+}
 
 export interface ResolveOptions {
   recordId?: string
@@ -134,8 +149,16 @@ export async function queryBatchedEdges(
   opts?: ResolveOptions
 ): Promise<{ directEdges: RawEdge[]; ancestorEdges: RawEdge[] }> {
   const scope = recordScopeCondition(opts?.recordId)
-  const membershipEdge = opts?.membershipEdge ?? TENANT_RESOLVER_OPTS.membershipEdge
-  const userGroupTable = opts?.userGroupTable ?? TENANT_RESOLVER_OPTS.userGroupTable
+  const membershipEdge = validateIdentifier(
+    'membershipEdge',
+    opts?.membershipEdge ?? TENANT_RESOLVER_OPTS.membershipEdge,
+    ALLOWED_MEMBERSHIP_EDGES
+  )
+  const userGroupTable = validateIdentifier(
+    'userGroupTable',
+    opts?.userGroupTable ?? TENANT_RESOLVER_OPTS.userGroupTable,
+    ALLOWED_USER_GROUP_TABLES
+  )
 
   const query = `
     LET $member = type::record($memberId);
@@ -379,7 +402,11 @@ export async function listResourceMembers(
 
     const results = await surreal.query<[unknown]>(query, {
       resourceId,
-      userGroupTable: opts?.userGroupTable ?? TENANT_RESOLVER_OPTS.userGroupTable,
+      userGroupTable: validateIdentifier(
+        'userGroupTable',
+        opts?.userGroupTable ?? TENANT_RESOLVER_OPTS.userGroupTable,
+        ALLOWED_USER_GROUP_TABLES
+      ),
     })
     const last = Array.isArray(results) ? results[results.length - 1] : results
     const payload = (Array.isArray(last) ? last[0] : last) as
