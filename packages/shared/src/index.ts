@@ -2,6 +2,7 @@ export * from './session.js'
 export * from './auth.js'
 export * from './permissions.js'
 export * from './crypto.js'
+export * from './resource-catalog.js'
 
 export interface CompanyRecord {
   id: string

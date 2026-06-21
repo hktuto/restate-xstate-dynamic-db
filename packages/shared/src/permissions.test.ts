@@ -5,35 +5,35 @@ import {
   bitmaskToActions,
   hasAction,
   allActionsBitmask,
-  DEFAULT_GROUPS,
-  RESOURCE_ACTIONS,
+  defaultGroups,
 } from './permissions.js'
 
 describe('permissions', () => {
-  it('converts actions to values and back', () => {
-    expect(actionValue('company', 'manage_settings')).toBe(2)
-    expect(actionValue('user_group', 'add_member')).toBe(8)
+  it('returns compound action values from the catalog', () => {
+    expect(actionValue('member', 'edit')).toBe(3)
+    expect(actionValue('company', 'add_member')).toBe(19)
   })
 
-  it('builds and decodes a bitmask', () => {
-    const mask = actionsToBitmask('user_group', ['view', 'update', 'add_member'])
-    expect(mask).toBe('11')
-    expect(bitmaskToActions('user_group', mask)).toEqual(['view', 'update', 'add_member'])
+  it('builds and decodes a bitmask using compound values', () => {
+    const mask = actionsToBitmask('user_group', ['view', 'edit_info', 'add_member'])
+    expect(mask).toBe('19')
+    expect(bitmaskToActions('user_group', mask)).toEqual(['view', 'edit_info', 'add_member'])
   })
 
-  it('checks a single action', () => {
-    const mask = actionsToBitmask('company', ['view', 'manage_user_groups'])
+  it('checks a single action with compound masks', () => {
+    const mask = actionsToBitmask('company', ['view', 'add_member'])
     expect(hasAction(mask, 'company', 'view')).toBe(true)
-    expect(hasAction(mask, 'company', 'invite_member')).toBe(false)
+    expect(hasAction(mask, 'company', 'remove_member')).toBe(false)
+    expect(hasAction(mask, 'company', 'delete')).toBe(false)
   })
 
   it('returns all actions for a resource type', () => {
-    const mask = allActionsBitmask('user_group')
-    expect(hasAction(mask, 'user_group', 'manage_permissions')).toBe(true)
+    const mask = allActionsBitmask('member')
+    expect(hasAction(mask, 'member', 'manage_permissions')).toBe(true)
   })
 
   it('has default groups', () => {
-    expect(DEFAULT_GROUPS.company.map((g) => g.name)).toContain('Owner')
-    expect(DEFAULT_GROUPS.user_group.map((g) => g.name)).toContain('Admin')
+    expect(defaultGroups('company').map((g) => g.name)).toContain('owner')
+    expect(defaultGroups('user_group').map((g) => g.name)).toContain('admin')
   })
 })
