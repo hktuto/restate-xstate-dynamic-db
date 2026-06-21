@@ -536,7 +536,7 @@ describe('permissions', () => {
 
   it('builds and decodes a bitmask using compound values', () => {
     const mask = actionsToBitmask('user_group', ['view', 'edit_info', 'add_member'])
-    expect(mask).toBe('23')
+    expect(mask).toBe('19')
     expect(bitmaskToActions('user_group', mask)).toEqual(['view', 'edit_info', 'add_member'])
   })
 
@@ -544,7 +544,7 @@ describe('permissions', () => {
     const mask = actionsToBitmask('company', ['view', 'add_member'])
     expect(hasAction(mask, 'company', 'view')).toBe(true)
     expect(hasAction(mask, 'company', 'remove_member')).toBe(false)
-    expect(hasAction(mask, 'company', 'edit_info')).toBe(false)
+    expect(hasAction(mask, 'company', 'edit_info')).toBe(true)
   })
 
   it('returns all actions for a resource type', () => {
