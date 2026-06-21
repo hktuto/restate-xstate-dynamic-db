@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-20
-updated: 2026-06-20
+updated: 2026-06-21
 related:
   - [[Data Model]]
   - [[Multi-tenancy]]
@@ -24,7 +24,26 @@ Shared Nuxt layer for rendering data tables from the `_views` registry. Provides
 
 ## Components
 
-### `TableView.vue`
+### `DataTable.vue`
+
+Container that loads a table's view, schema, and records, then renders the toolbar and table. Permission booleans are passed as props.
+
+Props:
+- `table: string`
+- `nsdb?: string`
+- `title?: string`
+- `icon?: string`
+- `newLink?: string`
+- `newLabel?: string`
+- `canUpdateView?: boolean`
+- `canEditSchema?: boolean`
+- `canManagePermissions?: boolean`
+
+Path behavior:
+- If `nsdb` is provided, it calls admin endpoints (`/api/admin/views/:nsdb/default/:table`, `/api/admin/tables/:nsdb/...`).
+- If `nsdb` is omitted, it calls tenant endpoints (`/api/views/default/:table`, `/api/tables/...`).
+
+### `DataTableRenderer.vue`
 
 Renders rows using a `ViewDefinition` and a `TableSchema`.
 
@@ -44,19 +63,25 @@ It reads `view.config.table.columns` to decide visibility, labels, order, and wi
 
 ### `DataTablePage.vue`
 
-Full page component that loads the default view, schema, and records for a table.
+Deprecated backward-compat wrapper around `DataTable.vue`. Forwards the same props.
 
-Props:
-- `title: string`
-- `icon?: string`
-- `table: string`
-- `nsdb?: string`
-- `newLink?: string`
-- `newLabel?: string`
+### `DataToolbar.vue`
 
-Path behavior:
-- If `nsdb` is provided, it calls admin endpoints (`/api/admin/views/:nsdb/default/:table`, `/api/admin/tables/:nsdb/...`).
-- If `nsdb` is omitted, it calls tenant endpoints (`/api/views/default/:table`, `/api/tables/...`).
+Combines filter, group, sort, column, and settings controls.
+
+### Toolbar pieces
+
+- `DataToolbarFilter` — nested AND/OR filter builder; view-defined filters are read-only unless `canUpdateView`.
+- `DataToolbarGroup` — group-by selector.
+- `DataToolbarSort` — multi-column sort builder.
+- `DataToolbarColumn` — column visibility toggle.
+- `DataToolbarSetting` — settings dropdown with schema and permissions links.
+
+## Permissions
+
+- `update_default_view_settings` — shows the **Save view** button and allows editing the view-defined filter.
+- `edit_schema` — shows the **Edit schema** settings link.
+- `manage_permissions` — shows the **Manage permissions** settings link.
 
 ## Usage
 

@@ -200,6 +200,21 @@ export interface SortSetting {
   direction: 'asc' | 'desc'
 }
 
+export interface FilterCondition {
+  field: string
+  operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'startsWith' | 'endsWith' | 'in' | 'notIn'
+  value: unknown
+}
+
+export interface FilterGroup {
+  op: 'and' | 'or'
+  conditions: (FilterCondition | FilterGroup)[]
+}
+
+export interface GroupSetting {
+  field: string
+}
+
 /** Per-view-type configuration. */
 export interface ViewConfig {
   table?: TableViewConfig
@@ -215,4 +230,6 @@ export interface ViewDefinition {
   isDefault?: boolean
   config: ViewConfig
   sort?: SortSetting[]
+  filter?: FilterGroup
+  group?: GroupSetting[]
 }
