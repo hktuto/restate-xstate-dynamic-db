@@ -11,14 +11,14 @@ const config = ref<{
   icon: 'i-lucide-users-round',
   table: 'admin_user_groups',
   nsdb: 'platform--admin',
-  newLink: '/user-groups/new',
+  newLink: undefined,
   newLabel: 'Add group',
 })
 
 const { can } = useAdminPermission()
 onMounted(async () => {
-  if (!(await can('admin_user_group', 'create'))) {
-    config.value.newLink = undefined
+  if (await can('admin_user_group', 'create')) {
+    config.value.newLink = '/user-groups/new'
   }
 })
 </script>

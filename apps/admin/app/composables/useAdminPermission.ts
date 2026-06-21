@@ -1,11 +1,15 @@
 import { useApi } from './useApi'
-import { hasAction, type ResourceType } from 'shared'
+import { hasAction, type ResourceType, type PermissionAction } from 'shared'
 
 export function useAdminPermission() {
   const api = useApi()
   const cache = useState<Record<string, string>>('adminPermissions', () => ({}))
 
-  async function can(resourceType: string, action: string, recordId?: string): Promise<boolean> {
+  async function can<T extends ResourceType>(
+    resourceType: T,
+    action: PermissionAction<T>,
+    recordId?: string
+  ): Promise<boolean> {
     const key = recordId ? `${resourceType}:${recordId}` : resourceType
     let mask = cache.value[key]
     if (mask === undefined) {
@@ -20,7 +24,7 @@ export function useAdminPermission() {
         return false
       }
     }
-    return hasAction(mask, resourceType as ResourceType, action as any)
+    return hasAction(mask, resourceType, action)
   }
 
   return { can }
