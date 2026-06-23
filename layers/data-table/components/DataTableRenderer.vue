@@ -18,17 +18,44 @@ const columnMap = computed(() => {
   return map
 })
 
-const visibleColumns = computed(() => {
+interface VisibleColumn {
+  key: string
+  config: TableColumnConfig
+  column?: TableSchema['columns'][number]
+  label: string
+  displayType: string
+  resolve: (row: Record<string, unknown>) => unknown
+}
+
+const visibleColumns = computed<VisibleColumn[]>(() => {
   const configs = props.columns ?? props.view.config?.table?.columns ?? []
-  const result = []
+  const result: VisibleColumn[] = []
   for (const config of configs) {
     if (config.visible === false) continue
+
+    if (config.type === 'lookup' && config.lookup) {
+      const fieldPath = `${config.lookup.from}.${config.lookup.field}`
+      const alias = config.label || fieldPath
+      result.push({
+        key: fieldPath,
+        config,
+        label: config.label || fieldPath,
+        displayType: 'text',
+        resolve: (row) => row[alias] ?? row[fieldPath],
+      })
+      continue
+    }
+
+    if (!config.column) continue
     const column = columnMap.value.get(config.column)
     if (!column) continue
     result.push({
+      key: config.column,
       config,
       column,
       label: config.label ?? column.label ?? column.name,
+      displayType: column.displayType,
+      resolve: (row) => row[config.column!],
     })
   }
   return result
@@ -95,8 +122,8 @@ function tagClasses(value: unknown, config?: Record<string, unknown>): string {
       <thead class="bg-gray-50">
         <tr>
           <th
-            v-for="{ config, label } in visibleColumns"
-            :key="config.column"
+            v-for="{ config, key, label } in visibleColumns"
+            :key="key"
             class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             :style="{ width: columnWidth(config), minWidth: columnWidth(config) }"
           >
@@ -107,26 +134,26 @@ function tagClasses(value: unknown, config?: Record<string, unknown>): string {
       <tbody class="bg-white divide-y divide-gray-200">
         <tr v-for="(row, rowIndex) in rows" :key="rowIndex" class="hover:bg-gray-50">
           <td
-            v-for="{ config, column } in visibleColumns"
-            :key="config.column"
+            v-for="{ config, key, column, displayType, resolve } in visibleColumns"
+            :key="key"
             class="px-4 py-3 whitespace-nowrap text-sm text-gray-900"
             :style="{ width: columnWidth(config), minWidth: columnWidth(config) }"
           >
-            <template v-if="column.displayType === 'email' && typeof row[column.name] === 'string'">
-              <a :href="`mailto:${row[column.name]}`" class="text-blue-600 hover:underline">
-                {{ row[column.name] }}
+            <template v-if="displayType === 'email' && typeof resolve(row) === 'string'">
+              <a :href="`mailto:${resolve(row)}`" class="text-blue-600 hover:underline">
+                {{ resolve(row) }}
               </a>
             </template>
-            <template v-else-if="column.displayType === 'tag'">
+            <template v-else-if="displayType === 'tag'">
               <span
                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                :class="tagClasses(row[column.name], column.config)"
+                :class="tagClasses(resolve(row), column?.config)"
               >
-                {{ formatValue(row[column.name], 'text') }}
+                {{ formatValue(resolve(row), 'text') }}
               </span>
             </template>
             <template v-else>
-              {{ formatValue(row[column.name], column.displayType) }}
+              {{ formatValue(resolve(row), displayType) }}
             </template>
           </td>
         </tr>
