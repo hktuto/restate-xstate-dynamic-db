@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useSortable } from '@vueuse/integrations/useSortable'
 import type { UseSortableOptions } from '@vueuse/integrations/useSortable'
 import type { SortableEvent } from 'sortablejs'
@@ -29,6 +29,49 @@ function emitColumns() {
 const schemaColumns = props.schema.columns.map((c) => ({ label: c.label ?? c.name, value: c.name }))
 function labelFor(column: string) {
   return schemaColumns.find((s) => s.value === column)?.label ?? column
+}
+
+const relationColumns = computed(() =>
+  props.schema.relations
+    .filter((r) => r.fromTable === props.schema.table.name)
+    .map((r) => r.fromColumn)
+)
+
+const relationOptions = computed(() =>
+  relationColumns.value.map((name) => ({ label: labelFor(name), value: name }))
+)
+
+const lookupFrom = ref<string>('')
+const lookupField = ref('name')
+
+function columnKey(col: TableColumnConfig): string {
+  if (col.type === 'lookup' && col.lookup) {
+    return `${col.lookup.from}.${col.lookup.field}`
+  }
+  return col.column ?? ''
+}
+
+function displayLabel(col: TableColumnConfig): string {
+  if (col.label) return col.label
+  if (col.type === 'lookup' && col.lookup) return `${col.lookup.from}.${col.lookup.field}`
+  return labelFor(col.column ?? '')
+}
+
+function addLookup() {
+  if (!lookupFrom.value || !lookupField.value) return
+  const from = lookupFrom.value
+  const field = lookupField.value.trim()
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)) return
+
+  visibleColumns.value.push({
+    type: 'lookup',
+    lookup: { from, field },
+    label: `${labelFor(from)} ${field}`,
+    width: 'auto',
+    visible: true,
+  })
+  emitColumns()
+  lookupField.value = 'name'
 }
 
 let draggedColumn: TableColumnConfig | null = null
@@ -81,7 +124,8 @@ useSortable(visibleEl, visibleColumns, makeOptions('visible'))
 useSortable(hiddenEl, hiddenColumns, makeOptions('hidden'))
 
 function hide(col: TableColumnConfig) {
-  const index = visibleColumns.value.findIndex((c) => c.column === col.column)
+  const key = columnKey(col)
+  const index = visibleColumns.value.findIndex((c) => columnKey(c) === key)
   if (index === -1) return
   const [removed] = visibleColumns.value.splice(index, 1)
   if (!removed) return
@@ -91,7 +135,8 @@ function hide(col: TableColumnConfig) {
 }
 
 function show(col: TableColumnConfig) {
-  const index = hiddenColumns.value.findIndex((c) => c.column === col.column)
+  const key = columnKey(col)
+  const index = hiddenColumns.value.findIndex((c) => columnKey(c) === key)
   if (index === -1) return
   const [removed] = hiddenColumns.value.splice(index, 1)
   if (!removed) return
@@ -113,12 +158,12 @@ function show(col: TableColumnConfig) {
           <div ref="visibleEl" class="space-y-1 min-h-[2rem]">
             <div
               v-for="col in visibleColumns"
-              :key="col.column"
+              :key="columnKey(col)"
               class="flex items-center justify-between p-1 hover:bg-gray-50 rounded"
             >
               <div class="flex items-center gap-2 flex-1">
                 <UIcon name="i-lucide-grip-vertical" class="text-gray-300 drag-handle cursor-grab active:cursor-grabbing" @click.stop />
-                <span class="text-sm">{{ col.label ?? labelFor(col.column) }}</span>
+                <span class="text-sm">{{ displayLabel(col) }}</span>
               </div>
               <UIcon name="i-lucide-eye" class="text-gray-500 cursor-pointer" @click="hide(col)" />
             </div>
@@ -130,15 +175,26 @@ function show(col: TableColumnConfig) {
           <div ref="hiddenEl" class="space-y-1 min-h-[2rem]">
             <div
               v-for="col in hiddenColumns"
-              :key="col.column"
+              :key="columnKey(col)"
               class="flex items-center justify-between p-1 hover:bg-gray-50 rounded"
             >
               <div class="flex items-center gap-2 flex-1">
                 <UIcon name="i-lucide-grip-vertical" class="text-gray-300 drag-handle cursor-grab active:cursor-grabbing" @click.stop />
-                <span class="text-sm text-gray-500">{{ col.label ?? labelFor(col.column) }}</span>
+                <span class="text-sm text-gray-500">{{ displayLabel(col) }}</span>
               </div>
               <UIcon name="i-lucide-eye-off" class="text-gray-400 cursor-pointer" @click="show(col)" />
             </div>
+          </div>
+        </div>
+        <UDivider />
+        <div>
+          <div class="text-xs font-medium text-gray-500 mb-1">Add lookup</div>
+          <div class="space-y-2">
+            <USelect v-model="lookupFrom" :options="relationOptions" placeholder="Relation" size="xs" />
+            <UInput v-model="lookupField" placeholder="Field (e.g. name)" size="xs" />
+            <UButton size="xs" color="neutral" :disabled="!lookupFrom || !lookupField" @click="addLookup">
+              Add
+            </UButton>
           </div>
         </div>
       </div>
