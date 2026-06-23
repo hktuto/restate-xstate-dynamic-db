@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FilterGroup, TableSchema, ViewDefinition } from 'shared'
+import { deepClone } from '../utils/view-state'
 
 interface Props {
   table: string
@@ -30,6 +31,7 @@ const refreshing = ref(false)
 const error = ref('')
 const saveError = ref('')
 const appliedFilter = ref<FilterGroup>({ op: 'and', conditions: [] })
+const initializing = ref(false)
 
 const { runtime, dirty, save: buildSaveView } = useDataToolbar(view, toRef(props, 'canUpdateView'))
 
@@ -48,7 +50,7 @@ async function loadViewAndSchema() {
   view.value = loadedView
   schema.value = loadedSchema
   appliedFilter.value = runtime.value.filter
-    ? { ...runtime.value.filter, conditions: [...runtime.value.filter.conditions] }
+    ? deepClone(runtime.value.filter)
     : { op: 'and', conditions: [] }
 }
 
@@ -72,6 +74,8 @@ async function loadRecords() {
 }
 
 async function load() {
+  loading.value = true
+  initializing.value = true
   saveError.value = ''
   try {
     await loadViewAndSchema()
@@ -79,14 +83,21 @@ async function load() {
     await loadRecords()
   } catch (err: any) {
     error.value = err?.message ?? 'Failed to load data'
+  } finally {
     loading.value = false
+    initializing.value = false
   }
 }
 
-watch(appliedFilter, loadRecords, { deep: true })
-watch(() => runtime.value.sort, loadRecords, { deep: true })
-watch(() => runtime.value.columns, loadRecords, { deep: true })
-watch(() => runtime.value.group, loadRecords, { deep: true })
+function refreshIfReady() {
+  if (initializing.value) return
+  return loadRecords()
+}
+
+watch(appliedFilter, refreshIfReady, { deep: true })
+watch(() => runtime.value.sort, refreshIfReady, { deep: true })
+watch(() => runtime.value.columns, refreshIfReady, { deep: true })
+watch(() => runtime.value.group, refreshIfReady, { deep: true })
 
 async function handleSave() {
   saveError.value = ''
@@ -154,7 +165,7 @@ await load()
           :schema-edit-link="schemaEditLink"
           :permissions-edit-link="permissionsEditLink"
           @save="handleSave"
-          @apply-filter="appliedFilter = runtime.filter ? { ...runtime.filter, conditions: [...runtime.filter.conditions] } : { op: 'and', conditions: [] }"
+          @apply-filter="appliedFilter = runtime.filter ? deepClone(runtime.filter) : { op: 'and', conditions: [] }"
         />
         <div v-if="saveError" class="text-sm text-red-600">{{ saveError }}</div>
         <div class="relative">
