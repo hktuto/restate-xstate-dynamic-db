@@ -7,6 +7,7 @@
     "sortablejs": "^1.15.0"
   },
   "devDependencies": {
+    "@types/sortablejs": "^1.15.9",
     "nuxt": "^4.4.8",
     "typescript": "^5.8.3",
     "vue": "^3.5.35"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { useSortable, type UseSortableOptions } from '@vueuse/integrations/useSortable'
+import { useSortable } from '@vueuse/integrations/useSortable'
+import type { UseSortableOptions } from '@vueuse/integrations/useSortable'
 import type { TableColumnConfig, TableSchema } from 'shared'
 
 interface Props {
@@ -16,16 +17,19 @@ const localColumns = ref<TableColumnConfig[]>([])
 
 watch(() => props.modelValue, (val) => {
   localColumns.value = val.map((c) => ({ ...c }))
-}, { immediate: true, deep: true })
+}, { immediate: true })
 
-watch(localColumns, (val) => {
-  emit('update:modelValue', val.map((c) => ({ ...c })))
-}, { deep: true })
+function emitColumns() {
+  emit('update:modelValue', localColumns.value.map((c) => ({ ...c })))
+}
 
-useSortable(listEl, localColumns, {
+const sortableOptions: UseSortableOptions = {
   animation: 150,
   ghostClass: 'bg-blue-50',
-} as UseSortableOptions)
+  onUpdate: emitColumns,
+}
+
+useSortable(listEl, localColumns, sortableOptions)
 
 const schemaColumns = computed(() =>
   props.schema.columns.map((c) => ({ label: c.label ?? c.name, value: c.name })),
@@ -35,6 +39,7 @@ function toggle(index: number) {
   const col = localColumns.value[index]
   if (!col) return
   col.visible = col.visible === false ? true : false
+  emitColumns()
 }
 </script>
 
