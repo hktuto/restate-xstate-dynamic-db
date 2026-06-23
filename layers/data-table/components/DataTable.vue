@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TableSchema, ViewDefinition } from 'shared'
+import type { FilterGroup, TableSchema, ViewDefinition } from 'shared'
 
 interface Props {
   table: string
@@ -26,8 +26,12 @@ const schema = ref<TableSchema | null>(null)
 const rows = ref<Record<string, unknown>[]>([])
 const total = ref(0)
 const loading = ref(false)
+const refreshing = ref(false)
 const error = ref('')
 const saveError = ref('')
+const appliedFilter = ref<FilterGroup>({ op: 'and', conditions: [] })
+
+const { runtime, dirty, save: buildSaveView } = useDataToolbar(view, toRef(props, 'canUpdateView'))
 
 function viewBasePath(): string {
   return props.nsdb ? `/api/admin/views/${props.nsdb}` : '/api/views'
@@ -37,31 +41,56 @@ function tableBasePath(): string {
   return props.nsdb ? `/api/admin/tables/${props.nsdb}` : '/api/tables'
 }
 
-async function load() {
-  loading.value = true
+async function loadViewAndSchema() {
+  const { view: loadedView, schema: loadedSchema } = await api.fetch<{ view: ViewDefinition; schema: TableSchema }>(
+    `${viewBasePath()}/default/${props.table}`
+  )
+  view.value = loadedView
+  schema.value = loadedSchema
+  appliedFilter.value = runtime.value.filter
+    ? { ...runtime.value.filter, conditions: [...runtime.value.filter.conditions] }
+    : { op: 'and', conditions: [] }
+}
+
+async function loadRecords() {
+  if (!view.value) return
+  refreshing.value = true
   error.value = ''
-  saveError.value = ''
   try {
-    const { view: loadedView, schema: loadedSchema } = await api.fetch<{ view: ViewDefinition; schema: TableSchema }>(
-      `${viewBasePath()}/default/${props.table}`
-    )
-    view.value = loadedView
-    schema.value = loadedSchema
+    const body = buildQueryBody(runtime.value, 1, 25, { filter: appliedFilter.value })
     const result = await api.fetch<{ records: Record<string, unknown>[]; total: number }>(
       `${tableBasePath()}/${props.table}/query`,
-      { method: 'POST', body: JSON.stringify({ page: 1, pageSize: 25 }) }
+      { method: 'POST', body: JSON.stringify(body) }
     )
     rows.value = result.records
     total.value = result.total
   } catch (err: any) {
-    error.value = err?.message ?? 'Failed to load data'
+    error.value = err?.message ?? 'Failed to load records'
   } finally {
+    refreshing.value = false
+  }
+}
+
+async function load() {
+  saveError.value = ''
+  try {
+    await loadViewAndSchema()
+    await nextTick()
+    await loadRecords()
+  } catch (err: any) {
+    error.value = err?.message ?? 'Failed to load data'
     loading.value = false
   }
 }
 
-async function handleSave(updated: ViewDefinition) {
+watch(appliedFilter, loadRecords, { deep: true })
+watch(() => runtime.value.sort, loadRecords, { deep: true })
+watch(() => runtime.value.columns, loadRecords, { deep: true })
+watch(() => runtime.value.group, loadRecords, { deep: true })
+
+async function handleSave() {
   saveError.value = ''
+  const updated = buildSaveView()
   if (!updated.id) return
   try {
     await api.fetch(`${viewBasePath()}/${updated.id}`, {
@@ -103,6 +132,7 @@ await load()
           <div class="flex items-center gap-4">
             <div class="text-sm text-gray-500">
               {{ total }} records
+              <span v-if="refreshing" class="ml-2 text-gray-400">(refreshing)</span>
             </div>
             <NuxtLink
               v-if="newLink"
@@ -114,6 +144,8 @@ await load()
           </div>
         </div>
         <DataToolbar
+          :runtime="runtime"
+          :dirty="dirty"
           :view="view"
           :schema="schema"
           :can-update-view="canUpdateView"
@@ -122,9 +154,15 @@ await load()
           :schema-edit-link="schemaEditLink"
           :permissions-edit-link="permissionsEditLink"
           @save="handleSave"
+          @apply-filter="appliedFilter = runtime.filter ? { ...runtime.filter, conditions: [...runtime.filter.conditions] } : { op: 'and', conditions: [] }"
         />
         <div v-if="saveError" class="text-sm text-red-600">{{ saveError }}</div>
-        <DataTableRenderer :view="view" :schema="schema" :rows="rows" />
+        <div class="relative">
+          <DataTableRenderer :view="view" :schema="schema" :rows="rows" />
+          <div v-if="refreshing" class="absolute inset-0 bg-white/50 flex items-start justify-center pt-12">
+            <span class="text-sm text-gray-500">Loading records…</span>
+          </div>
+        </div>
       </div>
     </template>
   </UDashboardPanel>

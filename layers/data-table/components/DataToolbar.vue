@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { RuntimeViewState } from '../utils/view-state'
 import type { TableSchema, ViewDefinition } from 'shared'
 
 interface Props {
+  runtime: RuntimeViewState
+  dirty: boolean
   view: ViewDefinition
   schema: TableSchema
   canUpdateView?: boolean
@@ -12,13 +15,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<{ save: [view: ViewDefinition] }>()
-
-const { runtime, dirty, save: buildSaveView } = useDataToolbar(toRef(props, 'view'), toRef(props, 'canUpdateView'))
-
-function onSave() {
-  emit('save', buildSaveView())
-}
+const emit = defineEmits<{ save: []; 'apply-filter': [] }>()
 </script>
 
 <template>
@@ -28,6 +25,7 @@ function onSave() {
       :schema="schema"
       :locked-filter="view.filter"
       :can-update-view="canUpdateView"
+      @apply="emit('apply-filter')"
     />
     <DataToolbarGroup v-model="runtime.group" :schema="schema" />
     <DataToolbarSort v-model="runtime.sort" :schema="schema" />
@@ -42,7 +40,7 @@ function onSave() {
       v-if="canUpdateView && dirty"
       color="primary"
       size="sm"
-      @click="onSave"
+      @click="emit('save')"
     >
       Save view
     </UButton>
