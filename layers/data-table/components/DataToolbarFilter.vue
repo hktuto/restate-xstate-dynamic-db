@@ -9,7 +9,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<{ 'update:modelValue': [FilterGroup] }>()
+const emit = defineEmits<{ 'update:modelValue': [FilterGroup]; apply: [] }>()
 
 const filter = computed({
   get: () => props.modelValue ?? { op: 'and', conditions: [] },
@@ -22,7 +22,7 @@ const filter = computed({
     <UButton color="neutral" size="sm" icon="i-lucide-filter" trailing-icon="i-lucide-chevron-down">
       Filter
     </UButton>
-    <template #panel>
+    <template #content>
       <div class="p-3 w-96 space-y-2">
         <template v-if="!canUpdateView">
           <div class="text-sm font-medium text-gray-500">Locked filter</div>
@@ -39,6 +39,11 @@ const filter = computed({
         </template>
         <div class="text-sm font-medium text-gray-500">{{ canUpdateView ? 'Filter' : 'Added conditions' }}</div>
         <DataToolbarFilterBuilder v-model="filter" :schema="schema" />
+        <div class="pt-2 flex justify-end">
+          <UButton type="button" color="primary" size="xs" icon="i-lucide-check" @click="emit('apply')">
+            Apply
+          </UButton>
+        </div>
       </div>
     </template>
   </UPopover>
