@@ -124,12 +124,11 @@ describe('buildTableQuery', () => {
     expect(query).not.toContain('ORDER BY')
   })
 
-  it('projects visible columns', () => {
+  it('projects columns', () => {
     const { query } = buildTableQuery('members', {
       columns: [
-        { column: 'email', visible: true },
-        { column: 'role', visible: false },
-        { column: 'status', visible: true },
+        { field: 'email' },
+        { field: 'status' },
       ],
     })
     expect(query).toContain('SELECT id, email, status FROM members')
@@ -138,8 +137,8 @@ describe('buildTableQuery', () => {
   it('deduplicates id in projection', () => {
     const { query } = buildTableQuery('members', {
       columns: [
-        { column: 'id', visible: true },
-        { column: 'email', visible: true },
+        { field: 'id' },
+        { field: 'email' },
       ],
     })
     expect(query).toContain('SELECT id, email FROM members')
@@ -148,17 +147,15 @@ describe('buildTableQuery', () => {
 
   it('includes sort fields in the projection', () => {
     const { query } = buildTableQuery('members', {
-      columns: [{ column: 'email', visible: true }],
+      columns: [{ field: 'email' }],
       sort: [{ field: 'createdAt', direction: 'desc' }],
     })
     expect(query).toContain('SELECT id, email, createdAt FROM members')
     expect(query).toContain('ORDER BY createdAt DESC')
   })
 
-  it('falls back to SELECT * when no visible columns are specified', () => {
-    const { query } = buildTableQuery('members', {
-      columns: [{ column: 'email', visible: false }],
-    })
+  it('falls back to SELECT * when no columns are specified', () => {
+    const { query } = buildTableQuery('members', { columns: [] })
     expect(query).toContain('SELECT * FROM members')
   })
 
@@ -181,7 +178,7 @@ describe('buildTableQuery', () => {
   it('rejects invalid field names in columns', () => {
     expect(() =>
       buildTableQuery('members', {
-        columns: [{ column: 'email; DROP', visible: true }],
+        columns: [{ field: 'email; DROP' }],
       })
     ).toThrow('Invalid field name')
   })
@@ -241,5 +238,23 @@ describe('buildTableQuery', () => {
         filter: { op: 'and', conditions: [{ field: 'status', operator: 'invalid' as any, value: 'x' }] },
       })
     ).toThrow('Unsupported operator')
+  })
+
+  it('projects field/as columns', () => {
+    const { query } = buildTableQuery('members', {
+      columns: [
+        { field: 'email' },
+        { field: 'companyId.name', as: 'Company Name' },
+      ],
+    })
+    expect(query).toContain('SELECT id, email, companyId.name AS `Company Name` FROM members')
+  })
+
+  it('rejects invalid dotted paths in columns', () => {
+    expect(() =>
+      buildTableQuery('members', {
+        columns: [{ field: 'companyId.name; DROP' }],
+      })
+    ).toThrow('Invalid field name')
   })
 })

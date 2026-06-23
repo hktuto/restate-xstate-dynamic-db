@@ -1,11 +1,11 @@
-import type { FilterCondition, FilterGroup, SortSetting, TableColumnConfig } from 'shared'
+import type { FilterCondition, FilterGroup, QueryProjectionColumn, SortSetting } from 'shared'
 
 export interface QueryBody {
   page?: number
   pageSize?: number
   filter?: FilterGroup
   sort?: SortSetting[]
-  columns?: TableColumnConfig[]
+  columns?: QueryProjectionColumn[]
   search?: string
 }
 
@@ -41,6 +41,10 @@ function assertField(name: string, context: string): void {
 function buildField(name: string): string {
   // SurrealDB accepts dotted nested paths directly, e.g. address.city
   return name
+}
+
+function sanitizeAlias(alias: string): string {
+  return alias.replace(/`/g, '')
 }
 
 function buildCondition(condition: FilterCondition, index: { value: number }, textFields?: Set<string>): string {
@@ -96,13 +100,26 @@ function buildSort(sort: SortSetting[]): string {
     .join(', ')
 }
 
-function buildProjection(columns: TableColumnConfig[], sortFields: string[]): string {
-  const visible = [...new Set(columns.filter((c) => c.visible).map((c) => c.column))]
-  if (visible.length === 0 && sortFields.length === 0) return '*'
-  for (const name of visible) {
-    assertField(name, 'columns')
+function buildProjection(columns: QueryProjectionColumn[], sortFields: string[]): string {
+  const items = new Set<string>()
+
+  for (const col of columns) {
+    if (!col.field) continue
+    assertField(col.field, 'columns')
+    if (col.as) {
+      items.add(`${buildField(col.field)} AS \`${sanitizeAlias(col.as)}\``)
+    } else {
+      items.add(buildField(col.field))
+    }
   }
-  const selected = [...new Set(visible.concat(sortFields))]
+
+  for (const name of sortFields) {
+    assertField(name, 'sort')
+    items.add(buildField(name))
+  }
+
+  const selected = [...items]
+  if (selected.length === 0) return '*'
   return selected.includes('id') ? selected.join(', ') : `id, ${selected.join(', ')}`
 }
 
