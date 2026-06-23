@@ -182,13 +182,27 @@ export interface TableSchema {
   relations: RelationRow[]
 }
 
+/** Defines a lookup from a relation column to a field on the related table. */
+export interface TableColumnLookup {
+  from: string
+  field: string
+}
+
 /** Configuration for a single column inside a table view. */
 export interface TableColumnConfig {
-  column: string
+  type?: 'column' | 'lookup'
+  column?: string
+  lookup?: TableColumnLookup
   label?: string
   width?: 'auto' | number
   visible?: boolean
   config?: Record<string, unknown>
+}
+
+/** A single column projection sent to the table query endpoint. */
+export interface QueryProjectionColumn {
+  field: string
+  as?: string
 }
 
 /** Configuration for a table view. */
