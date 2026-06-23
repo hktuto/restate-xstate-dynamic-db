@@ -496,5 +496,40 @@ describe('schema-registry', () => {
       const view = await getView(testNs, 'main', created.id)
       expect(view).toBeNull()
     })
+
+    it('accepts lookup columns that reference a relation', async () => {
+      const view = await upsertView(testNs, 'main', {
+        table: 'members',
+        type: 'table',
+        name: 'With lookup',
+        config: {
+          table: {
+            columns: [
+              { column: 'email', visible: true },
+              { type: 'lookup', lookup: { from: 'profileId', field: 'name' }, label: 'Profile Name', visible: true },
+            ],
+          },
+        },
+      })
+      expect(view.config.table?.columns).toHaveLength(2)
+      expect(view.config.table?.columns[1]?.lookup?.field).toBe('name')
+    })
+
+    it('rejects lookup columns on non-relation fields', async () => {
+      await expect(
+        upsertView(testNs, 'main', {
+          table: 'members',
+          type: 'table',
+          name: 'Bad lookup',
+          config: {
+            table: {
+              columns: [
+                { type: 'lookup', lookup: { from: 'email', field: 'name' }, visible: true },
+              ],
+            },
+          },
+        })
+      ).rejects.toThrow('unknown relation')
+    })
   })
 })

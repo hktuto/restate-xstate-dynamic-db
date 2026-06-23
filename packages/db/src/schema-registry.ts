@@ -614,16 +614,31 @@ export async function upsertView(
       throw new Error(`Table not found: ${merged.table}`)
     }
 
-    const [columns] = (await managed.query('SELECT * FROM _columns WHERE table = $tableName', {
-      tableName: merged.table,
-    })) as [ColumnRow[]]
+    const [columns, relations] = (await managed.query(
+      `
+      SELECT * FROM _columns WHERE table = $tableName;
+      SELECT * FROM _relations WHERE fromTable = $tableName;
+      `,
+      { tableName: merged.table }
+    )) as [ColumnRow[], RelationRow[]]
     const columnNames = new Set(SYSTEM_COLUMNS.map((c) => c.name))
     for (const col of columns ?? []) {
       columnNames.add(col.name)
     }
+    const relationColumns = new Set((relations ?? []).map((r) => r.fromColumn))
 
+    const VALID_LOOKUP_FIELD = /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/
     for (const col of merged.config?.table?.columns ?? []) {
-      if (!columnNames.has(col.column)) {
+      if (col.type === 'lookup') {
+        if (!col.lookup?.from || !relationColumns.has(col.lookup.from)) {
+          throw new Error(`Lookup column references unknown relation: ${col.lookup?.from}`)
+        }
+        if (!col.lookup.field || !VALID_LOOKUP_FIELD.test(col.lookup.field)) {
+          throw new Error(`Invalid lookup field: ${col.lookup?.field}`)
+        }
+        continue
+      }
+      if (!col.column || !columnNames.has(col.column)) {
         throw new Error(`Unknown column in view config: ${col.column}`)
       }
     }
