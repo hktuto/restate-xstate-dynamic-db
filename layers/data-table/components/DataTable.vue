@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FilterGroup, TableSchema, ViewDefinition } from 'shared'
-import { deepClone } from '../utils/view-state'
+import { deepClone, effectiveFilter } from '../utils/view-state'
 
 interface Props {
   table: string
@@ -35,6 +35,11 @@ const initializing = ref(false)
 
 const { runtime, dirty, save: buildSaveView } = useDataToolbar(view, toRef(props, 'canUpdateView'))
 
+function buildAppliedFilter(): FilterGroup {
+  const filter = effectiveFilter(runtime.value, view.value!, props.canUpdateView)
+  return filter ? deepClone(filter) : { op: 'and', conditions: [] }
+}
+
 function viewBasePath(): string {
   return props.nsdb ? `/api/admin/views/${props.nsdb}` : '/api/views'
 }
@@ -49,9 +54,7 @@ async function loadViewAndSchema() {
   )
   view.value = loadedView
   schema.value = loadedSchema
-  appliedFilter.value = runtime.value.filter
-    ? deepClone(runtime.value.filter)
-    : { op: 'and', conditions: [] }
+  appliedFilter.value = view.value ? buildAppliedFilter() : { op: 'and', conditions: [] }
 }
 
 async function loadRecords() {
@@ -165,7 +168,7 @@ await load()
           :schema-edit-link="schemaEditLink"
           :permissions-edit-link="permissionsEditLink"
           @save="handleSave"
-          @apply-filter="appliedFilter = runtime.filter ? deepClone(runtime.filter) : { op: 'and', conditions: [] }"
+          @apply-filter="appliedFilter = buildAppliedFilter()"
         />
         <div v-if="saveError" class="text-sm text-red-600">{{ saveError }}</div>
         <div class="relative">

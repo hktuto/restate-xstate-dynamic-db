@@ -68,7 +68,7 @@ export function mergeFilter(
   }
 }
 
-function effectiveFilter(
+export function effectiveFilter(
   runtime: RuntimeViewState,
   view: ViewDefinition,
   canUpdateView: boolean,
@@ -105,7 +105,7 @@ export function mergeRuntimeToView(
     config: {
       ...deepClone(view.config),
       table: {
-        ...deepClone(view.config.table),
+        ...(deepClone(view.config.table) ?? {}),
         columns: deepClone(runtime.columns),
       },
     },
