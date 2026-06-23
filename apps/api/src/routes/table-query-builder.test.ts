@@ -210,6 +210,31 @@ describe('buildTableQuery', () => {
     expect(vars.v2).toBe(30)
   })
 
+  it('searches across text fields case-insensitively', () => {
+    const { query, vars } = buildTableQuery(
+      'members',
+      { search: 'Alice' },
+      new Set(['name', 'email', 'age']),
+      new Set(['name', 'email'])
+    )
+    expect(query).toContain('WHERE (string::contains(string::lowercase(name), string::lowercase($search)) OR string::contains(string::lowercase(email), string::lowercase($search)))')
+    expect(query).toContain('SELECT count() AS total FROM members WHERE (string::contains(string::lowercase(name), string::lowercase($search)) OR string::contains(string::lowercase(email), string::lowercase($search))) GROUP ALL')
+    expect(vars.search).toBe('Alice')
+  })
+
+  it('combines search and filter with AND', () => {
+    const { query } = buildTableQuery(
+      'members',
+      {
+        search: 'Alice',
+        filter: { op: 'and', conditions: [{ field: 'status', operator: 'eq', value: 'active' }] },
+      },
+      new Set(['name', 'email', 'status']),
+      new Set(['name', 'email'])
+    )
+    expect(query).toContain('WHERE (status = $v0 AND (string::contains(string::lowercase(name), string::lowercase($search)) OR string::contains(string::lowercase(email), string::lowercase($search))))')
+  })
+
   it('rejects unsupported operators', () => {
     expect(() =>
       buildTableQuery('members', {

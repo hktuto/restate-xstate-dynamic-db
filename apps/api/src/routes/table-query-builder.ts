@@ -6,6 +6,7 @@ export interface QueryBody {
   filter?: FilterGroup
   sort?: SortSetting[]
   columns?: TableColumnConfig[]
+  search?: string
 }
 
 interface BuildResult {
@@ -119,6 +120,15 @@ export function buildTableQuery(table: string, body: QueryBody, validFields?: Se
     ? buildFilter(body.filter, index, textFields)
     : ''
 
+  const searchClause = body.search && textFields && textFields.size > 0
+    ? `(${[...textFields].map((f) => `string::contains(string::lowercase(${buildField(f)}), string::lowercase($search))`).join(' OR ')})`
+    : ''
+
+  const combinedClauses = [whereClause, searchClause].filter(Boolean)
+  const combinedWhere = combinedClauses.length > 0
+    ? combinedClauses.length === 1 ? combinedClauses[0] : `(${combinedClauses.join(' AND ')})`
+    : ''
+
   const sortSettings = body.sort?.filter((s) => !validFields || validFields.has(s.field)) ?? []
   const orderBy = sortSettings.length > 0 ? buildSort(sortSettings) : ''
   const projection = body.columns && body.columns.length > 0
@@ -127,7 +137,7 @@ export function buildTableQuery(table: string, body: QueryBody, validFields?: Se
       ? buildProjection([], sortSettings.map((s) => s.field))
       : '*'
 
-  const whereSql = whereClause ? `WHERE ${whereClause}` : ''
+  const whereSql = combinedWhere ? `WHERE ${combinedWhere}` : ''
   const orderSql = orderBy ? `ORDER BY ${orderBy}` : ''
 
   // ponytail: two queries share the same binding names; keep value indices in sync.
@@ -140,8 +150,8 @@ export function buildTableQuery(table: string, body: QueryBody, validFields?: Se
     .filter(Boolean)
     .join(' ')
 
-  const countQuery = whereClause
-    ? `SELECT count() AS total FROM ${table} WHERE ${whereClause} GROUP ALL`
+  const countQuery = combinedWhere
+    ? `SELECT count() AS total FROM ${table} WHERE ${combinedWhere} GROUP ALL`
     : `SELECT count() AS total FROM ${table} GROUP ALL`
 
   const query = `${recordsQuery}\n;\n${countQuery}`
@@ -149,6 +159,10 @@ export function buildTableQuery(table: string, body: QueryBody, validFields?: Se
   // Collect bindings from filter conditions after the query string is built.
   // Re-walking the tree is simpler than threading a binding map through buildFilter.
   collectBindings(body.filter, vars)
+
+  if (body.search && textFields && textFields.size > 0) {
+    vars.search = body.search
+  }
 
   return { query, vars }
 }

@@ -7,13 +7,14 @@ export interface QueryBody {
   filter?: FilterGroup
   sort?: SortSetting[]
   columns?: TableColumnConfig[]
+  search?: string
 }
 
 export function buildQueryBody(
   runtime: RuntimeViewState,
   page: number,
   pageSize: number,
-  options?: { filter?: FilterGroup },
+  options?: { filter?: FilterGroup; search?: string },
 ): QueryBody {
   const body: QueryBody = { page, pageSize }
   const effectiveFilter = options?.filter ?? runtime.filter
@@ -28,6 +29,10 @@ export function buildQueryBody(
 
   if (runtime.columns.length > 0) {
     body.columns = runtime.columns
+  }
+
+  if (options?.search && options.search.trim().length > 0) {
+    body.search = options.search.trim()
   }
 
   return body

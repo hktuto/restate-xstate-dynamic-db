@@ -26,6 +26,19 @@ describe('buildQueryBody', () => {
     })
   })
 
+  it('includes search when provided', () => {
+    const runtime: RuntimeViewState = {
+      filter: { op: 'and', conditions: [] },
+      sort: [],
+      group: [],
+      columns: [],
+    }
+
+    const body = buildQueryBody(runtime, 1, 25, { search: '  Acme  ' })
+
+    expect(body).toEqual({ page: 1, pageSize: 25, search: 'Acme' })
+  })
+
   it('omits empty filter, sort, and columns', () => {
     const runtime: RuntimeViewState = {
       filter: { op: 'and', conditions: [] },

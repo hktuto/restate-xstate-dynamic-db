@@ -7,6 +7,7 @@ interface Props {
   dirty: boolean
   view: ViewDefinition
   schema: TableSchema
+  search?: string
   canUpdateView?: boolean
   canEditSchema?: boolean
   canManagePermissions?: boolean
@@ -15,11 +16,23 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<{ save: []; 'apply-filter': [] }>()
+const emit = defineEmits<{ save: []; 'apply-filter': []; 'update:search': [string] }>()
+
+const localSearch = computed({
+  get: () => props.search ?? '',
+  set: (val) => emit('update:search', val),
+})
 </script>
 
 <template>
   <div class="flex flex-wrap items-center gap-2 p-2 border border-gray-200 rounded bg-white">
+    <UInput
+      v-model="localSearch"
+      placeholder="Search..."
+      size="sm"
+      icon="i-lucide-search"
+      class="w-48"
+    />
     <DataToolbarFilter
       v-model="runtime.filter"
       :schema="schema"

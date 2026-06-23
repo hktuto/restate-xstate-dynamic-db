@@ -32,6 +32,7 @@ const error = ref('')
 const saveError = ref('')
 const appliedFilter = ref<FilterGroup>({ op: 'and', conditions: [] })
 const initializing = ref(false)
+const searchQuery = ref('')
 
 const { runtime, dirty, save: buildSaveView } = useDataToolbar(view, toRef(props, 'canUpdateView'))
 
@@ -62,7 +63,7 @@ async function loadRecords() {
   refreshing.value = true
   error.value = ''
   try {
-    const body = buildQueryBody(runtime.value, 1, 25, { filter: appliedFilter.value })
+    const body = buildQueryBody(runtime.value, 1, 25, { filter: appliedFilter.value, search: searchQuery.value })
     const result = await api.fetch<{ records: Record<string, unknown>[]; total: number }>(
       `${tableBasePath()}/${props.table}/query`,
       { method: 'POST', body: JSON.stringify(body) }
@@ -100,6 +101,7 @@ function refreshIfReady() {
 watch(appliedFilter, refreshIfReady, { deep: true })
 watch(() => runtime.value.sort, refreshIfReady, { deep: true })
 watch(() => runtime.value.columns, refreshIfReady, { deep: true })
+watch(searchQuery, refreshIfReady)
 
 async function handleSave() {
   saveError.value = ''
@@ -157,6 +159,7 @@ await load()
           </div>
         </div>
         <DataToolbar
+          v-model:search="searchQuery"
           :runtime="runtime"
           :dirty="dirty"
           :view="view"
