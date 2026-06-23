@@ -17,15 +17,53 @@ const group = computed({
   },
 })
 
-const operators = [
+const COMPARISON_OPERATORS = [
   { label: '=', value: 'eq' },
   { label: '≠', value: 'neq' },
   { label: '>', value: 'gt' },
   { label: '≥', value: 'gte' },
   { label: '<', value: 'lt' },
   { label: '≤', value: 'lte' },
-  { label: 'contains', value: 'contains' },
 ]
+
+const TEXT_OPERATORS = [
+  { label: '=', value: 'eq' },
+  { label: '≠', value: 'neq' },
+  { label: 'contains', value: 'contains' },
+  { label: 'starts with', value: 'startsWith' },
+  { label: 'ends with', value: 'endsWith' },
+]
+
+const SET_OPERATORS = [
+  { label: '=', value: 'eq' },
+  { label: '≠', value: 'neq' },
+  { label: 'in', value: 'in' },
+  { label: 'not in', value: 'notIn' },
+]
+
+const EQUALITY_OPERATOR = [{ label: '=', value: 'eq' }]
+
+function operatorsFor(fieldName: string) {
+  const column = props.schema.columns.find((c) => c.name === fieldName)
+  switch (column?.displayType) {
+    case 'number':
+    case 'date':
+      return COMPARISON_OPERATORS
+    case 'checkbox':
+      return EQUALITY_OPERATOR
+    case 'select':
+    case 'tag':
+    case 'relation':
+    case 'user':
+      return SET_OPERATORS
+    case 'text':
+    case 'email':
+    case 'url':
+    case 'richText':
+    default:
+      return TEXT_OPERATORS
+  }
+}
 
 const fieldOptions = computed(() =>
   props.schema.columns.map((c) => ({ label: c.label ?? c.name, value: c.name }))
@@ -33,6 +71,12 @@ const fieldOptions = computed(() =>
 
 function isCondition(item: FilterCondition | FilterGroup): item is FilterCondition {
   return 'field' in item
+}
+
+function setConditionField(item: FilterCondition, fieldName: string) {
+  if (props.disabled) return
+  item.field = fieldName
+  item.operator = 'eq'
 }
 
 function addCondition() {
@@ -64,13 +108,14 @@ function updateChild(index: number, val: FilterGroup) {
       size="xs"
       class="w-20"
       :disabled="disabled"
+      :portal="false"
     />
     <div v-for="(item, i) in group.conditions" :key="i" class="pl-3 border-l border-gray-200 space-y-1">
       <template v-if="isCondition(item)">
         <div class="flex gap-2 items-center">
-          <USelect v-model="item.field" :items="fieldOptions" size="xs" class="flex-1" :disabled="disabled" />
-          <USelect v-model="item.operator" :items="operators" size="xs" class="w-20" :disabled="disabled" />
-          <UInput v-model="item.value" size="xs" class="flex-1" :disabled="disabled" />
+          <USelect :model-value="item.field" :items="fieldOptions" size="xs" class="flex-1" :disabled="disabled" :portal="false" @update:model-value="(val) => setConditionField(item, val as string)" />
+          <USelect v-model="item.operator" :items="operatorsFor(item.field)" size="xs" class="w-24" :disabled="disabled" :portal="false" />
+          <UInput v-model="item.value as string" size="xs" class="flex-1" :disabled="disabled" />
           <UButton v-if="!disabled" color="error" size="xs" icon="i-lucide-x" @click="remove(i)" />
         </div>
       </template>
