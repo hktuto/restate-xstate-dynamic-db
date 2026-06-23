@@ -2,7 +2,9 @@
   "name": "data-table-layer",
   "type": "module",
   "dependencies": {
-    "shared": "workspace:*"
+    "@vueuse/integrations": "^11.0.0",
+    "shared": "workspace:*",
+    "sortablejs": "^1.15.0"
   },
   "devDependencies": {
     "nuxt": "^4.4.8",
