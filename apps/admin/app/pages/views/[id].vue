@@ -40,7 +40,12 @@ async function loadSchema() {
 
 function syncColumns() {
   if (!schema.value) return
-  const existing = new Map(view.value.config?.table?.columns?.map((c) => [c.column, c]))
+  const existing = new Map(
+    view.value.config?.table?.columns
+      ?.filter((c) => c.type !== 'lookup')
+      ?.map((c) => [c.column, c]) ?? []
+  )
+  const lookups = view.value.config?.table?.columns?.filter((c) => c.type === 'lookup') ?? []
   const columns: TableColumnConfig[] = schema.value.columns
     .filter((col: ColumnRow) => !col.hidden)
     .sort((a: ColumnRow, b: ColumnRow) => (a.order ?? Infinity) - (b.order ?? Infinity))
@@ -50,7 +55,7 @@ function syncColumns() {
       width: existing.get(col.name)?.width ?? 'auto',
       visible: existing.get(col.name)?.visible ?? true,
     }))
-  view.value.config = { table: { columns } }
+  view.value.config = { table: { columns: [...columns, ...lookups] } }
 }
 
 async function loadView() {
@@ -147,12 +152,14 @@ await loadView()
           <ul class="space-y-2">
             <li
               v-for="(col, index) in view.config?.table?.columns"
-              :key="col.column"
+              :key="col.type === 'lookup' ? `${col.lookup?.from}.${col.lookup?.field}` : col.column"
               class="flex items-center gap-4 p-3 bg-white rounded border"
             >
               <input v-model="col.visible" type="checkbox" />
               <div class="flex-1">
-                <div class="font-medium">{{ col.column }}</div>
+                <div class="font-medium">
+                  {{ col.type === 'lookup' ? `${col.lookup?.from}.${col.lookup?.field}` : col.column }}
+                </div>
                 <input v-model="col.label" type="text" placeholder="Label" class="text-sm border rounded px-2 py-1 mt-1" />
               </div>
               <div>
