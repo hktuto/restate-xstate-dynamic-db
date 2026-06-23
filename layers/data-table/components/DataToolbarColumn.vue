@@ -26,6 +26,7 @@ function emitColumns() {
 const sortableOptions: UseSortableOptions = {
   animation: 150,
   ghostClass: 'bg-blue-50',
+  handle: '.drag-handle',
   onUpdate: emitColumns,
 }
 
@@ -53,12 +54,14 @@ function toggle(index: number) {
         <div
           v-for="(col, i) in localColumns"
           :key="col.column"
-          class="flex items-center justify-between p-1 hover:bg-gray-50 rounded cursor-pointer"
-          @click="toggle(i)"
+          class="flex items-center justify-between p-1 hover:bg-gray-50 rounded"
         >
-          <span class="text-sm">{{ col.label ?? schemaColumns.find(s => s.value === col.column)?.label ?? col.column }}</span>
-          <UIcon v-if="col.visible !== false" name="i-lucide-eye" class="text-gray-500" />
-          <UIcon v-else name="i-lucide-eye-off" class="text-gray-400" />
+          <div class="flex items-center gap-2 flex-1 cursor-pointer" @click="toggle(i)">
+            <UIcon name="i-lucide-grip-vertical" class="text-gray-300 drag-handle cursor-grab active:cursor-grabbing" @click.stop />
+            <span class="text-sm">{{ col.label ?? schemaColumns.find(s => s.value === col.column)?.label ?? col.column }}</span>
+          </div>
+          <UIcon v-if="col.visible !== false" name="i-lucide-eye" class="text-gray-500 cursor-pointer" @click="toggle(i)" />
+          <UIcon v-else name="i-lucide-eye-off" class="text-gray-400 cursor-pointer" @click="toggle(i)" />
         </div>
       </div>
     </template>

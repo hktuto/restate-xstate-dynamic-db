@@ -100,7 +100,6 @@ function refreshIfReady() {
 watch(appliedFilter, refreshIfReady, { deep: true })
 watch(() => runtime.value.sort, refreshIfReady, { deep: true })
 watch(() => runtime.value.columns, refreshIfReady, { deep: true })
-watch(() => runtime.value.group, refreshIfReady, { deep: true })
 
 async function handleSave() {
   saveError.value = ''
