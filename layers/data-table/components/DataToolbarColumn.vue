@@ -27,6 +27,7 @@ const sortableOptions: UseSortableOptions = {
   animation: 150,
   ghostClass: 'bg-blue-50',
   handle: '.drag-handle',
+  watchElement: true,
   onUpdate: emitColumns,
 }
 

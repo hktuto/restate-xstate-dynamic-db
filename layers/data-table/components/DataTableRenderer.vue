@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import type { TableSchema, ViewDefinition } from 'shared'
+import type { TableColumnConfig, TableSchema, ViewDefinition } from 'shared'
 
 interface Props {
   view: ViewDefinition
   rows: Record<string, unknown>[]
   schema: TableSchema
+  columns?: TableColumnConfig[]
 }
 
 const props = defineProps<Props>()
@@ -18,7 +19,7 @@ const columnMap = computed(() => {
 })
 
 const visibleColumns = computed(() => {
-  const configs = props.view.config?.table?.columns ?? []
+  const configs = props.columns ?? props.view.config?.table?.columns ?? []
   const result = []
   for (const config of configs) {
     if (config.visible === false) continue

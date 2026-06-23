@@ -171,7 +171,7 @@ await load()
         />
         <div v-if="saveError" class="text-sm text-red-600">{{ saveError }}</div>
         <div class="relative">
-          <DataTableRenderer :view="view" :schema="schema" :rows="rows" />
+          <DataTableRenderer :view="view" :schema="schema" :rows="rows" :columns="runtime.columns" />
           <div v-if="refreshing" class="absolute inset-0 bg-white/50 flex items-start justify-center pt-12">
             <span class="text-sm text-gray-500">Loading records…</span>
           </div>
