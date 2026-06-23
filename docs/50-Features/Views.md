@@ -1,8 +1,11 @@
 ---
 title: Views
 type: feature
-status: planned
+status: in-progress
 area: workflow
+app:
+  - admin
+  - web
 created: 2026-06-20
 updated: 2026-06-21
 related:
@@ -36,7 +39,29 @@ interface ViewDefinition {
   description?: string
   isDefault?: boolean
   config: ViewConfig
+  filter?: FilterGroup
   sort?: SortSetting[]
+  group?: GroupSetting[]
+}
+
+interface FilterGroup {
+  op: 'and' | 'or'
+  conditions: (FilterCondition | FilterGroup)[]
+}
+
+interface FilterCondition {
+  field: string
+  operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'startsWith' | 'endsWith' | 'in' | 'notIn'
+  value: unknown
+}
+
+interface GroupSetting {
+  field: string
+}
+
+interface SortSetting {
+  field: string
+  direction: 'asc' | 'desc'
 }
 
 interface ViewConfig {
@@ -63,8 +88,28 @@ interface TableColumnConfig {
 - `POST /api/admin/views/:nsdb` — create a view
 - `PATCH /api/admin/views/:nsdb/:id` — update a view
 - `DELETE /api/admin/views/:nsdb/:id` — delete a view
+- `POST /api/admin/tables/:nsdb/:table/query` — query records with pagination, filter, sort, and projection
 
-Tenant-scoped equivalents exist under `/api/views`.
+Tenant-scoped equivalents exist under `/api/views` and `/api/tables`.
+
+### Query body
+
+`POST /api/tables/:table/query` and the admin equivalent accept:
+
+```ts
+interface QueryBody {
+  page?: number
+  pageSize?: number
+  filter?: FilterGroup
+  sort?: SortSetting[]
+  columns?: TableColumnConfig[]
+}
+```
+
+- `filter` is translated into a SurrealDB `WHERE` clause.
+- `sort` is translated into an `ORDER BY` clause.
+- `columns` controls the `SELECT` projection; only visible columns plus `id` are returned.
+- Unsupported operators or invalid field names are rejected before the query runs.
 
 ## Display types
 
@@ -88,7 +133,7 @@ The reusable table UI lives in the `data-table` Nuxt layer (`layers/data-table`)
 ## Phase 1 scope
 
 - Table view only.
-- No saved filter/sort execution.
+- Saved filters, sorts, and visible columns are executed on the backend query.
 - No row actions.
 - No card or kanban views.
 - No view-level permissions.
@@ -96,7 +141,6 @@ The reusable table UI lives in the `data-table` Nuxt layer (`layers/data-table`)
 ## Future work
 
 - Add card and kanban view renderers.
-- Execute saved filters and sorts on the backend.
 - Bind row actions to views once the `_actions` catalog is designed.
 - Add view visibility/permissions.
 

@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { hashPassword } from 'shared'
+import { hashPassword } from 'shared/server'
 import { getSurreal, closeSurreal, closeSurrealPool } from '../src/client.js'
 import {
   createCompany,

@@ -13,6 +13,7 @@ export async function seed() {
   const surreal = await getSurreal()
   try {
     const passwordHash = await hashPassword('admin')
+    const memberPasswordHash = await hashPassword('member')
     const tableDefinitions = PLATFORM_TABLE_SCHEMAS.map((t) => `DEFINE TABLE IF NOT EXISTS ${t.name} SCHEMALESS;`).join('\n')
 
     await surreal.query(`
@@ -61,10 +62,11 @@ export async function seed() {
       DEFINE INDEX IF NOT EXISTS idx_permission_apply_to_recordId ON permission_apply_to FIELDS recordId;
 
       UPSERT platform_users:admin SET email = 'admin@example.com', password = $password;
-      UPSERT admin_user_groups:superadmin SET name = 'Super Admin', description = 'Full platform access';
+      UPSERT platform_users:member SET email = 'member@example.com', password = $memberPassword;
+      UPSERT admin_user_groups:superadmin SET name = 'Super Admin', description = 'Full platform access', createdAt = time::now(), updatedAt = time::now();
       DELETE admin_user_group_memberships WHERE in = type::record('platform_users:admin') AND out = type::record('admin_user_groups:superadmin');
       RELATE platform_users:admin->admin_user_group_memberships->admin_user_groups:superadmin;
-    `, { password: passwordHash })
+    `, { password: passwordHash, memberPassword: memberPasswordHash })
 
     for (const table of PLATFORM_TABLE_SCHEMAS) {
       await upsertTable('platform', 'admin', { name: table.name, label: table.label })
@@ -110,6 +112,7 @@ async function seedPlatformDefaultGroups(): Promise<void> {
   await assignPermissionGroup('platform', 'admin', 'platform_users:admin', platformOwnerGroup.id)
 
   const resourceNames: ResourceType[] = ['admin_user', 'admin_user_group', 'company', 'company_member', 'workflow_design']
+  let adminUserMemberGroupId: string | undefined
   for (const resourceName of resourceNames) {
     const groups = defaultGroups(resourceName)
     for (const groupDef of groups) {
@@ -127,7 +130,14 @@ async function seedPlatformDefaultGroups(): Promise<void> {
       if (groupDef.name === 'owner') {
         await assignPermissionGroup('platform', 'admin', 'platform_users:admin', group.id)
       }
+      if (resourceName === 'admin_user' && groupDef.name === 'user') {
+        adminUserMemberGroupId = group.id
+      }
     }
+  }
+
+  if (adminUserMemberGroupId) {
+    await assignPermissionGroup('platform', 'admin', 'platform_users:member', adminUserMemberGroupId)
   }
 }
 

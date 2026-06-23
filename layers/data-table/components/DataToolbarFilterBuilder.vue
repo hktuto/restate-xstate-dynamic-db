@@ -65,6 +65,21 @@ function operatorsFor(fieldName: string) {
   }
 }
 
+function columnFor(fieldName: string) {
+  return props.schema.columns.find((c) => c.name === fieldName)
+}
+
+function hasSelectOptions(fieldName: string): boolean {
+  const column = columnFor(fieldName)
+  return column?.displayType === 'select' && Array.isArray(column.config?.options)
+}
+
+function selectOptions(fieldName: string) {
+  const column = columnFor(fieldName)
+  const options = column?.config?.options
+  return Array.isArray(options) ? options as { label: string; value: string }[] : []
+}
+
 const fieldOptions = computed(() =>
   props.schema.columns.map((c) => ({ label: c.label ?? c.name, value: c.name }))
 )
@@ -77,6 +92,31 @@ function setConditionField(item: FilterCondition, fieldName: string) {
   if (props.disabled) return
   item.field = fieldName
   item.operator = 'eq'
+  item.value = ''
+}
+
+function isMultiSelectOperator(operator: string): boolean {
+  return operator === 'in' || operator === 'notIn'
+}
+
+function selectValue(item: FilterCondition): string | string[] {
+  if (isMultiSelectOperator(item.operator)) {
+    if (Array.isArray(item.value)) return item.value as string[]
+    return item.value ? [String(item.value)] : []
+  }
+  return item.value ? String(item.value) : ''
+}
+
+function setOperator(item: FilterCondition, operator: string) {
+  if (props.disabled) return
+  const wasMulti = isMultiSelectOperator(item.operator)
+  const isMulti = isMultiSelectOperator(operator)
+  item.operator = operator as FilterCondition['operator']
+  if (wasMulti && !isMulti) {
+    item.value = Array.isArray(item.value) ? String(item.value[0] ?? '') : ''
+  } else if (!wasMulti && isMulti) {
+    item.value = item.value ? [String(item.value)] : []
+  }
 }
 
 function addCondition() {
@@ -114,8 +154,19 @@ function updateChild(index: number, val: FilterGroup) {
       <template v-if="isCondition(item)">
         <div class="flex gap-2 items-center">
           <USelect :model-value="item.field" :items="fieldOptions" size="xs" class="flex-1" :disabled="disabled" :portal="false" @update:model-value="(val) => setConditionField(item, val as string)" />
-          <USelect v-model="item.operator" :items="operatorsFor(item.field)" size="xs" class="w-24" :disabled="disabled" :portal="false" />
-          <UInput v-model="item.value as string" size="xs" class="flex-1" :disabled="disabled" />
+          <USelect :model-value="item.operator" :items="operatorsFor(item.field)" size="xs" class="w-24" :disabled="disabled" :portal="false" @update:model-value="(val) => setOperator(item, val as string)" />
+          <USelect
+            v-if="hasSelectOptions(item.field)"
+            :model-value="selectValue(item)"
+            :items="selectOptions(item.field)"
+            :multiple="isMultiSelectOperator(item.operator)"
+            size="xs"
+            class="flex-1"
+            :disabled="disabled"
+            :portal="false"
+            @update:model-value="(val) => item.value = val"
+          />
+          <UInput v-else v-model="item.value as string" size="xs" class="flex-1" :disabled="disabled" />
           <UButton v-if="!disabled" color="error" size="xs" icon="i-lucide-x" @click="remove(i)" />
         </div>
       </template>

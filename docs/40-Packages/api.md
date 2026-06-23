@@ -1,10 +1,10 @@
 ---
 title: API
 type: package
-status: done
+status: in-progress
 area: architecture
 created: 2026-06-15
-updated: 2026-06-19
+updated: 2026-06-21
 related:
   - [[40-Packages/db]]
   - [[30-Apps/web]]
@@ -14,6 +14,7 @@ related:
   - [[50-Features/Workflow Engine]]
   - [[50-Features/User Tasks]]
   - [[50-Features/Admin Health Monitor]]
+  - [[50-Features/Views]]
 ---
 
 # API
@@ -27,7 +28,7 @@ The `apps/api` package is a dedicated Hono service that exposes the dynamic tabl
 - `GET /api/tables` — list user tables (tenant scope)
 - `GET /api/tables/:table` — get table schema (tenant scope)
 - `POST /api/tables/:table/sync` — sync schema from existing records (tenant scope)
-- `POST /api/tables/:table/query` — paginated record query (tenant scope)
+- `POST /api/tables/:table/query` — paginated record query with optional filter, sort, and column projection (tenant scope)
 - `POST /api/tables/:table/columns` — upsert a column definition (tenant scope)
 
 Admin table routes use an explicit `namespace--database` key:
@@ -35,7 +36,7 @@ Admin table routes use an explicit `namespace--database` key:
 - `GET /api/admin/tables/:nsdb`
 - `GET /api/admin/tables/:nsdb/:table`
 - `POST /api/admin/tables/:nsdb/:table/sync`
-- `POST /api/admin/tables/:nsdb/:table/query`
+- `POST /api/admin/tables/:nsdb/:table/query` — paginated record query with optional filter, sort, and column projection
 - `POST /api/admin/tables/:nsdb/:table/columns`
 
 ### Auth
@@ -87,6 +88,26 @@ Auth endpoints are served by `apps/api` so the Nuxt frontends can call a single 
 - `GET /api/admin/health-checks` — latest health checks
 - `GET /api/admin/health-checks/history` — health check history for a service
 - `GET /api/admin/dashboard` — dashboard stats
+
+## Table query builder
+
+The table query endpoint uses `apps/api/src/routes/table-query-builder.ts` to safely translate a JSON body into SurrealQL:
+
+```ts
+interface QueryBody {
+  page?: number
+  pageSize?: number
+  filter?: FilterGroup
+  sort?: SortSetting[]
+  columns?: TableColumnConfig[]
+}
+```
+
+- Field names, table names, and operators are validated against allow-lists before interpolation.
+- Values are passed as SurrealDB bound parameters (`$v0`, `$v1`, …) to avoid injection.
+- Sort fields that are not registered in the table schema are ignored.
+- Sort fields are always added to the `SELECT` projection because SurrealDB requires `ORDER BY` fields to appear in the selection.
+- The endpoint returns `{ records, total }`; the `total` query applies the same `WHERE` clause as the records query.
 
 ## Auth
 

@@ -1,7 +1,7 @@
 ---
 title: data-table layer
 type: package
-status: done
+status: in-progress
 area: architecture
 created: 2026-06-20
 updated: 2026-06-21
@@ -43,6 +43,8 @@ Path behavior:
 - If `nsdb` is provided, it calls admin endpoints (`/api/admin/views/:nsdb/default/:table`, `/api/admin/tables/:nsdb/...`).
 - If `nsdb` is omitted, it calls tenant endpoints (`/api/views/default/:table`, `/api/tables/...`).
 
+The component builds a runtime view state from the loaded view and passes it to the toolbar. Whenever the runtime state changes (filter, sort, or visible columns), the records are re-queried using `layers/data-table/utils/query-body.ts`.
+
 ### `DataTableRenderer.vue`
 
 Renders rows using a `ViewDefinition` and a `TableSchema`.
@@ -63,7 +65,7 @@ It reads `view.config.table.columns` to decide visibility, labels, order, and wi
 
 ### `DataTablePage.vue`
 
-Deprecated backward-compat wrapper around `DataTable.vue`. Forwards the same props.
+Deprecated backward-compat wrapper around `DataTable.vue`. Forwards the same props and defaults `schemaEditLink` and `permissionsEditLink` to `/schema/:table?nsdb=...` and `/permissions/:table?nsdb=...`.
 
 ### `DataToolbar.vue`
 
@@ -71,17 +73,24 @@ Combines filter, group, sort, column, and settings controls.
 
 ### Toolbar pieces
 
-- `DataToolbarFilter` — nested AND/OR filter builder; view-defined filters are read-only unless `canUpdateView`.
-- `DataToolbarGroup` — group-by selector.
+- `DataToolbarFilter` — nested AND/OR filter builder; view-defined filters are read-only unless `canUpdateView`. Select-type columns render a dropdown of configured options; the dropdown becomes multi-select when the operator is `in` or `not in`.
+- `DataToolbarGroup` — group-by selector (UI only; not sent to the query endpoint).
 - `DataToolbarSort` — multi-column sort builder.
-- `DataToolbarColumn` — column visibility toggle.
+- `DataToolbarColumn` — split visible/hidden column lists with drag-and-drop between them and eye-icon toggles.
+- `DataToolbarFilter` — auto-adds an empty condition when the popover opens with no conditions.
 - `DataToolbarSetting` — settings dropdown with schema and permissions links.
 
-## Permissions
+### Query utilities
 
-- `update_default_view_settings` — shows the **Save view** button and allows editing the view-defined filter.
-- `edit_schema` — shows the **Edit schema** settings link.
-- `manage_permissions` — shows the **Manage permissions** settings link.
+- `useDataToolbar(view, canUpdateView)` — derives a mutable `RuntimeViewState` from a loaded `ViewDefinition`, tracks dirty state, and produces a saved view.
+- `buildQueryBody(runtime, page, pageSize)` — converts runtime state into the `POST /tables/:table/query` request body, omitting empty filter/sort/column arrays.
+- `buildRuntimeView(view)` / `mergeRuntimeToView(runtime, view, canUpdateView)` — pure helpers for cloning and merging view state.
+
+## Full-text search
+
+The toolbar search input sends a `search` string to the table query endpoint. The backend searches across non-system, non-hidden text/email/url/richText columns using a case-insensitive `string::contains` clause.
+
+SurrealDB's native full-text search (`DEFINE ANALYZER` + `SEARCH` indexes + `MATCHES`/`search::score`/`search::highlight`) can replace the current substring scan for relevance scoring and keyword highlighting, but it requires adding per-table/per-field search indexes and updating the query builder. Not implemented yet.
 
 ## Usage
 

@@ -15,10 +15,19 @@ const filter = computed({
   get: () => props.modelValue ?? { op: 'and', conditions: [] },
   set: (val) => emit('update:modelValue', val),
 })
+
+function onOpen(open: boolean) {
+  if (open && filter.value.conditions.length === 0) {
+    filter.value = {
+      ...filter.value,
+      conditions: [{ field: '', operator: 'eq', value: '' }],
+    }
+  }
+}
 </script>
 
 <template>
-  <UPopover>
+  <UPopover @update:open="onOpen">
     <UButton color="neutral" size="sm" icon="i-lucide-filter" trailing-icon="i-lucide-chevron-down">
       Filter
     </UButton>

@@ -34,16 +34,16 @@ describe('buildRuntimeView', () => {
   it('clones deeply', () => {
     const runtime = buildRuntimeView(baseView)
 
-    runtime.sort[0].direction = 'asc'
-    runtime.columns[0].visible = false
+    runtime.sort[0]!.direction = 'asc'
+    runtime.columns[0]!.visible = false
     runtime.filter!.conditions.push({
       field: 'x',
       operator: 'eq',
       value: 'y',
     } as unknown as FilterGroup)
 
-    expect(baseView.sort[0].direction).toBe('desc')
-    expect(baseView.config.table!.columns[0].visible).toBe(true)
+    expect(baseView.sort![0]!.direction).toBe('desc')
+    expect(baseView.config.table!.columns[0]!.visible).toBe(true)
     expect(baseView.filter!.conditions).toHaveLength(1)
   })
 })
@@ -56,7 +56,13 @@ describe('isDirty', () => {
 
   it('returns true when sort changes', () => {
     const runtime = buildRuntimeView(baseView)
-    runtime.sort[0].direction = 'asc'
+    runtime.sort[0]!.direction = 'asc'
+    expect(isDirty(runtime, baseView, true)).toBe(true)
+  })
+
+  it('returns true when columns change', () => {
+    const runtime = buildRuntimeView(baseView)
+    runtime.columns[0]!.visible = false
     expect(isDirty(runtime, baseView, true)).toBe(true)
   })
 
@@ -96,6 +102,30 @@ describe('mergeFilter', () => {
       ],
     })
   })
+
+  it('returns locked filter when added is empty', () => {
+    const locked: FilterGroup = {
+      op: 'and',
+      conditions: [{ field: 'a', operator: 'eq', value: 1 }],
+    }
+
+    const result = mergeFilter(locked, { op: 'and', conditions: [] })
+
+    expect(result).toEqual(locked)
+    expect(result).not.toBe(locked)
+  })
+
+  it('returns added filter when locked is empty', () => {
+    const added: FilterGroup = {
+      op: 'and',
+      conditions: [{ field: 'b', operator: 'eq', value: 2 }],
+    }
+
+    const result = mergeFilter(undefined, added)
+
+    expect(result).toEqual(added)
+    expect(result).not.toBe(added)
+  })
 })
 
 describe('mergeRuntimeToView', () => {
@@ -114,5 +144,15 @@ describe('mergeRuntimeToView', () => {
     expect(merged.sort).toBeUndefined()
     expect(merged.group).toBeUndefined()
     expect(merged.filter).toBeUndefined()
+  })
+
+  it('updates columns in view config', () => {
+    const runtime = buildRuntimeView(baseView)
+    runtime.columns[0]!.visible = false
+
+    const merged = mergeRuntimeToView(runtime, baseView, true)
+
+    expect(merged.config.table?.columns[0]!.visible).toBe(false)
+    expect(baseView.config.table?.columns[0]!.visible).toBe(true)
   })
 })

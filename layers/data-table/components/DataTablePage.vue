@@ -13,9 +13,13 @@ interface Props {
   permissionsEditLink?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   icon: 'i-lucide-table',
 })
+
+const defaultNsdb = computed(() => props.nsdb ?? 'platform--admin')
+const schemaEditLink = computed(() => props.schemaEditLink ?? `/schema/${encodeURIComponent(props.table)}?nsdb=${encodeURIComponent(defaultNsdb.value)}`)
+const permissionsEditLink = computed(() => props.permissionsEditLink ?? `/permissions/${encodeURIComponent(props.table)}?nsdb=${encodeURIComponent(defaultNsdb.value)}`)
 </script>
 
 <template>

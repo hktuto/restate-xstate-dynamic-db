@@ -49,8 +49,8 @@ export async function refreshSession(
   const newRefresh = createRefreshToken()
   const access = createAccessToken({
     sessionId: record.id,
-    accountId: role === 'admin' ? record.platformUserId : record.accountId,
-    profileId: role === 'admin' ? record.platformUserId : record.profileId,
+    accountId: role === 'admin' ? record.platformUserId! : record.accountId!,
+    profileId: role === 'admin' ? record.platformUserId! : record.profileId!,
     companyId: record.companyId,
     type: record.type,
     impersonatorId: record.impersonatorId,
@@ -67,15 +67,15 @@ export async function refreshSession(
     role === 'admin'
       ? {
           sessionId: record.id,
-          userId: record.platformUserId,
-          email: record.email,
+          userId: record.platformUserId!,
+          email: record.email!,
         }
       : {
           sessionId: record.id,
-          accountId: record.accountId,
-          profileId: record.profileId,
+          accountId: record.accountId!,
+          profileId: record.profileId!,
           companyId: record.companyId,
-          type: record.type,
+          type: record.type!,
           impersonatorId: record.impersonatorId,
         }
 

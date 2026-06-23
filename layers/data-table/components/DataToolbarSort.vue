@@ -32,11 +32,11 @@ function removeSort(index: number) {
     <UButton color="neutral" size="sm" icon="i-lucide-arrow-up-down" trailing-icon="i-lucide-chevron-down">
       Sort
     </UButton>
-    <template #panel>
+    <template #content>
       <div class="p-3 w-72 space-y-2">
         <div v-for="(s, i) in sort" :key="i" class="flex gap-2 items-center">
-          <USelect v-model="s.field" :items="fieldOptions" size="xs" class="flex-1" />
-          <USelect v-model="s.direction" :items="[{ label: 'Asc', value: 'asc' }, { label: 'Desc', value: 'desc' }]" size="xs" class="w-24" />
+          <USelect v-model="s.field" :items="fieldOptions" size="xs" class="flex-1" :portal="false" />
+          <USelect v-model="s.direction" :items="[{ label: 'Asc', value: 'asc' }, { label: 'Desc', value: 'desc' }]" size="xs" class="w-24" :portal="false" />
           <UButton color="error" size="xs" icon="i-lucide-x" @click="removeSort(i)" />
         </div>
         <UButton color="neutral" size="xs" icon="i-lucide-plus" @click="addSort">

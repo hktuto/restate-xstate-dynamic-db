@@ -55,7 +55,7 @@ export function createAccessToken(payload: Omit<AccessTokenPayload, 'iat' | 'jti
   const jti = payload.jti ?? generateToken('jti')
   const expiresAt = accessTokenExpiry()
   const token = signAccessToken(
-    { ...payload, jti, exp: expiresAt.getTime() },
+    { ...payload, jti, exp: expiresAt.getTime() } as Omit<AccessTokenPayload, 'iat'>,
     getSessionSecret()
   )
   return { token, jti, expiresAt }

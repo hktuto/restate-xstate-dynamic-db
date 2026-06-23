@@ -202,8 +202,8 @@ describe('buildTableQuery', () => {
       new Set(['name', 'email', 'age']),
       new Set(['name', 'email'])
     )
-    expect(query).toContain('string::lowercase(name) = string::lowercase($v0)')
-    expect(query).toContain('string::contains(string::lowercase(email), string::lowercase($v1))')
+    expect(query).toContain('string::lowercase(<string> name) = string::lowercase($v0)')
+    expect(query).toContain('string::contains(string::lowercase(<string> email), string::lowercase($v1))')
     expect(query).toContain('age = $v2')
     expect(vars.v0).toBe('Alice')
     expect(vars.v1).toBe('TEST')
@@ -217,8 +217,8 @@ describe('buildTableQuery', () => {
       new Set(['name', 'email', 'age']),
       new Set(['name', 'email'])
     )
-    expect(query).toContain('WHERE (string::contains(string::lowercase(name), string::lowercase($search)) OR string::contains(string::lowercase(email), string::lowercase($search)))')
-    expect(query).toContain('SELECT count() AS total FROM members WHERE (string::contains(string::lowercase(name), string::lowercase($search)) OR string::contains(string::lowercase(email), string::lowercase($search))) GROUP ALL')
+    expect(query).toContain('WHERE (string::contains(string::lowercase(<string> name), string::lowercase($search)) OR string::contains(string::lowercase(<string> email), string::lowercase($search)))')
+    expect(query).toContain('SELECT count() AS total FROM members WHERE (string::contains(string::lowercase(<string> name), string::lowercase($search)) OR string::contains(string::lowercase(<string> email), string::lowercase($search))) GROUP ALL')
     expect(vars.search).toBe('Alice')
   })
 
@@ -232,7 +232,7 @@ describe('buildTableQuery', () => {
       new Set(['name', 'email', 'status']),
       new Set(['name', 'email'])
     )
-    expect(query).toContain('WHERE (status = $v0 AND (string::contains(string::lowercase(name), string::lowercase($search)) OR string::contains(string::lowercase(email), string::lowercase($search))))')
+    expect(query).toContain('WHERE (status = $v0 AND (string::contains(string::lowercase(<string> name), string::lowercase($search)) OR string::contains(string::lowercase(<string> email), string::lowercase($search))))')
   })
 
   it('rejects unsupported operators', () => {

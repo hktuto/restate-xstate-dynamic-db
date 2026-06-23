@@ -101,7 +101,14 @@ function refreshIfReady() {
 watch(appliedFilter, refreshIfReady, { deep: true })
 watch(() => runtime.value.sort, refreshIfReady, { deep: true })
 watch(() => runtime.value.columns, refreshIfReady, { deep: true })
-watch(searchQuery, refreshIfReady)
+
+let searchTimeout: ReturnType<typeof setTimeout> | undefined
+onBeforeUnmount(() => clearTimeout(searchTimeout))
+watch(searchQuery, () => {
+  if (initializing.value) return
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => refreshIfReady(), 300)
+})
 
 async function handleSave() {
   saveError.value = ''

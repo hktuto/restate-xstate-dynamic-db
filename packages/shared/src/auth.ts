@@ -19,8 +19,8 @@ function parseHash(hashed: string): ParsedHash | null {
   if (parts.length !== 5 || parts[1] !== 'scrypt') return null
 
   const params = new Map<string, number>()
-  for (const pair of parts[2].split(',')) {
-    const [key, value] = pair.split('=')
+  for (const pair of parts[2]!.split(',')) {
+    const [key, value] = pair.split('=') as [string, string]
     const num = Number(value)
     if (!key || value === undefined || !Number.isInteger(num) || num <= 0) return null
     params.set(key, num)
@@ -31,10 +31,10 @@ function parseHash(hashed: string): ParsedHash | null {
   const p = params.get('p')
   if (N === undefined || r === undefined || p === undefined) return null
 
-  const hash = Buffer.from(parts[4], 'base64')
+  const hash = Buffer.from(parts[4]!, 'base64')
   if (hash.length === 0) return null
 
-  return { N, r, p, salt: parts[3], hash }
+  return { N, r, p, salt: parts[3]!, hash }
 }
 
 function scryptAsync(

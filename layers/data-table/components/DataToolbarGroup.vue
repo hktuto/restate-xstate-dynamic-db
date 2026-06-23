@@ -32,10 +32,10 @@ function removeGroup(index: number) {
     <UButton color="neutral" size="sm" icon="i-lucide-layers" trailing-icon="i-lucide-chevron-down">
       Group
     </UButton>
-    <template #panel>
+    <template #content>
       <div class="p-3 w-64 space-y-2">
         <div v-for="(g, i) in group" :key="i" class="flex gap-2 items-center">
-          <USelect v-model="g.field" :items="fieldOptions" size="xs" class="flex-1" />
+          <USelect v-model="g.field" :items="fieldOptions" size="xs" class="flex-1" :portal="false" />
           <UButton color="error" size="xs" icon="i-lucide-x" @click="removeGroup(i)" />
         </div>
         <UButton color="neutral" size="xs" icon="i-lucide-plus" @click="addGroup">

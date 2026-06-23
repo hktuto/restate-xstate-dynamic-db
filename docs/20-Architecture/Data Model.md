@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-18
+updated: 2026-06-21
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
@@ -46,6 +46,31 @@ Every namespace/database contains three system tables that describe its own sche
 Existing platform and tenant tables (`companies`, `members`, `workflows`, etc.) are described declaratively in `packages/db/src/schema-definitions.ts`. `seed.ts` and `provision.ts` use this file to both `DEFINE TABLE` and populate `_tables`, `_columns`, and `_relations`. Every table also receives a standard set of system columns (`id`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `deletedAt`, `deletedBy`) via `SYSTEM_COLUMNS`.
 
 The table/schema API is served by `apps/api`, a dedicated Hono service. Both `apps/web` and `apps/admin` call this service instead of duplicating server routes.
+
+## Closed-set (`select`) columns
+
+These columns are declared as `displayType: 'select'` with a fixed option list in `packages/db/src/schema-definitions.ts`:
+
+| Table | Column | Options |
+|---|---|---|
+| `companies` | `status` | `active`, `inactive` |
+| `sessions` | `type` | `user`, `impersonation` |
+| `accounts` | `provider` | `email`, `oauth_google`, `oauth_github`, `phone` |
+| `user_profiles` | `gender` | `male`, `female`, `other`, `prefer_not_to_say` |
+| `workflow_instances` | `status` | `pending`, `running`, `waiting`, `done`, `error` |
+| `workflow_instances.triggerBy` | `type` | `db_trigger`, `user_trigger`, `cron`, `webhook` |
+| `user_tasks` | `type` | `approval`, `review`, `manual` |
+| `user_tasks` | `status` | `pending`, `completed`, `cancelled`, `rejected` |
+| `workflow_actions` | `status` | `started`, `completed`, `failed` |
+| `workflow_actions` | `resultEvent` | `ok`, `error`, `true`, `false` |
+| `health_checks` | `service` | `surrealdb`, `restate`, `workflow-runtime`, `api` |
+| `health_checks` | `status` | `healthy`, `unhealthy` |
+| `resource_types` | `scope` | `platform`, `tenant` |
+| `permission_groups` | `resourceType` | all catalog resource type names |
+| `_views` | `type` | `table` |
+| `company_policies` | `sessionOverflowAction` | `revoke_oldest`, `reject` |
+| `members` | `role` | `owner`, `admin`, `member` |
+| `members` | `status` | `pending`, `active`, `inactive` |
 
 ## Workflow instance statuses
 

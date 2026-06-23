@@ -59,9 +59,9 @@ function buildCondition(condition: FilterCondition, index: { value: number }, te
 
   if (isText && TEXT_OPERATORS.has(op)) {
     if (op === 'contains' || op === 'startsWith' || op === 'endsWith') {
-      return `string::${OPERATORS[op]}(string::lowercase(${field}), string::lowercase(${varName}))`
+      return `string::${OPERATORS[op]}(string::lowercase(<string> ${field}), string::lowercase(${varName}))`
     }
-    return `string::lowercase(${field}) ${OPERATORS[op]} string::lowercase(${varName})`
+    return `string::lowercase(<string> ${field}) ${OPERATORS[op]} string::lowercase(${varName})`
   }
 
   if (op === 'contains' || op === 'startsWith' || op === 'endsWith') {
@@ -121,7 +121,7 @@ export function buildTableQuery(table: string, body: QueryBody, validFields?: Se
     : ''
 
   const searchClause = body.search && textFields && textFields.size > 0
-    ? `(${[...textFields].map((f) => `string::contains(string::lowercase(${buildField(f)}), string::lowercase($search))`).join(' OR ')})`
+    ? `(${[...textFields].map((f) => `string::contains(string::lowercase(<string> ${buildField(f)}), string::lowercase($search))`).join(' OR ')})`
     : ''
 
   const combinedClauses = [whereClause, searchClause].filter(Boolean)

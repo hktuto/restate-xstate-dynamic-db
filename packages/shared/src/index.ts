@@ -1,4 +1,5 @@
 export * from './permissions.js'
+export type { AccessTokenPayload } from './session.js'
 
 export interface CompanyRecord {
   id: string
@@ -187,6 +188,7 @@ export interface TableColumnConfig {
   label?: string
   width?: 'auto' | number
   visible?: boolean
+  config?: Record<string, unknown>
 }
 
 /** Configuration for a table view. */
@@ -233,3 +235,4 @@ export interface ViewDefinition {
   filter?: FilterGroup
   group?: GroupSetting[]
 }
+

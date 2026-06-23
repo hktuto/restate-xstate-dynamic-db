@@ -57,7 +57,7 @@ export async function dispatchTrigger(
 
     for (const rule of rules) {
       try {
-        const inputs = await resolveInputs(effectiveNamespace, design.xstateConfig, rule.startState, database)
+        const inputs = await resolveInputs(effectiveNamespace!, design.xstateConfig, rule.startState, database)
         const context = buildContextFromInputs(inputs, record)
         const instance = mode === 'platform'
           ? await createPlatformWorkflowInstance({
@@ -83,7 +83,7 @@ export async function dispatchTrigger(
             context,
             createdBy: 'system',
             companyId,
-            namespace: mode === 'platform' ? effectiveNamespace : namespace
+            namespace: mode === 'platform' ? effectiveNamespace! : namespace
           }).catch((err) => { console.error(`${mode} runtime create error:`, err) })
         )
       } catch (err) {

@@ -53,12 +53,12 @@ export interface SyncResult {
   columnsDiscovered: number
 }
 
-export interface ViewInput extends Partial<ViewDefinition> {
+export interface ViewInput extends Omit<Partial<ViewDefinition>, 'group' | 'filter'> {
   group?: unknown
   filter?: unknown
 }
 
-export interface ViewRow extends ViewDefinition {
+export interface ViewRow extends Omit<ViewDefinition, 'group' | 'filter'> {
   id: string
   createdAt?: string
   updatedAt?: string

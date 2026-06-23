@@ -59,6 +59,15 @@ pnpm --filter db test
 
 `seed` starts from a clean database so that repeated runs produce the same state. `seed-company` first runs the platform seed to guarantee the `companies`, `accounts`, `user_profiles`, and related tables exist before creating the demo tenant.
 
+## Seeded platform users
+
+`pnpm --filter db seed` creates two default admin users for local development and permission testing:
+
+| Email | Password | Permission group |
+|---|---|---|
+| `admin@example.com` | `admin` | Super Admin + owner on all platform resources |
+| `member@example.com` | `member` | `user` group on `admin_user` resource (view-only) |
+
 ## Build
 
 `db` is imported directly as TypeScript source. Consumers resolve specific subpaths exported in `package.json` (e.g., `db`, `db/client`, `db/workflow-actions`). There is no build step.

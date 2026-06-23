@@ -1,4 +1,4 @@
-import { hashPassword } from 'shared'
+import { hashPassword } from 'shared/server'
 import { createUserProfile, createAccount } from '../packages/db/src/platform.js'
 import { createMember } from '../packages/db/src/tenant.js'
 

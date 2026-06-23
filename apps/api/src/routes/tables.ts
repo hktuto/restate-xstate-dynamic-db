@@ -23,7 +23,8 @@ async function runTableQuery(namespace: string, database: string, table: string,
     const columnNames = new Set(schema?.columns.map((c: { name: string }) => c.name) ?? [])
     const textFields = new Set(
       schema?.columns
-        .filter((c: { displayType: string }) => ['text', 'email', 'url', 'richText'].includes(c.displayType))
+        .filter((c: { displayType: string; system?: boolean; hidden?: boolean }) =>
+          !c.system && !c.hidden && ['text', 'email', 'url', 'richText'].includes(c.displayType))
         .map((c: { name: string }) => c.name) ?? []
     )
     const { query, vars } = buildTableQuery(table, body, columnNames, textFields)
