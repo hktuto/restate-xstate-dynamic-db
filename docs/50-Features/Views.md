@@ -73,10 +73,18 @@ interface TableViewConfig {
 }
 
 interface TableColumnConfig {
-  column: string
+  type?: 'column' | 'lookup'
+  column?: string
+  lookup?: { from: string; field: string }
   label?: string
   width?: 'auto' | number
   visible?: boolean
+  config?: Record<string, unknown>
+}
+
+interface QueryProjectionColumn {
+  field: string
+  as?: string
 }
 ```
 
@@ -102,13 +110,13 @@ interface QueryBody {
   pageSize?: number
   filter?: FilterGroup
   sort?: SortSetting[]
-  columns?: TableColumnConfig[]
+  columns?: QueryProjectionColumn[]
 }
 ```
 
 - `filter` is translated into a SurrealDB `WHERE` clause.
 - `sort` is translated into an `ORDER BY` clause.
-- `columns` controls the `SELECT` projection; only visible columns plus `id` are returned.
+- `columns` controls the `SELECT` projection; each item becomes `field AS as` (or just `field` when no alias). `id` is always included.
 - Unsupported operators or invalid field names are rejected before the query runs.
 
 ## Display types

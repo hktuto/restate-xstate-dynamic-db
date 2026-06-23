@@ -92,6 +92,30 @@ The toolbar search input sends a `search` string to the table query endpoint. Th
 
 SurrealDB's native full-text search (`DEFINE ANALYZER` + `SEARCH` indexes + `MATCHES`/`search::score`/`search::highlight`) can replace the current substring scan for relevance scoring and keyword highlighting, but it requires adding per-table/per-field search indexes and updating the query builder. Not implemented yet.
 
+## Lookup columns
+
+Lookup columns are virtual view columns that fetch a field from a related record. They are stored in the view config, not in `_columns`, so the schema stays 1:1 with the table.
+
+```ts
+interface TableColumnConfig {
+  type?: 'column' | 'lookup'
+  column?: string
+  lookup?: { from: string; field: string }
+  label?: string
+  width?: 'auto' | number
+  visible?: boolean
+  config?: Record<string, unknown>
+}
+```
+
+The frontend translates a lookup column into a query projection column:
+
+```ts
+{ field: 'companyId.name', as: 'Company' }
+```
+
+The backend query builder emits `SELECT companyId.name AS \`Company\``. Results are rendered using the alias as the result key.
+
 ## Usage
 
 ### Admin page
