@@ -4,7 +4,7 @@ import type { RuntimeViewState } from './view-state.js'
 import type { FilterGroup } from 'shared'
 
 describe('buildQueryBody', () => {
-  it('includes pagination, filter, sort, and columns', () => {
+  it('includes pagination, filter, sort, and visible columns', () => {
     const runtime: RuntimeViewState = {
       filter: { op: 'and', conditions: [{ field: 'status', operator: 'eq', value: 'active' }] },
       sort: [{ field: 'name', direction: 'asc' }],
@@ -22,7 +22,7 @@ describe('buildQueryBody', () => {
       pageSize: 50,
       filter: runtime.filter,
       sort: runtime.sort,
-      columns: runtime.columns,
+      columns: [{ field: 'name' }],
     })
   })
 
@@ -68,5 +68,26 @@ describe('buildQueryBody', () => {
 
     expect(body.filter).toEqual(appliedFilter)
     expect(body.filter).not.toEqual(runtime.filter)
+    expect(body.columns).toEqual([{ field: 'name' }])
+  })
+
+  it('converts lookup columns to field/as projections', () => {
+    const runtime: RuntimeViewState = {
+      filter: { op: 'and', conditions: [] },
+      sort: [],
+      group: [],
+      columns: [
+        { column: 'email', visible: true },
+        { type: 'lookup', lookup: { from: 'companyId', field: 'name' }, label: 'Company', visible: true },
+        { column: 'status', visible: false },
+      ],
+    }
+
+    const body = buildQueryBody(runtime, 1, 25)
+
+    expect(body.columns).toEqual([
+      { field: 'email' },
+      { field: 'companyId.name', as: 'Company' },
+    ])
   })
 })

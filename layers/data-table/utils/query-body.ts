@@ -1,4 +1,4 @@
-import type { FilterGroup, SortSetting, TableColumnConfig } from 'shared'
+import type { FilterGroup, QueryProjectionColumn, SortSetting, TableColumnConfig } from 'shared'
 import type { RuntimeViewState } from './view-state.js'
 
 export interface QueryBody {
@@ -6,8 +6,21 @@ export interface QueryBody {
   pageSize: number
   filter?: FilterGroup
   sort?: SortSetting[]
-  columns?: TableColumnConfig[]
+  columns?: QueryProjectionColumn[]
   search?: string
+}
+
+function toProjectionColumn(col: TableColumnConfig): QueryProjectionColumn | null {
+  if (col.type === 'lookup' && col.lookup) {
+    return {
+      field: `${col.lookup.from}.${col.lookup.field}`,
+      as: col.label || `${col.lookup.from}.${col.lookup.field}`,
+    }
+  }
+  if (col.column) {
+    return { field: col.column }
+  }
+  return null
 }
 
 export function buildQueryBody(
@@ -27,8 +40,13 @@ export function buildQueryBody(
     body.sort = runtime.sort
   }
 
-  if (runtime.columns.length > 0) {
-    body.columns = runtime.columns
+  const visibleColumns = runtime.columns.filter((c) => c.visible !== false)
+  const projections = visibleColumns
+    .map(toProjectionColumn)
+    .filter((c): c is QueryProjectionColumn => c !== null)
+
+  if (projections.length > 0) {
+    body.columns = projections
   }
 
   if (options?.search && options.search.trim().length > 0) {
