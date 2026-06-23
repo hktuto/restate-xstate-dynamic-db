@@ -10,30 +10,24 @@ import type { ColumnInput } from 'db/schema-registry'
 import { tenantAuth } from '../middleware/tenant.js'
 import { adminAuth } from '../middleware/admin.js'
 import type { AdminScope, ApiScope, TenantScope } from '../types.js'
+import { buildTableQuery, type QueryBody } from './table-query-builder.js'
 
 function getScope(c: { get: (key: 'scope') => ApiScope }): ApiScope {
   return c.get('scope')
 }
 
-interface QueryBody {
-  page?: number
-  pageSize?: number
-}
-
 async function runTableQuery(namespace: string, database: string, table: string, body: QueryBody) {
   const surreal = await getSurreal(namespace, database)
   try {
-    const limit = body.pageSize ?? 25
-    const start = ((body.page ?? 1) - 1) * limit
-    const [records, totalResult] = await surreal.query(
-      `
-      SELECT * FROM ${table}
-      LIMIT $limit START $start
-      ;
-      SELECT count() AS total FROM ${table} GROUP ALL
-      `,
-      { limit, start }
+    const schema = await getTableSchema(namespace, database, table)
+    const columnNames = new Set(schema?.columns.map((c: { name: string }) => c.name) ?? [])
+    const textFields = new Set(
+      schema?.columns
+        .filter((c: { displayType: string }) => ['text', 'email', 'url', 'richText'].includes(c.displayType))
+        .map((c: { name: string }) => c.name) ?? []
     )
+    const { query, vars } = buildTableQuery(table, body, columnNames, textFields)
+    const [records, totalResult] = await surreal.query(query, vars)
     const total = (totalResult as any[])[0]?.total ?? 0
     return { records, total }
   } finally {
