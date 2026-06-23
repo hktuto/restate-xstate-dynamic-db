@@ -247,9 +247,9 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     columns: [
       { name: 'platformSessionId', dbType: 'string', displayType: 'text', optional: true },
       { name: 'memberId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:memberId:members:id⟩' } },
-      { name: 'profileId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'profileId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:profileId:user_profiles:id⟩' } },
       { name: 'email', dbType: 'string', displayType: 'text', optional: true },
-      { name: 'companyId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'companyId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:companyId:companies:id⟩' } },
       { name: 'type', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'user', value: 'user' }, { label: 'impersonation', value: 'impersonation' }] } },
       { name: 'impersonatorId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨sessions:impersonatorId:members:id⟩' } },
       { name: 'deviceFingerprint', dbType: 'string', displayType: 'text', optional: true },
@@ -262,6 +262,8 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     ],
     relations: [
       { fromColumn: 'memberId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
       { fromColumn: 'impersonatorId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
     ],
   },
@@ -292,10 +294,11 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
         { name: 'startState', dbType: 'string', displayType: 'text', optional: true },
       ] },
       { name: 'namespace', dbType: 'string', displayType: 'text', optional: true },
-      { name: 'companyId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'companyId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } },
     ],
     relations: [
       { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
     ],
   },
   {
@@ -394,12 +397,14 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
     name: 'company_policies',
     label: 'Company Policies',
     columns: [
-      { name: 'companyId', dbType: 'string', displayType: 'text', optional: true },
+      { name: 'companyId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨company_policies:companyId:companies:id⟩' } },
       { name: 'maxSessions', dbType: 'number', displayType: 'number', optional: true },
       { name: 'sessionOverflowAction', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'revoke_oldest', value: 'revoke_oldest' }, { label: 'reject', value: 'reject' }] } },
       { name: 'allowImpersonation', dbType: 'boolean', displayType: 'checkbox', optional: true },
       { name: 'allowApiKeys', dbType: 'boolean', displayType: 'checkbox', optional: true },
     ],
-    relations: undefined,
+    relations: [
+      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'company_policies' },
+    ],
   },
 ]

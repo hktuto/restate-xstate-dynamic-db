@@ -9,6 +9,7 @@ import {
 import {
   type ColumnRow,
   type RelationRow,
+  type TableColumnConfig,
   type TableRow,
   type TableSchema,
 } from 'shared'
@@ -527,7 +528,28 @@ export async function generateDefaultView(
       throw new Error(`Table not found: ${tableName}`)
     }
 
-    const columns = schema.columns
+    const LOOKUP_FIELDS: Record<string, string | undefined> = {
+      companies: 'name',
+      user_profiles: 'name',
+      members: 'email',
+      workflow_designs: 'name',
+      platform_users: 'email',
+      admin_user_groups: 'name',
+    }
+
+    const RELATION_LABELS: Record<string, string | undefined> = {
+      companyId: 'Company',
+      profileId: 'Profile',
+      memberId: 'Member',
+      impersonatorId: 'Impersonator',
+      invitedBy: 'Invited by',
+      designId: 'Design',
+      accountId: 'Account',
+      platformUserId: 'Platform User',
+      instanceId: 'Instance',
+    }
+
+    const baseColumns = schema.columns
       .filter((col: ColumnRow) => !col.hidden)
       .sort((a: ColumnRow, b: ColumnRow) => (a.order ?? Infinity) - (b.order ?? Infinity))
       .map((col: ColumnRow) => ({
@@ -536,6 +558,23 @@ export async function generateDefaultView(
         width: 'auto' as const,
         visible: true,
       }))
+
+    const columns: TableColumnConfig[] = []
+    for (const col of baseColumns) {
+      columns.push(col)
+      const relation = schema.relations?.find((r) => r.fromColumn === col.column)
+      if (!relation) continue
+      const field = LOOKUP_FIELDS[relation.toTable]
+      if (!field) continue
+      const prefix = RELATION_LABELS[relation.fromColumn] ?? relation.fromColumn
+      columns.push({
+        type: 'lookup',
+        lookup: { from: relation.fromColumn, field },
+        label: `${prefix} ${field === 'email' ? 'Email' : 'Name'}`,
+        width: 'auto',
+        visible: true,
+      })
+    }
 
     const data = {
       table: tableName,
