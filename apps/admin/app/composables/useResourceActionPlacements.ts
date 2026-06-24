@@ -4,6 +4,7 @@ const loaders: Record<string, () => Promise<{ resourceActionPlacements?: Record<
   admin_user_group: () => import('../config/resource-actions/admin_user_group'),
   company: () => import('../config/resource-actions/company'),
   admin_user: () => import('../config/resource-actions/admin_user'),
+  workflow_design: () => import('../config/resource-actions/workflow_design'),
 }
 
 export function useResourceActionPlacements() {
