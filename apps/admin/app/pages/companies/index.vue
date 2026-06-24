@@ -1,13 +1,7 @@
 <script setup lang="ts">
+usePageMeta({ title: 'Companies', icon: 'i-lucide-building-2' })
+
 const { can } = useAdminPermission()
-
-const config = {
-  title: 'Companies',
-  icon: 'i-lucide-building-2',
-  table: 'companies',
-  nsdb: 'platform--admin',
-}
-
 const canUpdateView = ref(false)
 const canEditSchema = ref(false)
 const canManagePermissions = ref(false)
@@ -17,13 +11,15 @@ onMounted(async () => {
   canEditSchema.value = await can('company', 'edit_schema')
   canManagePermissions.value = await can('company', 'manage_permissions')
 })
+
+const config = computed(() => ({
+  resource: 'company',
+  canUpdateView: canUpdateView.value,
+  canEditSchema: canEditSchema.value,
+  canManagePermissions: canManagePermissions.value,
+}))
 </script>
 
 <template>
-  <DataTablePage
-    v-bind="config"
-    :can-update-view="canUpdateView"
-    :can-edit-schema="canEditSchema"
-    :can-manage-permissions="canManagePermissions"
-  />
+  <PageRenderer :config="config" />
 </template>
