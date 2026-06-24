@@ -98,8 +98,7 @@ function formatDate(value: string): string {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-semibold">Health Monitor</h1>
+    <div class="flex items-center justify-end">
       <button
         :disabled="pending"
         class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"

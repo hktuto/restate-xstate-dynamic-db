@@ -50,8 +50,7 @@ async function save() {
 
 <template>
   <div>
-    <div class="flex items-center justify-between mb-2">
-      <h1 class="text-2xl font-bold">Edit workflow design</h1>
+    <div class="flex items-center justify-end mb-2">
       <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" @click="runModal?.open()">Run</button>
     </div>
 

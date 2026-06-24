@@ -29,8 +29,6 @@ async function save() {
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-4">New workflow design</h1>
-
     <div class="h-[calc(100vh-120px)]">
       <ClientOnly>
         <WorkflowEditor

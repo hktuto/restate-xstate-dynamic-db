@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { unref } from 'vue'
 import type { NavigationMenuItem, DropdownMenuItem } from '@nuxt/ui'
 import type { PageMeta } from '~/composables/usePageMeta'
 
@@ -68,7 +69,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
 ])
 
 const pageMeta = useState<PageMeta>('pageMeta')
-const title = computed(() => pageMeta.value.title ?? '')
+const title = computed(() => unref(pageMeta.value.title) ?? '')
 const icon = computed(() => pageMeta.value.icon ?? 'i-lucide-table')
 </script>
 

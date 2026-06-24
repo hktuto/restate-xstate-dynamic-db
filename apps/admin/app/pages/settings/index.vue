@@ -4,7 +4,6 @@ usePageMeta({ title: 'Settings', icon: 'i-lucide-settings' })
 
 <template>
   <UCard
-    title="Settings"
     description="Application settings will be implemented here."
   />
 </template>

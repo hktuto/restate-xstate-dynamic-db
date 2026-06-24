@@ -38,9 +38,6 @@ onMounted(async () => {
 
   <UCard title="Quick actions" description="Common admin tasks">
     <div class="flex flex-wrap gap-3">
-      <UButton to="/companies/new" icon="i-lucide-plus">
-        Create company
-      </UButton>
       <UButton to="/workflow-designs/new" color="neutral" variant="outline" icon="i-lucide-plus">
         New workflow design
       </UButton>

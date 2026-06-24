@@ -1,7 +1,7 @@
-import { onScopeDispose, readonly, toRef, watch, type MaybeRef } from 'vue'
+import { onScopeDispose, readonly, toRef, unref, watch, type MaybeRef } from 'vue'
 
 export interface PageMeta {
-  title?: string
+  title?: MaybeRef<string>
   icon?: string
 }
 
@@ -15,7 +15,7 @@ export function usePageMeta(meta: MaybeRef<PageMeta>) {
   watch(
     metaRef,
     (value) => {
-      state.value = { ...value }
+      state.value = { title: unref(value.title), icon: value.icon }
     },
     { immediate: true, deep: true },
   )

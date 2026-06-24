@@ -1,7 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
 
-usePageMeta({ title: `Schema: ${route.params.table}`, icon: 'i-lucide-table-2' })
+const title = computed(() => `Schema: ${route.params.table}`)
+usePageMeta({ title, icon: 'i-lucide-table-2' })
 
 const table = computed(() => route.params.table as string)
 const nsdb = computed(() => (route.query.nsdb as string) || 'platform--admin')
