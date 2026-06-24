@@ -74,7 +74,7 @@ function buildAppliedFilter(): FilterGroup {
   return filter ? deepClone(filter) : { op: 'and', conditions: [] }
 }
 
-async function loadRecords(force = false) {
+async function loadRecords() {
   loading.value = true
   error.value = ''
   try {
@@ -101,7 +101,7 @@ async function handleSave() {
       method: 'PATCH',
       body: JSON.stringify(updated),
     })
-    await loadRecords(true)
+    await loadRecords()
   } catch (err: any) {
     saveError.value = err?.message ?? 'Failed to save view'
   }
@@ -133,11 +133,11 @@ onBeforeUnmount(() => clearTimeout(fetchTimeout))
 watch(
   [appliedFilter, () => runtime.value.sort, () => runtime.value.columns, searchQuery],
   () => {
+    clearTimeout(fetchTimeout)
     if (skipFetchDebounce) {
       skipFetchDebounce = false
       return
     }
-    clearTimeout(fetchTimeout)
     fetchTimeout = setTimeout(() => loadRecords(), 300)
   },
   { deep: true },
