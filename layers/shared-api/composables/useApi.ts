@@ -1,5 +1,5 @@
 export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
-  body?: BodyInit | Record<string, unknown> | unknown[] | null
+  body?: BodyInit | Record<string, unknown> | unknown[] | object | null
 }
 
 export function useApi() {

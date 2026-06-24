@@ -32,6 +32,10 @@ function adminBase(path: string): string {
   return `/api/admin${path}/${nsdb.value}`
 }
 
+function viewBasePath(): string {
+  return isAdminScope() ? adminBase('/views') : '/api/views'
+}
+
 async function loadResourceTypeRecord() {
   const path = isAdminScope()
     ? adminBase('/resource-types')
@@ -44,7 +48,7 @@ async function loadViewAndSchema(table: string) {
   if (typeof props.view === 'object' && props.view !== null) {
     viewDefinition.value = props.view
     const res = await api.fetch<{ view: ViewDefinition; schema: TableSchema }>(
-      `${adminBase('/views')}/default/${table}`,
+      `${viewBasePath()}/default/${table}`,
     )
     schema.value = res.schema
     return
@@ -52,7 +56,7 @@ async function loadViewAndSchema(table: string) {
 
   if (typeof props.view === 'string') {
     const res = await api.fetch<{ view: ViewDefinition; schema: TableSchema }>(
-      `${adminBase('/views')}/${props.view}`,
+      `${viewBasePath()}/${props.view}`,
     )
     viewDefinition.value = res.view
     schema.value = res.schema
@@ -60,7 +64,7 @@ async function loadViewAndSchema(table: string) {
   }
 
   const res = await api.fetch<{ view: ViewDefinition; schema: TableSchema }>(
-    `${adminBase('/views')}/default/${table}`,
+    `${viewBasePath()}/default/${table}`,
   )
   viewDefinition.value = res.view
   schema.value = res.schema
@@ -114,6 +118,9 @@ async function load() {
     loading.value = false
   }
 }
+
+watch(() => props.resource, () => load())
+watch(() => props.view, () => load(), { deep: true })
 
 onMounted(() => load())
 </script>

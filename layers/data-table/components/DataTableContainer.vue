@@ -81,7 +81,7 @@ async function loadRecords(force = false) {
     const body = buildQueryBody(runtime.value, props.schema, 1, 25, { filter: appliedFilter.value, search: searchQuery.value })
     const result = await api.fetch<{ records: Record<string, unknown>[]; total: number }>(
       `${queryBasePath()}/${props.table}/query`,
-      { method: 'POST', body: JSON.stringify(body) },
+      { method: 'POST', body },
     )
     rows.value = result.records
     total.value = result.total
@@ -113,10 +113,13 @@ function handleRowDoubleClick(row: Record<string, unknown>) {
   actionHostRef.value?.trigger(action.component, action.method, row)
 }
 
+let skipFetchDebounce = false
+
 watch(
   () => [props.view, props.schema],
   () => {
     if (props.view && props.schema) {
+      skipFetchDebounce = true
       appliedFilter.value = buildAppliedFilter()
       loadRecords()
     }
@@ -130,6 +133,10 @@ onBeforeUnmount(() => clearTimeout(fetchTimeout))
 watch(
   [appliedFilter, () => runtime.value.sort, () => runtime.value.columns, searchQuery],
   () => {
+    if (skipFetchDebounce) {
+      skipFetchDebounce = false
+      return
+    }
     clearTimeout(fetchTimeout)
     fetchTimeout = setTimeout(() => loadRecords(), 300)
   },
