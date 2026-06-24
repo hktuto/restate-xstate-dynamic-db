@@ -7,7 +7,7 @@ app:
   - admin
   - web
 created: 2026-06-21
-updated: 2026-06-21
+updated: 2026-06-24
 related:
   - [[50-Features/Views]]
   - [[40-Packages/data-table-layer]]
@@ -60,7 +60,7 @@ Action names must match permission actions defined in the resource catalog.
 
 ## UI flow
 
-1. A page renders `<ViewRenderer resource="admin_user_group" />`.
+1. A page renders `<PageRenderer :config="useResourceCapabilities('admin_user_group')" />` (or uses `ViewRenderer` directly for custom cases).
 2. `ViewRenderer` loads the resource type record, default view, schema, and action placements.
 3. `DataTableContainer` loads records and renders toolbar/row actions from the resolved placements.
 4. `ActionHost` mounts hidden action components for indirect triggers such as row double-click.
@@ -85,7 +85,7 @@ const allowed = await can(resourceType, 'edit_info', record?.id)
 
 ## Status
 
-Phase 1 is implemented for the admin `/user-groups` page. Tenant pages and additional admin resources can follow the same pattern.
+Phase 1 is implemented for the admin `/user-groups`, `/users`, `/workflow-designs`, and `/companies` (edit only) pages. Tenant pages can follow the same pattern using tenant-scoped permissions and endpoints.
 
 ## Related
 
