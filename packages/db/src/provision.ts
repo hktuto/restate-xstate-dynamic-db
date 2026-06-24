@@ -1,6 +1,6 @@
 // packages/db/src/provision.ts
 import { getSurreal, closeSurreal } from './client.js'
-import { TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
+import { GRAPH_RELATIONS, TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
 import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
 import { seedResourceTypes } from './resource-types.js'
 
@@ -30,7 +30,8 @@ export async function provisionCompanyNamespace(namespace: string) {
       DEFINE TABLE IF NOT EXISTS _relations SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_relations_from ON _relations FIELDS fromTable, fromColumn;
       DEFINE INDEX IF NOT EXISTS idx_relations_to ON _relations FIELDS toTable, toColumn;
-      DEFINE INDEX IF NOT EXISTS idx_relations_unique ON _relations FIELDS fromTable, fromColumn, toTable, toColumn UNIQUE;
+      DEFINE INDEX IF NOT EXISTS idx_relations_graph ON _relations FIELDS fromTable, linkTable, toTable;
+      DEFINE INDEX IF NOT EXISTS idx_relations_unique ON _relations FIELDS kind, fromTable, fromColumn, toTable, toColumn, linkTable UNIQUE;
 
       DEFINE TABLE IF NOT EXISTS _views SCHEMALESS;
       DEFINE INDEX IF NOT EXISTS idx_views_table ON _views FIELDS table;
@@ -74,6 +75,12 @@ export async function provisionCompanyNamespace(namespace: string) {
         await upsertColumn(namespace, 'main', { ...column, table: table.name })
       }
       for (const relation of table.relations ?? []) {
+        await upsertRelation(namespace, 'main', relation)
+      }
+    }
+
+    for (const relation of GRAPH_RELATIONS) {
+      if (relation.linkTable !== 'admin_user_group_memberships') {
         await upsertRelation(namespace, 'main', relation)
       }
     }

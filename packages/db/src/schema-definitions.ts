@@ -69,11 +69,11 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'revokeReason', dbType: 'string', displayType: 'text', optional: true },
     ],
     relations: [
-      { fromColumn: 'accountId', toTable: 'accounts', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
-      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
-      { fromColumn: 'platformUserId', toTable: 'platform_users', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
-      { fromColumn: 'impersonatorId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
-      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'accountId', toTable: 'accounts', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'platformUserId', toTable: 'platform_users', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'impersonatorId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
     ],
   },
   {
@@ -119,7 +119,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'profileId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨accounts:profileId:user_profiles:id⟩' } },
     ],
     relations: [
-      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'accounts' },
+      { kind: 'reference', fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'accounts' },
     ],
   },
   {
@@ -163,8 +163,8 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'companyId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } },
     ],
     relations: [
-      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
-      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+      { kind: 'reference', fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+      { kind: 'reference', fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
     ],
   },
   {
@@ -180,8 +180,8 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'resolvedAt', dbType: 'datetime', displayType: 'date', optional: true },
     ],
     relations: [
-      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
-      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+      { kind: 'reference', fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+      { kind: 'reference', fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
     ],
   },
   {
@@ -203,8 +203,8 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'completedAt', dbType: 'datetime', displayType: 'date', optional: true },
     ],
     relations: [
-      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
-      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+      { kind: 'reference', fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+      { kind: 'reference', fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
     ],
   },
   {
@@ -237,8 +237,8 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'invitedBy', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨members:invitedBy:members:id⟩' } },
     ],
     relations: [
-      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'members' },
-      { fromColumn: 'invitedBy', toTable: 'members', toColumn: 'id', type: 'one-to-many', fromTable: 'members' },
+      { kind: 'reference', fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'members' },
+      { kind: 'reference', fromColumn: 'invitedBy', toTable: 'members', toColumn: 'id', type: 'one-to-many', fromTable: 'members' },
     ],
   },
   {
@@ -261,10 +261,10 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'revokeReason', dbType: 'string', displayType: 'text', optional: true },
     ],
     relations: [
-      { fromColumn: 'memberId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
-      { fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
-      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
-      { fromColumn: 'impersonatorId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'memberId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'profileId', toTable: 'user_profiles', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
+      { kind: 'reference', fromColumn: 'impersonatorId', toTable: 'members', toColumn: 'id', type: 'many-to-many', fromTable: 'sessions' },
     ],
   },
   {
@@ -297,8 +297,8 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'companyId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨workflow_instances:companyId:companies:id⟩' } },
     ],
     relations: [
-      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
-      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+      { kind: 'reference', fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
+      { kind: 'reference', fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_instances' },
     ],
   },
   {
@@ -314,8 +314,8 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'resolvedAt', dbType: 'datetime', displayType: 'date', optional: true },
     ],
     relations: [
-      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
-      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+      { kind: 'reference', fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
+      { kind: 'reference', fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'user_tasks' },
     ],
   },
   {
@@ -337,8 +337,8 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'completedAt', dbType: 'datetime', displayType: 'date', optional: true },
     ],
     relations: [
-      { fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
-      { fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+      { kind: 'reference', fromColumn: 'instanceId', toTable: 'workflow_instances', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
+      { kind: 'reference', fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
     ],
   },
   {
@@ -404,7 +404,50 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { name: 'allowApiKeys', dbType: 'boolean', displayType: 'checkbox', optional: true },
     ],
     relations: [
-      { fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'company_policies' },
+      { kind: 'reference', fromColumn: 'companyId', toTable: 'companies', toColumn: 'id', type: 'many-to-many', fromTable: 'company_policies' },
     ],
+  },
+]
+
+export const GRAPH_RELATIONS: RelationDefinition[] = [
+  {
+    kind: 'graph',
+    name: 'groups',
+    fromTable: 'platform_users',
+    toTable: 'admin_user_groups',
+    linkTable: 'admin_user_group_memberships',
+    type: 'many-to-many',
+  },
+  {
+    kind: 'graph',
+    name: 'members',
+    fromTable: 'user_groups',
+    toTable: 'members',
+    linkTable: 'user_group_memberships',
+    type: 'many-to-many',
+  },
+  {
+    kind: 'graph',
+    name: 'permissions',
+    fromTable: 'permission_groups',
+    toTable: 'resources',
+    linkTable: 'permission_apply_to',
+    type: 'many-to-many',
+  },
+  {
+    kind: 'graph',
+    name: 'parents',
+    fromTable: 'resources',
+    toTable: 'resources',
+    linkTable: 'resource_parent',
+    type: 'many-to-many',
+  },
+  {
+    kind: 'graph',
+    name: 'assignments',
+    fromTable: 'members',
+    toTable: 'permission_groups',
+    linkTable: 'permission_assignments',
+    type: 'many-to-many',
   },
 ]

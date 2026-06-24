@@ -67,6 +67,7 @@ describe('schema-registry', () => {
 
   it('upserts a relation', async () => {
     const result = await upsertRelation(testNs, 'main', {
+      kind: 'reference',
       name: 'contacts_to_companies',
       fromTable: 'contacts',
       fromColumn: 'companyId',
@@ -137,6 +138,7 @@ describe('schema-registry', () => {
   it('upsertRelation rejects invalid identifiers', async () => {
     await expect(
       upsertRelation(testNs, 'main', {
+        kind: 'reference',
         fromTable: 'bad-table',
         fromColumn: 'companyId',
         toTable: 'companies',
@@ -146,6 +148,7 @@ describe('schema-registry', () => {
     ).rejects.toThrow('Invalid fromTable')
     await expect(
       upsertRelation(testNs, 'main', {
+        kind: 'reference',
         fromTable: 'contacts',
         fromColumn: 'bad-col',
         toTable: 'companies',
@@ -155,6 +158,7 @@ describe('schema-registry', () => {
     ).rejects.toThrow('Invalid fromColumn')
     await expect(
       upsertRelation(testNs, 'main', {
+        kind: 'reference',
         fromTable: 'contacts',
         fromColumn: 'companyId',
         toTable: 'bad-table',
@@ -164,6 +168,7 @@ describe('schema-registry', () => {
     ).rejects.toThrow('Invalid toTable')
     await expect(
       upsertRelation(testNs, 'main', {
+        kind: 'reference',
         fromTable: 'contacts',
         fromColumn: 'companyId',
         toTable: 'companies',

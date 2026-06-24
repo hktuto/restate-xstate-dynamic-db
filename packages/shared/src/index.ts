@@ -125,13 +125,15 @@ export interface ColumnDefinition {
   order?: number
 }
 
-/** Defines a directed relation between a column in one table and a column in another table. */
+/** Defines a relation between two tables, either a reference column or a graph edge. */
 export interface RelationDefinition {
+  kind: 'reference' | 'graph'
+  name?: string
   fromTable: string
-  fromColumn: string
   toTable: string
-  toColumn: string
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many'
+  fromColumn?: string
+  toColumn?: string
+  type?: 'one-to-one' | 'one-to-many' | 'many-to-many'
   linkTable?: string
 }
 
@@ -141,6 +143,7 @@ export interface TableSchemaDefinition {
   label?: string
   description?: string
   hidden?: boolean
+  isRelation?: boolean
   columns: ColumnDefinition[]
   relations?: RelationDefinition[]
 }
@@ -164,12 +167,13 @@ export interface ColumnRow extends ColumnDefinition {
 /** Relation metadata row. */
 export interface RelationRow {
   id: string
+  kind: 'reference' | 'graph'
   name?: string
   fromTable: string
-  fromColumn: string
+  fromColumn?: string
   toTable: string
-  toColumn: string
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many'
+  toColumn?: string
+  type?: 'one-to-one' | 'one-to-many' | 'many-to-many'
   linkTable?: string
   createdAt?: string
   updatedAt?: string

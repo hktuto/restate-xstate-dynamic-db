@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PLATFORM_TABLE_SCHEMAS, TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from '../src/schema-definitions.js'
+import { GRAPH_RELATIONS, PLATFORM_TABLE_SCHEMAS, TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from '../src/schema-definitions.js'
 
 const VALID_DB_TYPES = [
   'string',
@@ -124,5 +124,19 @@ describe('schema-definitions', () => {
       expect(starts!.fields?.[2].optional).toBe(true)
       expect(starts!.fields?.[2].dbType).toBe('object')
     }
+  })
+
+  it('graph relations are well-formed', () => {
+    const names = new Set<string>()
+    for (const relation of GRAPH_RELATIONS) {
+      expect(relation.kind).toBe('graph')
+      expect(relation.name).toBeTypeOf('string')
+      expect(relation.fromTable).toBeTypeOf('string')
+      expect(relation.toTable).toBeTypeOf('string')
+      expect(relation.linkTable).toBeTypeOf('string')
+      expect(relation.type).toBe('many-to-many')
+      names.add(`${relation.fromTable}:${relation.linkTable}:${relation.toTable}`)
+    }
+    expect(names.size).toBe(GRAPH_RELATIONS.length)
   })
 })

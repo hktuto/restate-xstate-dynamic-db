@@ -40,12 +40,13 @@ export interface ColumnInput {
 }
 
 export interface RelationInput {
+  kind: 'reference' | 'graph'
   name?: string
   fromTable: string
-  fromColumn: string
+  fromColumn?: string
   toTable: string
-  toColumn: string
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many'
+  toColumn?: string
+  type?: 'one-to-one' | 'one-to-many' | 'many-to-many'
   linkTable?: string
 }
 
@@ -262,24 +263,32 @@ export async function upsertRelation(
   input: RelationInput,
   surreal?: Surreal
 ) {
-  for (const [key, value] of [
+  const identifiers: Array<[string, string | undefined]> = [
     ['fromTable', input.fromTable],
-    ['fromColumn', input.fromColumn],
     ['toTable', input.toTable],
-    ['toColumn', input.toColumn],
-  ] as const) {
-    if (!isValidIdentifier(value)) {
+  ]
+  if (input.kind === 'reference') {
+    identifiers.push(['fromColumn', input.fromColumn], ['toColumn', input.toColumn])
+  } else {
+    identifiers.push(['linkTable', input.linkTable])
+  }
+  for (const [key, value] of identifiers) {
+    if (!value || !isValidIdentifier(value)) {
       throw new Error(`Invalid ${key}: ${value}`)
     }
   }
   const managed = surreal ?? (await getSurreal(namespace, database))
   try {
     await ensureRegistryTables(managed)
-    const id = `_relations:⟨${input.fromTable}:${input.fromColumn}:${input.toTable}:${input.toColumn}⟩`
+    const id =
+      input.kind === 'graph'
+        ? `_relations:⟨graph:${input.fromTable}:${input.linkTable}:${input.toTable}⟩`
+        : `_relations:⟨${input.fromTable}:${input.fromColumn}:${input.toTable}:${input.toColumn}⟩`
     const now = new Date().toISOString()
     await managed.query(
       `
       UPSERT ${id} SET
+        kind = $kind,
         name = $name,
         fromTable = $fromTable,
         fromColumn = $fromColumn,
@@ -362,6 +371,7 @@ function inferTypes(value: unknown): InferResult {
         dbType: 'record',
         displayType: 'relation',
         relation: {
+          kind: 'reference',
           toTable,
           toColumn: 'id',
           type: 'many-to-many',
@@ -562,8 +572,8 @@ export async function generateDefaultView(
     const columns: TableColumnConfig[] = []
     for (const col of baseColumns) {
       columns.push(col)
-      const relation = schema.relations?.find((r) => r.fromColumn === col.column)
-      if (!relation) continue
+      const relation = schema.relations?.find((r) => r.kind === 'reference' && r.fromColumn === col.column)
+      if (!relation || !relation.fromColumn) continue
       const field = LOOKUP_FIELDS[relation.toTable]
       if (!field) continue
       const prefix = RELATION_LABELS[relation.fromColumn] ?? relation.fromColumn
