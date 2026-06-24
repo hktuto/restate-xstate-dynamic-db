@@ -1,14 +1,6 @@
 import type { ResourceActionPlacement } from 'shared'
 
 export const resourceActionPlacements: Record<string, ResourceActionPlacement[]> = {
-  create: [
-    {
-      type: ['table'],
-      location: 'toolbar',
-      component: 'CreateCompanyButton',
-      method: null,
-    },
-  ],
   edit_info: [
     {
       type: ['table'],
@@ -20,14 +12,6 @@ export const resourceActionPlacements: Record<string, ResourceActionPlacement[]>
       type: ['table'],
       location: 'item-rowDoubleClick',
       component: 'EditCompanyAction',
-      method: 'open',
-    },
-  ],
-  delete: [
-    {
-      type: ['table'],
-      location: 'item-contextMenu',
-      component: 'DeleteCompanyAction',
       method: 'open',
     },
   ],
