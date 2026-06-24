@@ -1,4 +1,6 @@
 <script setup lang="ts">
+usePageMeta({ title: 'View Details', icon: 'i-lucide-eye' })
+
 import type { ColumnRow, TableColumnConfig, TableSchema, ViewDefinition } from 'shared'
 
 const route = useRoute()
@@ -110,82 +112,70 @@ await loadView()
 </script>
 
 <template>
-  <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar :title="isNew ? 'New View' : 'Edit View'" icon="i-lucide-eye">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
-    </template>
+  <div v-if="loading" class="text-gray-500">Loading...</div>
+  <div v-else-if="error" class="p-4 text-red-600 bg-red-50 rounded">{{ error }}</div>
+  <form v-else class="space-y-6" @submit.prevent="save">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Table</label>
+        <select v-model="view.table" class="mt-1 block w-full rounded border-gray-300 shadow-sm" @change="loadSchema">
+          <option value="">Select table</option>
+          <option v-for="t in tables" :key="t.name" :value="t.name">{{ t.label ?? t.name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Name</label>
+        <input v-model="view.name" type="text" class="mt-1 block w-full rounded border-gray-300 shadow-sm" required />
+      </div>
+    </div>
 
-    <template #body>
-      <div v-if="loading" class="text-gray-500">Loading...</div>
-      <div v-else-if="error" class="p-4 text-red-600 bg-red-50 rounded">{{ error }}</div>
-      <form v-else class="space-y-6" @submit.prevent="save">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Table</label>
-            <select v-model="view.table" class="mt-1 block w-full rounded border-gray-300 shadow-sm" @change="loadSchema">
-              <option value="">Select table</option>
-              <option v-for="t in tables" :key="t.name" :value="t.name">{{ t.label ?? t.name }}</option>
-            </select>
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Description</label>
+      <input v-model="view.description" type="text" class="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+    </div>
+
+    <div class="flex items-center gap-2">
+      <input id="isDefault" v-model="view.isDefault" type="checkbox" />
+      <label for="isDefault" class="text-sm font-medium text-gray-700">Default view for this table</label>
+    </div>
+
+    <div v-if="schema">
+      <h2 class="text-lg font-semibold mb-2">Columns</h2>
+      <ul class="space-y-2">
+        <li
+          v-for="(col, index) in view.config?.table?.columns"
+          :key="col.type === 'lookup' ? `${col.lookup?.relation}.${col.lookup?.agg ?? col.lookup?.field ?? ''}` : col.column"
+          class="flex items-center gap-4 p-3 bg-white rounded border"
+        >
+          <input v-model="col.visible" type="checkbox" />
+          <div class="flex-1">
+            <div class="font-medium">
+              <template v-if="col.type === 'lookup'">
+                {{ col.lookup?.relation }}
+                <span v-if="col.lookup?.agg">({{ col.lookup.agg }})</span>
+                <span v-else-if="col.lookup?.field">.{{ col.lookup.field }}</span>
+              </template>
+              <template v-else>{{ col.column }}</template>
+            </div>
+            <input v-model="col.label" type="text" placeholder="Label" class="text-sm border rounded px-2 py-1 mt-1" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Name</label>
-            <input v-model="view.name" type="text" class="mt-1 block w-full rounded border-gray-300 shadow-sm" required />
+            <label class="text-xs text-gray-500">Width</label>
+            <input v-model="col.width" type="text" placeholder="auto" class="text-sm border rounded px-2 py-1 w-20" />
           </div>
-        </div>
+          <div class="flex flex-col gap-1">
+            <button type="button" class="text-gray-500 hover:text-gray-700" @click="moveColumn(index, -1)">▲</button>
+            <button type="button" class="text-gray-500 hover:text-gray-700" @click="moveColumn(index, 1)">▼</button>
+          </div>
+        </li>
+      </ul>
+    </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Description</label>
-          <input v-model="view.description" type="text" class="mt-1 block w-full rounded border-gray-300 shadow-sm" />
-        </div>
-
-        <div class="flex items-center gap-2">
-          <input id="isDefault" v-model="view.isDefault" type="checkbox" />
-          <label for="isDefault" class="text-sm font-medium text-gray-700">Default view for this table</label>
-        </div>
-
-        <div v-if="schema">
-          <h2 class="text-lg font-semibold mb-2">Columns</h2>
-          <ul class="space-y-2">
-            <li
-              v-for="(col, index) in view.config?.table?.columns"
-              :key="col.type === 'lookup' ? `${col.lookup?.relation}.${col.lookup?.agg ?? col.lookup?.field ?? ''}` : col.column"
-              class="flex items-center gap-4 p-3 bg-white rounded border"
-            >
-              <input v-model="col.visible" type="checkbox" />
-              <div class="flex-1">
-                <div class="font-medium">
-                  <template v-if="col.type === 'lookup'">
-                    {{ col.lookup?.relation }}
-                    <span v-if="col.lookup?.agg">({{ col.lookup.agg }})</span>
-                    <span v-else-if="col.lookup?.field">.{{ col.lookup.field }}</span>
-                  </template>
-                  <template v-else>{{ col.column }}</template>
-                </div>
-                <input v-model="col.label" type="text" placeholder="Label" class="text-sm border rounded px-2 py-1 mt-1" />
-              </div>
-              <div>
-                <label class="text-xs text-gray-500">Width</label>
-                <input v-model="col.width" type="text" placeholder="auto" class="text-sm border rounded px-2 py-1 w-20" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <button type="button" class="text-gray-500 hover:text-gray-700" @click="moveColumn(index, -1)">▲</button>
-                <button type="button" class="text-gray-500 hover:text-gray-700" @click="moveColumn(index, 1)">▼</button>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <div class="flex gap-2">
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save' }}
-          </button>
-          <NuxtLink :to="`/views?nsdb=${nsdb}`" class="px-4 py-2 text-gray-700 hover:underline">Cancel</NuxtLink>
-        </div>
-      </form>
-    </template>
-  </UDashboardPanel>
+    <div class="flex gap-2">
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" :disabled="saving">
+        {{ saving ? 'Saving...' : 'Save' }}
+      </button>
+      <NuxtLink :to="`/views?nsdb=${nsdb}`" class="px-4 py-2 text-gray-700 hover:underline">Cancel</NuxtLink>
+    </div>
+  </form>
 </template>

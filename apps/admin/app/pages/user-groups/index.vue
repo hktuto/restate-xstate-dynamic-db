@@ -1,8 +1,9 @@
 <script setup lang="ts">
+usePageMeta({ title: 'User Groups', icon: 'i-lucide-users' })
+
+const config = useResourceCapabilities('admin_user_group')
 </script>
 
 <template>
-  <div>
-    <ViewRenderer resource="admin_user_group" />
-  </div>
+  <PageRenderer :config="config" />
 </template>

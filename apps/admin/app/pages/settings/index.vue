@@ -1,18 +1,10 @@
-<template>
-  <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Settings" icon="i-lucide-settings">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
-    </template>
+<script setup lang="ts">
+usePageMeta({ title: 'Settings', icon: 'i-lucide-settings' })
+</script>
 
-    <template #body>
-      <UCard
-        title="Settings"
-        description="Application settings will be implemented here."
-      />
-    </template>
-  </UDashboardPanel>
+<template>
+  <UCard
+    title="Settings"
+    description="Application settings will be implemented here."
+  />
 </template>

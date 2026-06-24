@@ -1,4 +1,6 @@
 <script setup lang="ts">
+usePageMeta({ title: 'New User', icon: 'i-lucide-users' })
+
 interface AdminUserGroup {
   id: string
   name: string
@@ -50,70 +52,58 @@ onMounted(loadGroups)
 </script>
 
 <template>
-  <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="New User" icon="i-lucide-users">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
-    </template>
+  <UCard title="Create admin user" description="Add a new platform administrator.">
+    <UForm :state="state" @submit="save" class="space-y-4 max-w-md">
+      <UAlert
+        v-if="error"
+        color="error"
+        variant="soft"
+        :title="error"
+      />
 
-    <template #body>
-      <UCard title="Create admin user" description="Add a new platform administrator.">
-        <UForm :state="state" @submit="save" class="space-y-4 max-w-md">
-          <UAlert
-            v-if="error"
-            color="error"
-            variant="soft"
-            :title="error"
-          />
+      <UFormField label="Email" name="email" required>
+        <UInput
+          v-model="state.email"
+          type="email"
+          placeholder="admin@example.com"
+          class="w-full"
+        />
+      </UFormField>
 
-          <UFormField label="Email" name="email" required>
-            <UInput
-              v-model="state.email"
-              type="email"
-              placeholder="admin@example.com"
-              class="w-full"
-            />
-          </UFormField>
+      <UFormField label="Password" name="password" required>
+        <UInput
+          v-model="state.password"
+          type="password"
+          placeholder="••••••••"
+          class="w-full"
+        />
+      </UFormField>
 
-          <UFormField label="Password" name="password" required>
-            <UInput
-              v-model="state.password"
-              type="password"
-              placeholder="••••••••"
-              class="w-full"
-            />
-          </UFormField>
+      <UFormField label="Groups" name="groups">
+        <div v-if="loadingGroups" class="text-sm text-gray-500">Loading groups...</div>
+        <div v-else-if="!groups.length" class="text-sm text-gray-500">
+          No groups available. <NuxtLink to="/user-groups/new" class="text-blue-600 hover:underline">Create one</NuxtLink>.
+        </div>
+        <div v-else class="space-y-2">
+          <label
+            v-for="group in groups"
+            :key="group.id"
+            class="flex items-center gap-2 text-sm"
+          >
+            <UCheckbox v-model="state.groupIds" :value="group.id" />
+            <span>{{ group.name }}</span>
+          </label>
+        </div>
+      </UFormField>
 
-          <UFormField label="Groups" name="groups">
-            <div v-if="loadingGroups" class="text-sm text-gray-500">Loading groups...</div>
-            <div v-else-if="!groups.length" class="text-sm text-gray-500">
-              No groups available. <NuxtLink to="/user-groups/new" class="text-blue-600 hover:underline">Create one</NuxtLink>.
-            </div>
-            <div v-else class="space-y-2">
-              <label
-                v-for="group in groups"
-                :key="group.id"
-                class="flex items-center gap-2 text-sm"
-              >
-                <UCheckbox v-model="state.groupIds" :value="group.id" />
-                <span>{{ group.name }}</span>
-              </label>
-            </div>
-          </UFormField>
-
-          <div class="flex gap-3">
-            <UButton type="submit" :loading="saving">
-              Create user
-            </UButton>
-            <UButton to="/users" color="neutral" variant="outline">
-              Cancel
-            </UButton>
-          </div>
-        </UForm>
-      </UCard>
-    </template>
-  </UDashboardPanel>
+      <div class="flex gap-3">
+        <UButton type="submit" :loading="saving">
+          Create user
+        </UButton>
+        <UButton to="/users" color="neutral" variant="outline">
+          Cancel
+        </UButton>
+      </div>
+    </UForm>
+  </UCard>
 </template>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+usePageMeta({ title: 'Views', icon: 'i-lucide-eye' })
+
 import type { ViewDefinition } from 'shared'
 
 const route = useRoute()
@@ -39,62 +41,50 @@ await refresh()
 </script>
 
 <template>
-  <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Views" icon="i-lucide-eye">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
-    </template>
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Views</h1>
+      <NuxtLink
+        :to="`/views/new${nsdb ? `?nsdb=${nsdb}${table ? `&table=${table}` : ''}` : ''}`"
+        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        New view
+      </NuxtLink>
+    </div>
 
-    <template #body>
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold">Views</h1>
+    <div v-if="error" class="p-4 text-red-600 bg-red-50 rounded">
+      {{ error }}
+    </div>
+    <div v-else-if="loading" class="text-gray-500">Loading...</div>
+    <ul v-else class="bg-white rounded shadow divide-y">
+      <li
+        v-for="view in views"
+        :key="view.id"
+        class="p-4 flex items-center justify-between"
+      >
+        <div>
           <NuxtLink
-            :to="`/views/new${nsdb ? `?nsdb=${nsdb}${table ? `&table=${table}` : ''}` : ''}`"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            :to="`/views/${encodeURIComponent(view.id!)}?nsdb=${nsdb}`"
+            class="font-medium hover:text-blue-600"
           >
-            New view
+            {{ view.name }}
           </NuxtLink>
+          <div class="text-sm text-gray-500">
+            {{ view.table }} {{ view.isDefault ? '· default' : '' }}
+          </div>
         </div>
-
-        <div v-if="error" class="p-4 text-red-600 bg-red-50 rounded">
-          {{ error }}
-        </div>
-        <div v-else-if="loading" class="text-gray-500">Loading...</div>
-        <ul v-else class="bg-white rounded shadow divide-y">
-          <li
-            v-for="view in views"
-            :key="view.id"
-            class="p-4 flex items-center justify-between"
+        <div class="flex items-center gap-2">
+          <NuxtLink
+            :to="`/views/${encodeURIComponent(view.id!)}?nsdb=${nsdb}`"
+            class="text-blue-600 hover:underline text-sm"
           >
-            <div>
-              <NuxtLink
-                :to="`/views/${encodeURIComponent(view.id!)}?nsdb=${nsdb}`"
-                class="font-medium hover:text-blue-600"
-              >
-                {{ view.name }}
-              </NuxtLink>
-              <div class="text-sm text-gray-500">
-                {{ view.table }} {{ view.isDefault ? '· default' : '' }}
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <NuxtLink
-                :to="`/tables/${view.table}?nsdb=${nsdb}&viewId=${encodeURIComponent(view.id!)}`"
-                class="text-blue-600 hover:underline text-sm"
-              >
-                Open
-              </NuxtLink>
-              <button class="text-red-600 hover:underline text-sm" @click="deleteView(view.id!)">
-                Delete
-              </button>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </template>
-  </UDashboardPanel>
+            Open
+          </NuxtLink>
+          <button class="text-red-600 hover:underline text-sm" @click="deleteView(view.id!)">
+            Delete
+          </button>
+        </div>
+      </li>
+    </ul>
+  </div>
 </template>

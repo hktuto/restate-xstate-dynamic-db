@@ -1,4 +1,6 @@
 <script setup lang="ts">
+usePageMeta({ title: 'New Workflow Design', icon: 'i-lucide-workflow' })
+
 import type { WorkflowDefinition, StartRule } from 'shared'
 
 const name = ref('')
@@ -26,31 +28,19 @@ async function save() {
 </script>
 
 <template>
-  <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="New Workflow Design" icon="i-lucide-workflow">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
-    </template>
+  <div>
+    <h1 class="text-2xl font-bold mb-4">New workflow design</h1>
 
-    <template #body>
-      <div>
-        <h1 class="text-2xl font-bold mb-4">New workflow design</h1>
-
-        <div class="h-[calc(100vh-120px)]">
-          <ClientOnly>
-            <WorkflowEditor
-              v-model="config"
-              :name="name"
-              @update:name="name = $event"
-              @save="save"
-              @error="onError"
-            />
-          </ClientOnly>
-        </div>
-      </div>
-    </template>
-  </UDashboardPanel>
+    <div class="h-[calc(100vh-120px)]">
+      <ClientOnly>
+        <WorkflowEditor
+          v-model="config"
+          :name="name"
+          @update:name="name = $event"
+          @save="save"
+          @error="onError"
+        />
+      </ClientOnly>
+    </div>
+  </div>
 </template>
