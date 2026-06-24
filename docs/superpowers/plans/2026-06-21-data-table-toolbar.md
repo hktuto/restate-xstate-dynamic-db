@@ -1,3 +1,12 @@
+---
+title: Data Table Toolbar Implementation Plan
+type: note
+status: in-progress
+area: docs
+created: 2026-06-24
+updated: 2026-06-24
+---
+
 # Data Table Toolbar Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Apply the **ponytail** skill during implementation: minimal code, stdlib-first, one runnable check per non-trivial logic, no unnecessary dependencies.

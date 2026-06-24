@@ -4,11 +4,12 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-21
+updated: 2026-06-24
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
   - [[40-Packages/db]]
+  - [[Schema Registry Model]]
 ---
 
 # Data Model

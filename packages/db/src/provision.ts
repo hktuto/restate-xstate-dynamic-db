@@ -86,7 +86,7 @@ export async function provisionCompanyNamespace(namespace: string) {
     }
 
     for (const table of TENANT_TABLE_SCHEMAS) {
-      await generateDefaultView(namespace, 'main', table.name)
+      await generateDefaultView(namespace, 'main', table.name, table.resourceType)
     }
 
     await seedResourceTypes(namespace, 'main', 'tenant')

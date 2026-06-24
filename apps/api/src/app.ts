@@ -14,12 +14,14 @@ import { platformRoutes } from './routes/platform.js'
 import { adminRoutes } from './routes/admin.js'
 import { userGroupsRoutes } from './routes/user-groups.js'
 import { permissionsRoutes } from './routes/permissions.js'
+import { resourceTypesRoutes } from './routes/resource-types.js'
 
 export function createApp() {
   const app = new Hono()
   app.use(createCorsMiddleware())
   app.get('/health', (c) => c.json({ ok: true }))
   app.route('/api/permissions', permissionsRoutes)
+  app.route('/api', resourceTypesRoutes)
   app.route('/api', authRoutes)
   app.route('/api', tablesRoutes)
   app.route('/api', viewsRoutes)

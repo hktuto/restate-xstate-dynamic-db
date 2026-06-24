@@ -144,6 +144,7 @@ export interface TableSchemaDefinition {
   description?: string
   hidden?: boolean
   isRelation?: boolean
+  resourceType?: string
   columns: ColumnDefinition[]
   relations?: RelationDefinition[]
 }
@@ -247,15 +248,22 @@ export interface GroupSetting {
   field: string
 }
 
+/** Designer-configured action bindings for a view. */
+export interface ViewActionBindings {
+  [location: string]: string[]
+}
+
 /** Per-view-type configuration. */
 export interface ViewConfig {
   table?: TableViewConfig
+  actions?: ViewActionBindings
 }
 
 /** Defines a saved view for a table. */
 export interface ViewDefinition {
   id?: string
   table: string
+  resourceType?: string
   type: 'table'
   name: string
   description?: string
@@ -264,5 +272,25 @@ export interface ViewDefinition {
   sort?: SortSetting[]
   filter?: FilterGroup
   group?: GroupSetting[]
+}
+
+/** Client-side placement of a resource action in the UI. */
+export interface ResourceActionPlacement {
+  type: string[]
+  location: string
+  component: string
+  method?: string | null
+}
+
+/** Context passed to action components and runners. */
+export interface ActionContext {
+  resourceType: string
+  action: string
+  table: string
+  nsdb: string
+  schema?: TableSchema
+  view?: ViewDefinition
+  record?: Record<string, unknown>
+  refresh?: () => void
 }
 
