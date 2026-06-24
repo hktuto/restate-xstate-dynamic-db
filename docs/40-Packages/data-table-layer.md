@@ -49,25 +49,13 @@ Props:
 - `schema: TableSchema`
 - `view: ViewDefinition`
 - `actions: ResolvedActions`
+- `canUpdateView?: boolean`
+- `canEditSchema?: boolean`
+- `canManagePermissions?: boolean`
 
 ### `ActionHost.vue`
 
 Mounts hidden action components and exposes `trigger(component, method?, record?)` so indirect interactions (e.g. row double-click) can invoke an action method with an optional per-row context.
-
-### `DataTable.vue`
-
-Legacy container that loads a table's view, schema, and records, then renders the toolbar and table. Permission booleans are passed as props. Kept for backward compatibility until all pages migrate to `ViewRenderer`.
-
-Props:
-- `table: string`
-- `nsdb?: string`
-- `title?: string`
-- `icon?: string`
-- `newLink?: string`
-- `newLabel?: string`
-- `canUpdateView?: boolean`
-- `canEditSchema?: boolean`
-- `canManagePermissions?: boolean`
 
 ### `DataTableRenderer.vue`
 
@@ -86,10 +74,6 @@ It reads `view.config.table.columns` to decide visibility, labels, order, and wi
 - `email` — clickable `mailto:` link
 - `tag` — rounded pill; color is resolved from `column.config.tagColors[value]` with `column.config.defaultColor` fallback
 - `select`, `url`, `user`, `formula`, `richText` — plain text for now
-
-### `DataTablePage.vue`
-
-Deprecated backward-compat wrapper around `DataTable.vue`. Forwards the same props and defaults `schemaEditLink` and `permissionsEditLink` to `/schema/:table?nsdb=...` and `/permissions/:table?nsdb=...`.
 
 ### `DataToolbar.vue`
 
@@ -170,9 +154,27 @@ For the core model behind lookup columns, see [[Schema Registry Model]].
 
 ### Resource-driven admin page
 
+Admin pages should use the app-specific `PageRenderer` wrapper, which resolves permission booleans via `useResourceCapabilities` and sets page chrome via `usePageMeta`.
+
+```vue
+<script setup lang="ts">
+usePageMeta({ title: 'User Groups', icon: 'i-lucide-users' })
+
+const config = useResourceCapabilities('admin_user_group')
+</script>
+
+<template>
+  <PageRenderer :config="config" />
+</template>
+```
+
+`PageRenderer` is defined in `apps/admin/app/components/PageRenderer.vue` and forwards the capabilities config to the layer's `ViewRenderer`.
+
+For tenant pages, use `ViewRenderer` directly and supply the permission booleans yourself:
+
 ```vue
 <template>
-  <ViewRenderer resource="admin_user_group" />
+  <ViewRenderer resource="members" />
 </template>
 ```
 
@@ -181,39 +183,6 @@ The app must provide:
 - A resource type record in the catalog with `table` and `resourceType` on its default view.
 - A resource action placement config under `app/config/resource-actions/<resource>.ts`.
 - Action components registered so their names match the `component` values in the config.
-
-### Legacy admin page
-
-```vue
-<script setup lang="ts">
-const config = {
-  title: 'Companies',
-  icon: 'i-lucide-building-2',
-  table: 'companies',
-  nsdb: 'platform--admin',
-}
-</script>
-
-<template>
-  <DataTablePage v-bind="config" />
-</template>
-```
-
-### Tenant page
-
-```vue
-<script setup lang="ts">
-const config = {
-  title: 'Members',
-  icon: 'i-lucide-users',
-  table: 'members',
-}
-</script>
-
-<template>
-  <DataTablePage v-bind="config" />
-</template>
-```
 
 ## Configuration
 

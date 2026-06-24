@@ -148,12 +148,11 @@ The full list of supported display types is defined in `packages/shared/src/inde
 The reusable table UI lives in the `data-table` Nuxt layer (`layers/data-table`) so both `apps/admin` and `apps/web` can use it.
 
 - `layers/data-table/components/DataTableRenderer.vue` renders rows from a view, schema, and rows.
-- `layers/data-table/components/ViewRenderer.vue` is the new resource-driven entry point. It loads a resource type, resolves its default view and schema, fetches resource action placements, and renders `DataTableContainer`.
+- `layers/data-table/components/ViewRenderer.vue` is the resource-driven entry point. It loads a resource type, resolves its default view and schema, fetches resource action placements, and renders `DataTableContainer`.
 - `layers/data-table/components/DataTableContainer.vue` loads records for a view and renders toolbar + row actions.
 - `layers/data-table/components/ActionHost.vue` mounts hidden action components and exposes `trigger(component, method, record)` so row-double-click and other indirect interactions can invoke an action.
-- `layers/data-table/components/DataTablePage.vue` (deprecated) loads the default view, schema, and records for a table.
-- `apps/admin/app/pages/user-groups/index.vue` renders admin user groups through `ViewRenderer`.
-- `apps/admin/app/pages/tables/[table].vue` loads the default (or selected) view and records.
+- `apps/admin/app/components/PageRenderer.vue` wraps `ViewRenderer` for admin pages and resolves capabilities through `useResourceCapabilities`.
+- `apps/admin/app/pages/user-groups/index.vue` renders admin user groups through `PageRenderer`.
 - `apps/admin/app/pages/views/index.vue` lists views per table.
 - `apps/admin/app/pages/views/[id].vue` creates or edits a view, including column visibility, ordering, labels, and widths.
 

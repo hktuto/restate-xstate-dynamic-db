@@ -29,11 +29,13 @@ The superadmin Nuxt application for platform-level management.
 - Auth state is encapsulated in the `useAuth()` composable (`apps/admin/app/composables/useAuth.ts`). It tracks `user`, `authenticated`, and `initialized` in `useState`. `init()` fetches `/api/admin/me` only when `initialized` is `false`, so subsequent client-side navigations reuse the cached state. `login()` resets `initialized` so the next `init()` call fetches the freshly authenticated user.
 - Global auth middleware redirects unauthenticated users to `/login` and redirects authenticated users away from `/login` to `/`.
 - Uses a dedicated `auth.vue` layout for the login page.
-- Dashboard layout follows the Nuxt UI dashboard template: a collapsible, resizable `UDashboardSidebar` with the brand in the sidebar header, and a `UDashboardSidebarCollapse` toggle in each page’s `UDashboardNavbar`.
+- Dashboard chrome is centralized in `layouts/default.vue`; pages set the title and icon via `usePageMeta`.
 - Color mode is supported via Nuxt UI / `@nuxtjs/color-mode`. A light/dark toggle lives under **Appearance** in the profile dropdown menu.
 - Dashboard shows aggregate stats: companies, workflow designs, and triggers. The trigger count is derived from the number of `db_trigger` start rules across all platform workflow designs.
 - The `/users` page lists platform admin users, allows creating and editing them, and supports assigning users to multiple admin user groups via graph-edge memberships.
-- The `/user-groups` page renders admin user groups through the new `ViewRenderer` resource widget, with toolbar and row actions driven by the `admin_user_group` action placement config.
+- The `/user-groups` page uses `PageRenderer` with the `admin_user_group` config, with toolbar and row actions driven by the `admin_user_group` action placement config.
+- The `/companies` page is migrated to `PageRenderer` with the `admin_company` config.
+- The `/workflow-designs` page is migrated to `PageRenderer` with the `admin_workflow_design` config.
 - The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
 
 ## Routes
