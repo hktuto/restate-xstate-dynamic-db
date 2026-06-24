@@ -101,6 +101,7 @@ async function handleSave() {
       method: 'PATCH',
       body: JSON.stringify(updated),
     })
+    clearTimeout(fetchTimeout)
     await loadRecords()
   } catch (err: any) {
     saveError.value = err?.message ?? 'Failed to save view'
