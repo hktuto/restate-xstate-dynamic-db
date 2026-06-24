@@ -37,13 +37,16 @@ related:
 
 ## Schema registry
 
-Every namespace/database contains three system tables that describe its own schema:
+Every namespace/database contains system tables that describe its own schema:
 
 - `_tables` — one row per table (name, label, hidden).
 - `_columns` — one row per column (name, dbType, displayType, config, system, unique, optional, etc.).
-- `_relations` — one row per relation between tables (fromTable, fromColumn, toTable, toColumn, type).
+- `_relations` — one row per relation between tables, either reference or graph.
+- `_views` — saved display and query configurations.
 
-Existing platform and tenant tables (`companies`, `members`, `workflows`, etc.) are described declaratively in `packages/db/src/schema-definitions.ts`. `seed.ts` and `provision.ts` use this file to both `DEFINE TABLE` and populate `_tables`, `_columns`, and `_relations`. Every table also receives a standard set of system columns (`id`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `deletedAt`, `deletedBy`) via `SYSTEM_COLUMNS`.
+Existing platform and tenant tables (`companies`, `members`, `workflows`, etc.) are described declaratively in `packages/db/src/schema-definitions.ts`. `seed.ts` and `provision.ts` use this file to both `DEFINE TABLE` and populate `_tables`, `_columns`, `_relations`, and `_views`. Every table also receives a standard set of system columns (`id`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `deletedAt`, `deletedBy`) via `SYSTEM_COLUMNS`.
+
+For the core model of how `_columns`, `_relations`, and `_views` interact, see [[Schema Registry Model]].
 
 The table/schema API is served by `apps/api`, a dedicated Hono service. Both `apps/web` and `apps/admin` call this service instead of duplicating server routes.
 

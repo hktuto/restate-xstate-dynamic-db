@@ -11,6 +11,7 @@ updated: 2026-06-21
 related:
   - [[40-Packages/db]]
   - [[40-Packages/data-table-layer]]
+  - [[Schema Registry Model]]
   - [[30-Apps/Admin/Overview]]
   - [[30-Apps/Web App/Overview]]
 ---
@@ -20,6 +21,8 @@ related:
 ## Overview
 
 Views are saved presentation presets for a table. A view defines which columns to show, how to order them, and what view type to use. The UI renders a table by loading a view and the table schema, then applies the view config to decide column visibility, labels, and widths.
+
+Views reference `_columns` for normal columns and `_relations` for lookup columns. See [[Schema Registry Model]] for how these system tables interact.
 
 ## Responsibilities
 

@@ -7,6 +7,7 @@ created: 2026-06-20
 updated: 2026-06-21
 related:
   - [[Data Model]]
+  - [[Schema Registry Model]]
   - [[Multi-tenancy]]
   - [[50-Features/Views]]
   - [[40-Packages/db]]
@@ -115,6 +116,8 @@ The frontend translates a lookup column into a query projection column:
 ```
 
 The backend query builder emits `SELECT companyId.name AS \`Company\``. Results are rendered using the alias as the result key.
+
+For the core model behind lookup columns, see [[Schema Registry Model]].
 
 ## Usage
 

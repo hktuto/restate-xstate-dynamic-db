@@ -8,6 +8,7 @@ updated: 2026-06-21
 package: db
 related:
   - [[Data Model]]
+  - [[Schema Registry Model]]
   - [[Multi-tenancy]]
   - [[Testing]]
   - [[Benchmarking]]
@@ -30,7 +31,7 @@ SurrealDB connection, queries, and seeding for platform and tenant namespaces.
 ## Key modules
 
 - `src/platform.ts` — platform-level queries (companies, platform users, platform workflows, identities).
-- `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables, indexes) and seeds the schema registry (`_tables`, `_columns`, `_relations`, `_views`) from the declarative schemas in `schema-definitions.ts`. Also generates a default table view for every tenant table.
+- `src/provision.ts` — provisions a new tenant namespace (`DEFINE NAMESPACE`, `DEFINE DATABASE`, tables, indexes) and seeds the schema registry (`_tables`, `_columns`, `_relations`, `_views`) from the declarative schemas in `schema-definitions.ts`. Also generates a default table view for every tenant table. See [[Schema Registry Model]] for how these system tables interact.
 - `src/seed.ts` — seeds `platform/admin` namespace with default admin user and platform schema registry.
 - `src/clean-db.ts` — removes every namespace from the SurrealDB instance and drains the connection pool.
 
@@ -148,7 +149,7 @@ Instances reference a `workflow_designs` record via `designId`, store the curren
   - `deleteView(namespace, database, viewId)`
   - `generateDefaultView(namespace, database, tableName)`
 
-Views are stored in the `_views` system table and referenced by auto-generated Surreal record IDs. The registry enforces table existence, valid column references, and a single default view per table.
+Views are stored in the `_views` system table and referenced by auto-generated Surreal record IDs. The registry enforces table existence, valid column references, and a single default view per table. View lookup columns reference `_relations` by name; they are translated to query projection columns (`field`/`as`) before the query runs. See [[Schema Registry Model]].
 
 ### User tasks
 
