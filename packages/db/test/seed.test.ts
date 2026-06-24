@@ -48,6 +48,7 @@ describe('platform seed', () => {
     await closeSurreal(surreal)
     expect(views.length).toBeGreaterThan(0)
     expect(views[0].name).toBe('Default')
+    expect(views[0].resourceType).toBe('company')
     expect(views[0].config.table.columns.length).toBeGreaterThan(0)
   })
 })

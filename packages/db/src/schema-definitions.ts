@@ -37,6 +37,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'companies',
     label: 'Companies',
+    resourceType: 'company',
     columns: [
       { name: 'name', dbType: 'string', displayType: 'text', optional: true },
       { name: 'slug', dbType: 'string', displayType: 'tag', optional: true, unique: true, config: { displayType: 'tag', defaultColor: 'gray' } },
@@ -79,6 +80,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'platform_users',
     label: 'Platform Users',
+    resourceType: 'admin_user',
     columns: [
       { name: 'email', dbType: 'string', displayType: 'email', optional: true, unique: true },
       { name: 'password', dbType: 'string', displayType: 'text', optional: true, hidden: true },
@@ -88,6 +90,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'admin_user_groups',
     label: 'Admin User Groups',
+    resourceType: 'admin_user_group',
     columns: [
       { name: 'name', dbType: 'string', displayType: 'text', optional: true },
       { name: 'description', dbType: 'string', displayType: 'text', optional: true },
@@ -125,6 +128,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'user_profiles',
     label: 'User Profiles',
+    resourceType: 'company_member',
     columns: [
       { name: 'name', dbType: 'string', displayType: 'text', optional: true },
       { name: 'gender', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'male', value: 'male' }, { label: 'female', value: 'female' }, { label: 'other', value: 'other' }, { label: 'prefer_not_to_say', value: 'prefer_not_to_say' }] } },
@@ -136,6 +140,7 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'workflow_designs',
     label: 'Workflow Designs',
+    resourceType: 'workflow_design',
     columns: [
       { name: 'name', dbType: 'string', displayType: 'text', optional: true },
       { name: 'xstateConfig', dbType: 'object', displayType: 'json', optional: true },
@@ -227,6 +232,7 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'members',
     label: 'Members',
+    resourceType: 'member',
     columns: [
       { name: 'profileId', dbType: 'record', displayType: 'relation', optional: true, config: { relationId: '_relations:⟨members:profileId:user_profiles:id⟩' } },
       { name: 'email', dbType: 'string', displayType: 'email', optional: true },
@@ -270,6 +276,7 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'workflow_designs',
     label: 'Workflow Designs',
+    resourceType: 'workflow_design',
     columns: [
       { name: 'name', dbType: 'string', displayType: 'text', optional: true },
       { name: 'xstateConfig', dbType: 'object', displayType: 'json', optional: true },
@@ -371,6 +378,7 @@ export const TENANT_TABLE_SCHEMAS: TableSchemaDefinition[] = [
   {
     name: 'user_groups',
     label: 'User Groups',
+    resourceType: 'user_group',
     columns: [
       { name: 'name', dbType: 'string', displayType: 'text', optional: true },
       { name: 'description', dbType: 'string', displayType: 'text', optional: true },

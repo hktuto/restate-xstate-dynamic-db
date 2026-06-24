@@ -525,6 +525,7 @@ export async function generateDefaultView(
   namespace: string,
   database: string,
   tableName: string,
+  resourceType?: string,
   surreal?: Surreal
 ): Promise<ViewRow> {
   if (!isValidIdentifier(tableName)) {
@@ -624,6 +625,7 @@ export async function generateDefaultView(
 
     const data = {
       table: tableName,
+      resourceType,
       type: 'table' as const,
       name: 'Default',
       description: `Default table view for ${tableName}`,
@@ -741,6 +743,7 @@ export async function upsertView(
 
     const data = {
       table: merged.table,
+      resourceType: merged.resourceType ?? null,
       type: merged.type,
       name: merged.name,
       description: merged.description ?? null,

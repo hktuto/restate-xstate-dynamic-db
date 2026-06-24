@@ -1,16 +1,16 @@
 ---
 title: Schema Registry Model
 type: note
-status: done
+status: in-progress
 area: architecture
 created: 2026-06-21
-updated: 2026-06-21
+updated: 2026-06-24
 related:
-  - "[[Data Model]]"
-  - "[[Multi-tenancy]]"
-  - "[[40-Packages/db|db package]]"
-  - "[[40-Packages/data-table-layer|data-table-layer package]]"
-  - "[[50-Features/Views]]"
+  - [[Data Model]]
+  - [[Multi-tenancy]]
+  - [[40-Packages/db]]
+  - [[40-Packages/data-table-layer]]
+  - [[50-Features/Views]]
 ---
 
 # Schema Registry Model

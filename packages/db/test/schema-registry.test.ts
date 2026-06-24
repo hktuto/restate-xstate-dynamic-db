@@ -416,6 +416,7 @@ describe('schema-registry', () => {
       const view = await getDefaultView(testNs, 'main', 'members')
       expect(view).not.toBeNull()
       expect(view!.table).toBe('members')
+      expect(view!.resourceType).toBe('member')
       expect(view!.isDefault).toBe(true)
       expect(view!.config.table?.columns.length).toBeGreaterThan(0)
     })

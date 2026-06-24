@@ -37,6 +37,7 @@ Views reference `_columns` for normal columns and `_relations` for lookup column
 interface ViewDefinition {
   id?: string
   table: string
+  resourceType?: string
   type: 'table'
   name: string
   description?: string
@@ -102,6 +103,8 @@ type QueryProjectionColumn = QueryPlainProjectionColumn | QueryLookupProjectionC
 
 ## APIs
 
+- `GET /api/admin/resource-types/:nsdb` — list resource types
+- `GET /api/admin/resource-types/:nsdb/:name` — get a resource type by name
 - `GET /api/admin/views/:nsdb?table=` — list views
 - `GET /api/admin/views/:nsdb/default/:table` — get default view for table
 - `GET /api/admin/views/:nsdb/:id` — get a view
@@ -110,7 +113,7 @@ type QueryProjectionColumn = QueryPlainProjectionColumn | QueryLookupProjectionC
 - `DELETE /api/admin/views/:nsdb/:id` — delete a view
 - `POST /api/admin/tables/:nsdb/:table/query` — query records with pagination, filter, sort, and projection
 
-Tenant-scoped equivalents exist under `/api/views` and `/api/tables`.
+Tenant-scoped equivalents exist under `/api/resource-types`, `/api/views` and `/api/tables`.
 
 ### Query body
 
@@ -144,8 +147,12 @@ The full list of supported display types is defined in `packages/shared/src/inde
 
 The reusable table UI lives in the `data-table` Nuxt layer (`layers/data-table`) so both `apps/admin` and `apps/web` can use it.
 
-- `layers/data-table/components/TableView.vue` renders rows from a view and schema.
-- `layers/data-table/components/DataTablePage.vue` loads the default view, schema, and records for a table. Pass `nsdb` to use admin paths (`/api/admin/...`); omit it to use tenant paths (`/api/...`).
+- `layers/data-table/components/DataTableRenderer.vue` renders rows from a view, schema, and rows.
+- `layers/data-table/components/ViewRenderer.vue` is the new resource-driven entry point. It loads a resource type, resolves its default view and schema, fetches resource action placements, and renders `DataTableContainer`.
+- `layers/data-table/components/DataTableContainer.vue` loads records for a view and renders toolbar + row actions.
+- `layers/data-table/components/ActionHost.vue` mounts hidden action components and exposes `trigger(component, method, record)` so row-double-click and other indirect interactions can invoke an action.
+- `layers/data-table/components/DataTablePage.vue` (deprecated) loads the default view, schema, and records for a table.
+- `apps/admin/app/pages/user-groups/index.vue` renders admin user groups through `ViewRenderer`.
 - `apps/admin/app/pages/tables/[table].vue` loads the default (or selected) view and records.
 - `apps/admin/app/pages/views/index.vue` lists views per table.
 - `apps/admin/app/pages/views/[id].vue` creates or edits a view, including column visibility, ordering, labels, and widths.
@@ -154,14 +161,13 @@ The reusable table UI lives in the `data-table` Nuxt layer (`layers/data-table`)
 
 - Table view only.
 - Saved filters, sorts, and visible columns are executed on the backend query.
-- No row actions.
+- Toolbar and row actions are driven by per-resource action placement configs.
 - No card or kanban views.
 - No view-level permissions.
 
 ## Future work
 
 - Add card and kanban view renderers.
-- Bind row actions to views once the `_actions` catalog is designed.
 - Add view visibility/permissions.
 
 ## Related

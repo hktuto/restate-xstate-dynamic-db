@@ -89,7 +89,7 @@ export async function seed() {
     }
 
     for (const table of PLATFORM_TABLE_SCHEMAS) {
-      await generateDefaultView('platform', 'admin', table.name)
+      await generateDefaultView('platform', 'admin', table.name, table.resourceType)
     }
 
     await seedResourceTypes('platform', 'admin', 'platform')

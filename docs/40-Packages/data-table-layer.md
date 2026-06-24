@@ -25,9 +25,38 @@ Shared Nuxt layer for rendering data tables from the `_views` registry. Provides
 
 ## Components
 
+### `ViewRenderer.vue`
+
+Resource-driven entry point. Loads a resource type, its default view and schema, resolves resource action placements, and renders `DataTableContainer`.
+
+Props:
+- `resource: string` — resource type name (e.g. `admin_user_group`).
+- `view?: string | ViewDefinition` — optional view id or a full view object.
+
+It relies on app-specific overrides of two composables:
+- `useNamespace()` — returns `{ namespace, database }`.
+- `useResourceActionPlacements()` — returns a loader for resource action placement configs.
+
+### `DataTableContainer.vue`
+
+Loads records for a view and renders the toolbar, table, and row actions. Wires row-double-click to `ActionHost`.
+
+Props:
+- `resource: string`
+- `table: string`
+- `nsdb: string`
+- `scope: 'admin' | 'tenant'`
+- `schema: TableSchema`
+- `view: ViewDefinition`
+- `actions: ResolvedActions`
+
+### `ActionHost.vue`
+
+Mounts hidden action components and exposes `trigger(component, method?, record?)` so indirect interactions (e.g. row double-click) can invoke an action method with an optional per-row context.
+
 ### `DataTable.vue`
 
-Container that loads a table's view, schema, and records, then renders the toolbar and table. Permission booleans are passed as props.
+Legacy container that loads a table's view, schema, and records, then renders the toolbar and table. Permission booleans are passed as props. Kept for backward compatibility until all pages migrate to `ViewRenderer`.
 
 Props:
 - `table: string`
@@ -39,12 +68,6 @@ Props:
 - `canUpdateView?: boolean`
 - `canEditSchema?: boolean`
 - `canManagePermissions?: boolean`
-
-Path behavior:
-- If `nsdb` is provided, it calls admin endpoints (`/api/admin/views/:nsdb/default/:table`, `/api/admin/tables/:nsdb/...`).
-- If `nsdb` is omitted, it calls tenant endpoints (`/api/views/default/:table`, `/api/tables/...`).
-
-The component builds a runtime view state from the loaded view and passes it to the toolbar. Whenever the runtime state changes (filter, sort, or visible columns), the records are re-queried using `layers/data-table/utils/query-body.ts`.
 
 ### `DataTableRenderer.vue`
 
@@ -84,8 +107,32 @@ Combines filter, group, sort, column, and settings controls.
 ### Query utilities
 
 - `useDataToolbar(view, canUpdateView)` — derives a mutable `RuntimeViewState` from a loaded `ViewDefinition`, tracks dirty state, and produces a saved view.
-- `buildQueryBody(runtime, page, pageSize)` — converts runtime state into the `POST /tables/:table/query` request body, omitting empty filter/sort/column arrays.
+- `buildQueryBody(runtime, schema, page, pageSize)` — converts runtime state into the `POST /tables/:table/query` request body, omitting empty filter/sort/column arrays.
 - `buildRuntimeView(view)` / `mergeRuntimeToView(runtime, view, canUpdateView)` — pure helpers for cloning and merging view state.
+- `resolveViewActions(viewType, bindings, resourcePlacements)` — maps a view's action bindings to concrete component placements.
+
+## Resource action placements
+
+Resource-specific actions are declared in `app/config/resource-actions/<resource>.ts`. Each action maps to one or more placements:
+
+```ts
+export const resourceActionPlacements = {
+  create: [
+    { type: ['table'], location: 'toolbar', component: 'CreateButton', method: null },
+  ],
+  edit_info: [
+    { type: ['table'], location: 'item-contextMenu', component: 'EditAction', method: 'open' },
+    { type: ['table'], location: 'item-rowDoubleClick', component: 'EditAction', method: 'open' },
+  ],
+}
+```
+
+- `type` — which view types the placement applies to (`table` for now).
+- `location` — `toolbar`, `item-contextMenu`, `item-rowDoubleClick`, or a wildcard like `item-*`.
+- `component` — the Vue component name that handles the action.
+- `method` — method to call on the component for indirect triggers (`null` for direct-render buttons).
+
+Action components receive an `ActionContext` prop and expose their trigger method via `defineExpose`. Toolbar placements render the component directly; row actions render inline; double-click actions are invoked through `ActionHost`.
 
 ## Full-text search
 
@@ -121,7 +168,21 @@ For the core model behind lookup columns, see [[Schema Registry Model]].
 
 ## Usage
 
-### Admin page
+### Resource-driven admin page
+
+```vue
+<template>
+  <ViewRenderer resource="admin_user_group" />
+</template>
+```
+
+The app must provide:
+
+- A resource type record in the catalog with `table` and `resourceType` on its default view.
+- A resource action placement config under `app/config/resource-actions/<resource>.ts`.
+- Action components registered so their names match the `component` values in the config.
+
+### Legacy admin page
 
 ```vue
 <script setup lang="ts">

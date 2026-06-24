@@ -1,10 +1,10 @@
 ---
 title: API
 type: package
-status: in-progress
+status: done
 area: architecture
 created: 2026-06-15
-updated: 2026-06-21
+updated: 2026-06-24
 related:
   - [[40-Packages/db]]
   - [[30-Apps/web]]

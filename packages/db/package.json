@@ -22,6 +22,10 @@
       "types": "./src/platform-status.ts",
       "default": "./src/platform-status.ts"
     },
+    "./resource-types": {
+      "types": "./src/resource-types.ts",
+      "default": "./src/resource-types.ts"
+    },
     "./schema-definitions": {
       "types": "./src/schema-definitions.ts",
       "default": "./src/schema-definitions.ts"

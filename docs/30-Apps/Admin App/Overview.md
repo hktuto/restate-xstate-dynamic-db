@@ -33,7 +33,7 @@ The superadmin Nuxt application for platform-level management.
 - Color mode is supported via Nuxt UI / `@nuxtjs/color-mode`. A light/dark toggle lives under **Appearance** in the profile dropdown menu.
 - Dashboard shows aggregate stats: companies, workflow designs, and triggers. The trigger count is derived from the number of `db_trigger` start rules across all platform workflow designs.
 - The `/users` page lists platform admin users, allows creating and editing them, and supports assigning users to multiple admin user groups via graph-edge memberships.
-- The `/user-groups` page manages admin user groups.
+- The `/user-groups` page renders admin user groups through the new `ViewRenderer` resource widget, with toolbar and row actions driven by the `admin_user_group` action placement config.
 - The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
 
 ## Routes

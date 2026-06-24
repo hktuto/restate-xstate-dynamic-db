@@ -9,6 +9,10 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const emit = defineEmits<{
+  (e: 'rowClick', row: Record<string, unknown>): void
+  (e: 'rowDoubleClick', row: Record<string, unknown>): void
+}>()
 
 const columnMap = computed(() => {
   const map = new Map<string, TableSchema['columns'][number]>()
@@ -136,7 +140,13 @@ function tagClasses(value: unknown, config?: Record<string, unknown>): string {
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
-        <tr v-for="(row, rowIndex) in rows" :key="rowIndex" class="hover:bg-gray-50">
+        <tr
+          v-for="(row, rowIndex) in rows"
+          :key="rowIndex"
+          class="hover:bg-gray-50"
+          @click="emit('rowClick', row)"
+          @dblclick="emit('rowDoubleClick', row)"
+        >
           <td
             v-for="{ config, key, column, displayType, resolve } in visibleColumns"
             :key="key"
@@ -159,6 +169,9 @@ function tagClasses(value: unknown, config?: Record<string, unknown>): string {
             <template v-else>
               {{ formatValue(resolve(row), displayType) }}
             </template>
+          </td>
+          <td v-if="$slots['row-actions']" class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+            <slot name="row-actions" :row="row" />
           </td>
         </tr>
         <tr v-if="rows.length === 0">
