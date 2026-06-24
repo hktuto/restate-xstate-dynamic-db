@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem, DropdownMenuItem } from '@nuxt/ui'
+import type { PageMeta } from '~/composables/usePageMeta'
 
 const auth = useAuth()
 const colorMode = useColorMode()
@@ -65,6 +66,10 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
     },
   }],
 ])
+
+const pageMeta = useState<PageMeta>('pageMeta')
+const title = computed(() => pageMeta.value.title ?? '')
+const icon = computed(() => pageMeta.value.icon ?? 'i-lucide-table')
 </script>
 
 <template>
@@ -109,6 +114,17 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
       </template>
     </UDashboardSidebar>
 
-    <slot />
+    <UDashboardPanel>
+      <template #header>
+        <UDashboardNavbar :title="title" :icon="icon">
+          <template #leading>
+            <UDashboardSidebarCollapse />
+          </template>
+        </UDashboardNavbar>
+      </template>
+      <template #body>
+        <slot />
+      </template>
+    </UDashboardPanel>
   </UDashboardGroup>
 </template>
