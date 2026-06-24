@@ -150,4 +150,16 @@ describe('buildQueryBody', () => {
       { relation: 'members', agg: 'count', as: 'Members Count' },
     ])
   })
+
+  it('omits empty filter and whitespace-only search', () => {
+    const runtime: RuntimeViewState = {
+      filter: { op: 'and', conditions: [] },
+      sort: [],
+      group: [],
+      columns: [],
+    }
+    const body = buildQueryBody(runtime, makeSchema(), 1, 25, { filter: runtime.filter, search: '   ' })
+    expect(body.filter).toBeUndefined()
+    expect(body.search).toBeUndefined()
+  })
 })
