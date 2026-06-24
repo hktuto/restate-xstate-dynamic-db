@@ -4,7 +4,7 @@ type: package
 status: in-progress
 area: architecture
 created: 2026-06-20
-updated: 2026-06-21
+updated: 2026-06-24
 related:
   - [[Data Model]]
   - [[Schema Registry Model]]

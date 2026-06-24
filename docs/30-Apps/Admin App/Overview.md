@@ -4,7 +4,7 @@ type: app
 status: done
 area: admin
 created: 2026-06-14
-updated: 2026-06-21
+updated: 2026-06-24
 app:
   - admin
 related:
@@ -34,8 +34,8 @@ The superadmin Nuxt application for platform-level management.
 - Dashboard shows aggregate stats: companies, workflow designs, and triggers. The trigger count is derived from the number of `db_trigger` start rules across all platform workflow designs.
 - The `/users` page lists platform admin users, allows creating and editing them, and supports assigning users to multiple admin user groups via graph-edge memberships.
 - The `/user-groups` page uses `PageRenderer` with the `admin_user_group` config, with toolbar and row actions driven by the `admin_user_group` action placement config.
-- The `/companies` page is migrated to `PageRenderer` with the `admin_company` config.
-- The `/workflow-designs` page is migrated to `PageRenderer` with the `admin_workflow_design` config.
+- The `/companies` page is migrated to `PageRenderer` with the `company` config.
+- The `/workflow-designs` page is migrated to `PageRenderer` with the `workflow_design` config.
 - The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
 
 ## Routes

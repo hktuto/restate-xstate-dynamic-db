@@ -7,13 +7,13 @@ app:
   - admin
   - web
 created: 2026-06-20
-updated: 2026-06-21
+updated: 2026-06-24
 related:
   - [[40-Packages/db]]
   - [[40-Packages/data-table-layer]]
   - [[Schema Registry Model]]
-  - [[30-Apps/Admin/Overview]]
-  - [[30-Apps/Web App/Overview]]
+  - [[30-Apps/Admin App/Overview|Admin App]]
+  - [[30-Apps/Web App/Overview|Web App]]
 ---
 
 # Views
