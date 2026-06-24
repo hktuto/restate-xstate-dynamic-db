@@ -33,8 +33,8 @@ function labelFor(column: string) {
 
 const relationColumns = computed(() =>
   props.schema.relations
-    .filter((r) => r.fromTable === props.schema.table.name)
-    .map((r) => r.fromColumn)
+    .filter((r) => r.kind === 'reference' && r.fromTable === props.schema.table.name && r.fromColumn)
+    .map((r) => r.fromColumn!)
 )
 
 const relationOptions = computed(() =>
