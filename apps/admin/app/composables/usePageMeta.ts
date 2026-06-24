@@ -1,4 +1,4 @@
-import { readonly, toRef, watch, type MaybeRef } from 'vue'
+import { onScopeDispose, readonly, toRef, watch, type MaybeRef } from 'vue'
 
 export interface PageMeta {
   title?: string
@@ -10,6 +10,8 @@ export function usePageMeta(meta: MaybeRef<PageMeta>) {
   const consumers = useState<number>('pageMetaConsumers', () => 0)
   const metaRef = toRef(meta)
 
+  consumers.value++
+
   watch(
     metaRef,
     (value) => {
@@ -18,16 +20,12 @@ export function usePageMeta(meta: MaybeRef<PageMeta>) {
     { immediate: true, deep: true },
   )
 
-  onMounted(() => {
-    consumers.value++
-  })
-
-  onUnmounted(() => {
+  onScopeDispose(() => {
     consumers.value = Math.max(0, consumers.value - 1)
     if (consumers.value === 0) {
       state.value = {}
     }
   })
 
-  return { state: readonly(state) }
+  return { pageMeta: readonly(state) }
 }
