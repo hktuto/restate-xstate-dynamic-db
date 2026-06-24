@@ -32,6 +32,7 @@ const error = ref('')
 const saveError = ref('')
 const appliedFilter = ref<FilterGroup>({ op: 'and', conditions: [] })
 const initializing = ref(false)
+const fetchReady = ref(false)
 const searchQuery = ref('')
 
 const { runtime, dirty, save: buildSaveView } = useDataToolbar(view, toRef(props, 'canUpdateView'))
@@ -58,18 +59,26 @@ async function loadViewAndSchema() {
   appliedFilter.value = view.value ? buildAppliedFilter() : { op: 'and', conditions: [] }
 }
 
-async function loadRecords() {
+const lastQueryBody = ref('')
+
+async function loadRecords(force = false) {
   if (!view.value) return
   refreshing.value = true
   error.value = ''
   try {
-    const body = buildQueryBody(runtime.value, 1, 25, { filter: appliedFilter.value, search: searchQuery.value })
+    if (!schema.value) return
+    const body = buildQueryBody(runtime.value, schema.value, 1, 25, { filter: appliedFilter.value, search: searchQuery.value })
+    const bodyKey = JSON.stringify(body)
+    if (!force && lastQueryBody.value === bodyKey) {
+      return
+    }
     const result = await api.fetch<{ records: Record<string, unknown>[]; total: number }>(
       `${tableBasePath()}/${props.table}/query`,
       { method: 'POST', body: JSON.stringify(body) }
     )
     rows.value = result.records
     total.value = result.total
+    lastQueryBody.value = bodyKey
   } catch (err: any) {
     error.value = err?.message ?? 'Failed to load records'
   } finally {
@@ -80,11 +89,14 @@ async function loadRecords() {
 async function load() {
   loading.value = true
   initializing.value = true
+  fetchReady.value = false
+  lastQueryBody.value = ''
   saveError.value = ''
   try {
     await loadViewAndSchema()
     await nextTick()
-    await loadRecords()
+    await loadRecords(true)
+    fetchReady.value = true
   } catch (err: any) {
     error.value = err?.message ?? 'Failed to load data'
   } finally {
@@ -93,22 +105,18 @@ async function load() {
   }
 }
 
-function refreshIfReady() {
-  if (initializing.value) return
-  return loadRecords()
-}
+let fetchTimeout: ReturnType<typeof setTimeout> | undefined
+onBeforeUnmount(() => clearTimeout(fetchTimeout))
 
-watch(appliedFilter, refreshIfReady, { deep: true })
-watch(() => runtime.value.sort, refreshIfReady, { deep: true })
-watch(() => runtime.value.columns, refreshIfReady, { deep: true })
-
-let searchTimeout: ReturnType<typeof setTimeout> | undefined
-onBeforeUnmount(() => clearTimeout(searchTimeout))
-watch(searchQuery, () => {
-  if (initializing.value) return
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => refreshIfReady(), 300)
-})
+watch(
+  [appliedFilter, () => runtime.value.sort, () => runtime.value.columns, searchQuery],
+  () => {
+    if (initializing.value || !fetchReady.value) return
+    clearTimeout(fetchTimeout)
+    fetchTimeout = setTimeout(() => loadRecords(), 300)
+  },
+  { deep: true },
+)
 
 async function handleSave() {
   saveError.value = ''

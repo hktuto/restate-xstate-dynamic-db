@@ -186,10 +186,11 @@ export interface TableSchema {
   relations: RelationRow[]
 }
 
-/** Defines a lookup from a relation column to a field on the related table. */
+/** Defines a lookup from a relation to a field or aggregate on the related side. */
 export interface TableColumnLookup {
-  from: string
-  field: string
+  relation: string
+  field?: string
+  agg?: 'count' | 'list'
 }
 
 /** Configuration for a single column inside a table view. */
@@ -203,11 +204,22 @@ export interface TableColumnConfig {
   config?: Record<string, unknown>
 }
 
-/** A single column projection sent to the table query endpoint. */
-export interface QueryProjectionColumn {
+/** A plain column projection sent to the table query endpoint. */
+export interface QueryPlainProjectionColumn {
   field: string
   as?: string
 }
+
+/** A lookup column projection sent to the table query endpoint. */
+export interface QueryLookupProjectionColumn {
+  relation: string
+  field?: string
+  agg?: 'count' | 'list'
+  as?: string
+}
+
+/** A single column projection sent to the table query endpoint. */
+export type QueryProjectionColumn = QueryPlainProjectionColumn | QueryLookupProjectionColumn
 
 /** Configuration for a table view. */
 export interface TableViewConfig {

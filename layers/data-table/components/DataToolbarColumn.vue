@@ -31,47 +31,79 @@ function labelFor(column: string) {
   return schemaColumns.find((s) => s.value === column)?.label ?? column
 }
 
-const relationColumns = computed(() =>
-  props.schema.relations
-    .filter((r) => r.kind === 'reference' && r.fromTable === props.schema.table.name && r.fromColumn)
-    .map((r) => r.fromColumn!)
-)
-
 const relationOptions = computed(() =>
-  relationColumns.value.map((name) => ({ label: labelFor(name), value: name }))
+  props.schema.relations
+    .filter((r) => {
+      if (r.kind === 'reference') return r.fromTable === props.schema.table.name && r.fromColumn
+      return (r.fromTable === props.schema.table.name || r.toTable === props.schema.table.name) && r.name
+    })
+    .map((r) => {
+      const isForward = r.fromTable === props.schema.table.name
+      const direction = isForward ? '→' : '←'
+      return {
+        label: `${r.name} ${direction} ${isForward ? r.toTable : r.fromTable}`,
+        value: r.name!,
+      }
+    })
 )
 
 const lookupFrom = ref<string>('')
 const lookupField = ref('name')
+const lookupAgg = ref<'list' | 'count' | ''>('')
+
+function selectedRelation() {
+  return props.schema.relations.find((r) => r.name === lookupFrom.value)
+}
 
 function columnKey(col: TableColumnConfig): string {
   if (col.type === 'lookup' && col.lookup) {
-    return `${col.lookup.from}.${col.lookup.field}`
+    const suffix = col.lookup.agg ?? col.lookup.field ?? ''
+    return `${col.lookup.relation}.${suffix}`
   }
   return col.column ?? ''
 }
 
 function displayLabel(col: TableColumnConfig): string {
   if (col.label) return col.label
-  if (col.type === 'lookup' && col.lookup) return `${col.lookup.from}.${col.lookup.field}`
+  if (col.type === 'lookup' && col.lookup) {
+    if (col.lookup.agg === 'count') return `${col.lookup.relation} count`
+    return `${col.lookup.relation}.${col.lookup.field ?? ''}`
+  }
   return labelFor(col.column ?? '')
 }
 
 function addLookup() {
-  if (!lookupFrom.value || !lookupField.value) return
-  const from = lookupFrom.value
-  const field = lookupField.value.trim()
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)) return
+  if (!lookupFrom.value) return
+  const relation = selectedRelation()
+  if (!relation) return
 
-  visibleColumns.value.push({
-    type: 'lookup',
-    lookup: { from, field },
-    label: `${labelFor(from)} ${field}`,
-    width: 'auto',
-    visible: true,
-  })
+  const agg = lookupAgg.value || undefined
+  const field = lookupField.value.trim() || undefined
+
+  if (agg === 'count') {
+    visibleColumns.value.push({
+      type: 'lookup',
+      lookup: { relation: lookupFrom.value, agg: 'count' },
+      label: `${lookupFrom.value} count`,
+      width: 'auto',
+      visible: true,
+    })
+  } else if (field) {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)) return
+    visibleColumns.value.push({
+      type: 'lookup',
+      lookup: { relation: lookupFrom.value, field, agg: agg === 'list' ? 'list' : undefined },
+      label: `${lookupFrom.value} ${field}`,
+      width: 'auto',
+      visible: true,
+    })
+  } else {
+    return
+  }
+
   emitColumns()
   lookupField.value = 'name'
+  lookupAgg.value = ''
 }
 
 let draggedColumn: TableColumnConfig | null = null
@@ -191,8 +223,18 @@ function show(col: TableColumnConfig) {
           <div class="text-xs font-medium text-gray-500 mb-1">Add lookup</div>
           <div class="space-y-2">
             <USelect v-model="lookupFrom" :options="relationOptions" placeholder="Relation" size="xs" />
-            <UInput v-model="lookupField" placeholder="Field (e.g. name)" size="xs" />
-            <UButton size="xs" color="neutral" :disabled="!lookupFrom || !lookupField" @click="addLookup">
+            <USelect
+              v-model="lookupAgg"
+              :options="[
+                { label: 'Single value', value: '' },
+                { label: 'List', value: 'list' },
+                { label: 'Count', value: 'count' },
+              ]"
+              placeholder="Aggregate"
+              size="xs"
+            />
+            <UInput v-model="lookupField" :disabled="lookupAgg === 'count'" placeholder="Field (e.g. name)" size="xs" />
+            <UButton size="xs" color="neutral" :disabled="!lookupFrom || (lookupAgg !== 'count' && !lookupField)" @click="addLookup">
               Add
             </UButton>
           </div>

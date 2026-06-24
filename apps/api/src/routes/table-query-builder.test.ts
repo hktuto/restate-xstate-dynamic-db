@@ -159,6 +159,60 @@ describe('buildTableQuery', () => {
     expect(query).toContain('SELECT * FROM members')
   })
 
+  it('resolves reference lookup projections from schema relations', () => {
+    const schema = {
+      table: { id: 'tables:members', name: 'members', label: 'Members' },
+      columns: [],
+      relations: [
+        { id: 'rel:1', kind: 'reference' as const, name: 'companyId', fromTable: 'members', fromColumn: 'companyId', toTable: 'companies', toColumn: 'id' },
+      ],
+    }
+    const { query } = buildTableQuery(
+      'members',
+      { columns: [{ relation: 'companyId', field: 'name', as: 'Company Name' }] },
+      undefined,
+      undefined,
+      schema
+    )
+    expect(query).toContain('companyId.name AS `Company Name`')
+  })
+
+  it('resolves graph list lookup projections from schema relations', () => {
+    const schema = {
+      table: { id: 'tables:members', name: 'members', label: 'Members' },
+      columns: [],
+      relations: [
+        { id: 'rel:g1', kind: 'graph' as const, name: 'members', fromTable: 'members', toTable: 'user_groups', linkTable: 'user_group_memberships' },
+      ],
+    }
+    const { query } = buildTableQuery(
+      'members',
+      { columns: [{ relation: 'members', field: 'name', agg: 'list', as: 'Groups' }] },
+      undefined,
+      undefined,
+      schema
+    )
+    expect(query).toContain('->user_group_memberships->user_groups.name AS `Groups`')
+  })
+
+  it('resolves graph count lookup projections from schema relations', () => {
+    const schema = {
+      table: { id: 'tables:user_groups', name: 'user_groups', label: 'User Groups' },
+      columns: [],
+      relations: [
+        { id: 'rel:g1', kind: 'graph' as const, name: 'members', fromTable: 'members', toTable: 'user_groups', linkTable: 'user_group_memberships' },
+      ],
+    }
+    const { query } = buildTableQuery(
+      'user_groups',
+      { columns: [{ relation: 'members', agg: 'count', as: 'Members Count' }] },
+      undefined,
+      undefined,
+      schema
+    )
+    expect(query).toContain('count(<-user_group_memberships<-members) AS `Members Count`')
+  })
+
   it('rejects invalid field names in filters', () => {
     expect(() =>
       buildTableQuery('members', {

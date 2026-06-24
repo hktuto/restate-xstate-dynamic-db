@@ -1,4 +1,4 @@
-import type { FilterGroup, QueryProjectionColumn, SortSetting, TableColumnConfig } from 'shared'
+import type { FilterGroup, QueryLookupProjectionColumn, QueryPlainProjectionColumn, QueryProjectionColumn, SortSetting, TableColumnConfig, TableSchema } from 'shared'
 import type { RuntimeViewState } from './view-state.js'
 
 export interface QueryBody {
@@ -10,21 +10,48 @@ export interface QueryBody {
   search?: string
 }
 
-function toProjectionColumn(col: TableColumnConfig): QueryProjectionColumn | null {
+function resolveLookup(
+  col: TableColumnConfig,
+  schema: TableSchema,
+): QueryLookupProjectionColumn | null {
+  if (col.type !== 'lookup' || !col.lookup) return null
+
+  const relation = schema.relations.find((r) => r.name === col.lookup!.relation)
+  if (!relation) return null
+
+  const projection: QueryLookupProjectionColumn = {
+    relation: col.lookup.relation,
+    as: col.label || col.lookup.relation,
+  }
+
+  if (relation.kind === 'reference') {
+    projection.field = col.lookup.field
+    return projection
+  }
+
+  if (relation.kind === 'graph') {
+    projection.field = col.lookup.field
+    projection.agg = col.lookup.agg
+    return projection
+  }
+
+  return null
+}
+
+function toProjectionColumn(col: TableColumnConfig, schema: TableSchema): QueryProjectionColumn | null {
   if (col.type === 'lookup' && col.lookup) {
-    return {
-      field: `${col.lookup.from}.${col.lookup.field}`,
-      as: col.label || `${col.lookup.from}.${col.lookup.field}`,
-    }
+    return resolveLookup(col, schema)
   }
   if (col.column) {
-    return { field: col.column }
+    const plain: QueryPlainProjectionColumn = { field: col.column }
+    return plain
   }
   return null
 }
 
 export function buildQueryBody(
   runtime: RuntimeViewState,
+  schema: TableSchema,
   page: number,
   pageSize: number,
   options?: { filter?: FilterGroup; search?: string },
@@ -42,7 +69,7 @@ export function buildQueryBody(
 
   const visibleColumns = runtime.columns.filter((c) => c.visible !== false)
   const projections = visibleColumns
-    .map(toProjectionColumn)
+    .map((col) => toProjectionColumn(col, schema))
     .filter((c): c is QueryProjectionColumn => c !== null)
 
   if (projections.length > 0) {

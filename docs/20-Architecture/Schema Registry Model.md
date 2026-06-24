@@ -104,19 +104,20 @@ Lookup columns are virtual. They don't exist in `_columns`. Instead they say:
 
 > "For this row, follow the relation named `profile` and display the `name` field of the related record."
 
-The frontend translates this into a query projection column:
+The frontend translates this into a structured query projection column:
 
 ```ts
-{ field: 'profileId.name', as: 'Profile Name' }
+// Reference relation
+{ relation: 'profileId', field: 'name', as: 'Profile Name' }
+
+// Graph relation
+{ relation: 'groups', field: 'name', agg: 'list', as: 'Groups' }
+
+// Graph count
+{ relation: 'members', agg: 'count', as: 'Members Count' }
 ```
 
-For graph relations it becomes:
-
-```ts
-{ field: '->admin_user_group_memberships->admin_user_groups.name', as: 'Groups' }
-```
-
-The query API receives the projection column, not the view-style lookup config.
+The query API receives the structured projection, not the view-style lookup config or raw SurrealDB syntax.
 
 ## Query translation flow
 
@@ -127,13 +128,13 @@ _views.config.table.columns
 buildQueryBody()
         │
         ▼
-QueryBody.columns[]   // { field, as }
+QueryBody.columns[]   // { field, as? } | { relation, field?, agg?, as? }
         │
         ▼
 POST /tables/:table/query
         │
         ▼
-table-query-builder.ts
+table-query-builder.ts resolves relations and emits
         │
         ▼
 SELECT field AS as, ... FROM table

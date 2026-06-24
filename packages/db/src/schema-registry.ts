@@ -280,6 +280,7 @@ export async function upsertRelation(
   const managed = surreal ?? (await getSurreal(namespace, database))
   try {
     await ensureRegistryTables(managed)
+    const name = input.name ?? input.fromColumn ?? input.linkTable
     const id =
       input.kind === 'graph'
         ? `_relations:⟨graph:${input.fromTable}:${input.linkTable}:${input.toTable}⟩`
@@ -299,7 +300,7 @@ export async function upsertRelation(
         updatedAt = $now,
         createdAt = IF missing THEN $now ELSE createdAt END
       `,
-      { ...input, now }
+      { ...input, name, now }
     )
     return { id }
   } finally {
@@ -545,6 +546,9 @@ export async function generateDefaultView(
       workflow_designs: 'name',
       platform_users: 'email',
       admin_user_groups: 'name',
+      permission_groups: 'name',
+      resources: 'name',
+      user_groups: 'name',
     }
 
     const RELATION_LABELS: Record<string, string | undefined> = {
@@ -557,6 +561,15 @@ export async function generateDefaultView(
       accountId: 'Account',
       platformUserId: 'Platform User',
       instanceId: 'Instance',
+      groups: 'Groups',
+      members: 'Members',
+      assignments: 'Permission Groups',
+      parents: 'Parents',
+      permissions: 'Resources',
+    }
+
+    function capitalize(str: string): string {
+      return str.charAt(0).toUpperCase() + str.slice(1)
     }
 
     const baseColumns = schema.columns
@@ -579,11 +592,34 @@ export async function generateDefaultView(
       const prefix = RELATION_LABELS[relation.fromColumn] ?? relation.fromColumn
       columns.push({
         type: 'lookup',
-        lookup: { from: relation.fromColumn, field },
+        lookup: { relation: relation.fromColumn, field },
         label: `${prefix} ${field === 'email' ? 'Email' : 'Name'}`,
         width: 'auto',
         visible: true,
       })
+    }
+
+    for (const relation of schema.relations ?? []) {
+      if (relation.kind !== 'graph' || !relation.name) continue
+      if (relation.fromTable === tableName) {
+        const field = LOOKUP_FIELDS[relation.toTable] ?? 'name'
+        columns.push({
+          type: 'lookup',
+          lookup: { relation: relation.name, field, agg: 'list' },
+          label: RELATION_LABELS[relation.name] ?? capitalize(relation.name),
+          width: 'auto',
+          visible: true,
+        })
+      }
+      if (relation.toTable === tableName) {
+        columns.push({
+          type: 'lookup',
+          lookup: { relation: relation.name, agg: 'count' },
+          label: `${RELATION_LABELS[relation.name] ?? capitalize(relation.name)} Count`,
+          width: 'auto',
+          visible: true,
+        })
+      }
     }
 
     const data = {
@@ -666,7 +702,7 @@ export async function upsertView(
     const [columns, relations] = (await managed.query(
       `
       SELECT * FROM _columns WHERE table = $tableName;
-      SELECT * FROM _relations WHERE fromTable = $tableName;
+      SELECT * FROM _relations WHERE fromTable = $tableName OR toTable = $tableName;
       `,
       { tableName: merged.table }
     )) as [ColumnRow[], RelationRow[]]
@@ -674,16 +710,27 @@ export async function upsertView(
     for (const col of columns ?? []) {
       columnNames.add(col.name)
     }
-    const relationColumns = new Set((relations ?? []).map((r) => r.fromColumn))
+    const relationByName = new Map(
+      (relations ?? []).map((r) => [r.name ?? r.fromColumn ?? r.linkTable ?? '', r])
+    )
 
     const VALID_LOOKUP_FIELD = /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/
     for (const col of merged.config?.table?.columns ?? []) {
       if (col.type === 'lookup') {
-        if (!col.lookup?.from || !relationColumns.has(col.lookup.from)) {
-          throw new Error(`Lookup column references unknown relation: ${col.lookup?.from}`)
+        const lookup = col.lookup
+        if (!lookup) {
+          throw new Error('Lookup column is missing lookup configuration')
         }
-        if (!col.lookup.field || !VALID_LOOKUP_FIELD.test(col.lookup.field)) {
-          throw new Error(`Invalid lookup field: ${col.lookup?.field}`)
+        const relationName = lookup.relation
+        const relation = relationByName.get(relationName)
+        if (!relation || !relationName) {
+          throw new Error(`Lookup column references unknown relation: ${relationName}`)
+        }
+        if (lookup.agg !== 'count' && !lookup.field) {
+          throw new Error(`Lookup column requires a field: ${relationName}`)
+        }
+        if (lookup.field && !VALID_LOOKUP_FIELD.test(lookup.field)) {
+          throw new Error(`Invalid lookup field: ${lookup.field}`)
         }
         continue
       }

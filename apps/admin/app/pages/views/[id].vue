@@ -152,13 +152,18 @@ await loadView()
           <ul class="space-y-2">
             <li
               v-for="(col, index) in view.config?.table?.columns"
-              :key="col.type === 'lookup' ? `${col.lookup?.from}.${col.lookup?.field}` : col.column"
+              :key="col.type === 'lookup' ? `${col.lookup?.relation}.${col.lookup?.agg ?? col.lookup?.field ?? ''}` : col.column"
               class="flex items-center gap-4 p-3 bg-white rounded border"
             >
               <input v-model="col.visible" type="checkbox" />
               <div class="flex-1">
                 <div class="font-medium">
-                  {{ col.type === 'lookup' ? `${col.lookup?.from}.${col.lookup?.field}` : col.column }}
+                  <template v-if="col.type === 'lookup'">
+                    {{ col.lookup?.relation }}
+                    <span v-if="col.lookup?.agg">({{ col.lookup.agg }})</span>
+                    <span v-else-if="col.lookup?.field">.{{ col.lookup.field }}</span>
+                  </template>
+                  <template v-else>{{ col.column }}</template>
                 </div>
                 <input v-model="col.label" type="text" placeholder="Label" class="text-sm border rounded px-2 py-1 mt-1" />
               </div>

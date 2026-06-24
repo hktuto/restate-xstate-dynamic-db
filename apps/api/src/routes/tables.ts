@@ -27,7 +27,7 @@ async function runTableQuery(namespace: string, database: string, table: string,
           !c.system && !c.hidden && ['text', 'email', 'url', 'richText'].includes(c.displayType))
         .map((c: { name: string }) => c.name) ?? []
     )
-    const { query, vars } = buildTableQuery(table, body, columnNames, textFields)
+    const { query, vars } = buildTableQuery(table, body, columnNames, textFields, schema)
     const [records, totalResult] = await surreal.query(query, vars)
     const total = (totalResult as any[])[0]?.total ?? 0
     return { records, total }

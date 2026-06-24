@@ -78,17 +78,26 @@ interface TableViewConfig {
 interface TableColumnConfig {
   type?: 'column' | 'lookup'
   column?: string
-  lookup?: { from: string; field: string }
+  lookup?: { relation: string; field?: string; agg?: 'count' | 'list' }
   label?: string
   width?: 'auto' | number
   visible?: boolean
   config?: Record<string, unknown>
 }
 
-interface QueryProjectionColumn {
+interface QueryPlainProjectionColumn {
   field: string
   as?: string
 }
+
+interface QueryLookupProjectionColumn {
+  relation: string
+  field?: string
+  agg?: 'count' | 'list'
+  as?: string
+}
+
+type QueryProjectionColumn = QueryPlainProjectionColumn | QueryLookupProjectionColumn
 ```
 
 ## APIs
@@ -119,7 +128,7 @@ interface QueryBody {
 
 - `filter` is translated into a SurrealDB `WHERE` clause.
 - `sort` is translated into an `ORDER BY` clause.
-- `columns` controls the `SELECT` projection; each item becomes `field AS as` (or just `field` when no alias). `id` is always included.
+- `columns` controls the `SELECT` projection. Plain items become `field AS as`; lookup items reference a `_relations` row by name and are resolved to the correct SurrealDB expression server-side. `id` is always included.
 - Unsupported operators or invalid field names are rejected before the query runs.
 
 ## Display types

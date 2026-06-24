@@ -149,7 +149,7 @@ Instances reference a `workflow_designs` record via `designId`, store the curren
   - `deleteView(namespace, database, viewId)`
   - `generateDefaultView(namespace, database, tableName)`
 
-Views are stored in the `_views` system table and referenced by auto-generated Surreal record IDs. The registry enforces table existence, valid column references, and a single default view per table. View lookup columns reference `_relations` by name; they are translated to query projection columns (`field`/`as`) before the query runs. See [[Schema Registry Model]].
+Views are stored in the `_views` system table and referenced by auto-generated Surreal record IDs. The registry enforces table existence, valid column references, and a single default view per table. View lookup columns reference `_relations` by name; they are translated to structured query projection columns before the query runs. See [[Schema Registry Model]].
 
 ### User tasks
 

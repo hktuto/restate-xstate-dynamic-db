@@ -511,12 +511,13 @@ describe('schema-registry', () => {
           table: {
             columns: [
               { column: 'email', visible: true },
-              { type: 'lookup', lookup: { from: 'profileId', field: 'name' }, label: 'Profile Name', visible: true },
+              { type: 'lookup', lookup: { relation: 'profileId', field: 'name' }, label: 'Profile Name', visible: true },
             ],
           },
         },
       })
       expect(view.config.table?.columns).toHaveLength(2)
+      expect(view.config.table?.columns[1]?.lookup?.relation).toBe('profileId')
       expect(view.config.table?.columns[1]?.lookup?.field).toBe('name')
     })
 
@@ -529,7 +530,7 @@ describe('schema-registry', () => {
           config: {
             table: {
               columns: [
-                { type: 'lookup', lookup: { from: 'email', field: 'name' }, visible: true },
+                { type: 'lookup', lookup: { relation: 'email', field: 'name' }, visible: true },
               ],
             },
           },

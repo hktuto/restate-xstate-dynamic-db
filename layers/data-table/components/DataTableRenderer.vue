@@ -34,14 +34,15 @@ const visibleColumns = computed<VisibleColumn[]>(() => {
     if (config.visible === false) continue
 
     if (config.type === 'lookup' && config.lookup) {
-      const fieldPath = `${config.lookup.from}.${config.lookup.field}`
-      const alias = config.label || fieldPath
+      const alias = config.label || config.lookup.relation
+      const fieldSuffix = config.lookup.agg === 'count' ? '' : `.${config.lookup.field ?? ''}`
+      const label = config.label || `${config.lookup.relation}${fieldSuffix}${config.lookup.agg ? ` (${config.lookup.agg})` : ''}`
       result.push({
-        key: fieldPath,
+        key: alias,
         config,
-        label: config.label || fieldPath,
+        label,
         displayType: 'text',
-        resolve: (row) => row[alias] ?? row[fieldPath],
+        resolve: (row) => row[alias],
       })
       continue
     }
@@ -72,6 +73,9 @@ function formatValue(value: unknown, displayType: string): string {
   }
   if (displayType === 'checkbox') {
     return value ? 'Yes' : 'No'
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => (v === null || v === undefined ? '' : String(v))).filter(Boolean).join(', ')
   }
   if (typeof value === 'object') {
     return JSON.stringify(value)

@@ -101,7 +101,7 @@ Lookup columns are virtual view columns that fetch a field from a related record
 interface TableColumnConfig {
   type?: 'column' | 'lookup'
   column?: string
-  lookup?: { from: string; field: string }
+  lookup?: { relation: string; field?: string; agg?: 'count' | 'list' }
   label?: string
   width?: 'auto' | number
   visible?: boolean
@@ -109,13 +109,13 @@ interface TableColumnConfig {
 }
 ```
 
-The frontend translates a lookup column into a query projection column:
+The frontend translates a lookup column into a structured query projection column. Examples:
 
-```ts
-{ field: 'companyId.name', as: 'Company' }
-```
+- Reference lookup: `{ relation: 'companyId', field: 'name' }` → `{ relation: 'companyId', field: 'name', as: 'Company' }`
+- Graph list lookup: `{ relation: 'groups', field: 'name', agg: 'list' }` → `{ relation: 'groups', field: 'name', agg: 'list', as: 'Groups' }`
+- Graph count lookup: `{ relation: 'members', agg: 'count' }` → `{ relation: 'members', agg: 'count', as: 'Members count' }`
 
-The backend query builder emits `SELECT companyId.name AS \`Company\``. Results are rendered using the alias as the result key.
+The backend query builder resolves the relation from the schema and emits the corresponding SurrealDB projection (e.g. `companyId.name`, `->edge->table.field`, or `count(<-edge<-table)`). Results are rendered using the alias as the result key; `list` aggregates are rendered as comma-separated values.
 
 For the core model behind lookup columns, see [[Schema Registry Model]].
 

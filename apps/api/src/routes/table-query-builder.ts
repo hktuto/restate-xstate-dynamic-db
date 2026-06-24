@@ -1,4 +1,4 @@
-import type { FilterCondition, FilterGroup, QueryProjectionColumn, SortSetting } from 'shared'
+import type { FilterCondition, FilterGroup, QueryLookupProjectionColumn, QueryProjectionColumn, RelationRow, SortSetting, TableSchema } from 'shared'
 
 export interface QueryBody {
   page?: number
@@ -100,16 +100,59 @@ function buildSort(sort: SortSetting[]): string {
     .join(', ')
 }
 
-function buildProjection(columns: QueryProjectionColumn[], sortFields: string[]): string {
+function isProjectionExpression(field: string): boolean {
+  return field.includes('(') || field.includes('->') || field.includes('<-')
+}
+
+function resolveLookupExpression(col: QueryLookupProjectionColumn, tableName: string, schema?: TableSchema | null): string {
+  if (!schema) {
+    throw new Error(`Lookup column requires schema: ${col.relation}`)
+  }
+  const relation = schema.relations.find((r) => r.name === col.relation)
+  if (!relation) {
+    throw new Error(`Unknown relation in projection: ${col.relation}`)
+  }
+
+  if (relation.kind === 'reference') {
+    if (!relation.fromColumn || !col.field) {
+      throw new Error(`Reference lookup requires a field: ${col.relation}`)
+    }
+    return `${relation.fromColumn}.${col.field}`
+  }
+
+  if (relation.kind === 'graph' && relation.linkTable) {
+    const isForward = relation.fromTable === tableName
+    const traversal = isForward
+      ? `->${relation.linkTable}->${relation.toTable}`
+      : `<-${relation.linkTable}<-${relation.fromTable}`
+    if (col.agg === 'count') {
+      return `count(${traversal})`
+    }
+    if (col.field) {
+      return `${traversal}.${col.field}`
+    }
+  }
+
+  throw new Error(`Invalid lookup projection: ${col.relation}`)
+}
+
+function buildProjection(columns: QueryProjectionColumn[], sortFields: string[], tableName: string, schema?: TableSchema | null): string {
   const items = new Set<string>()
 
   for (const col of columns) {
-    if (!col.field) continue
-    assertField(col.field, 'columns')
-    if (col.as) {
-      items.add(`${buildField(col.field)} AS \`${sanitizeAlias(col.as)}\``)
-    } else {
-      items.add(buildField(col.field))
+    if ('relation' in col) {
+      const expr = resolveLookupExpression(col, tableName, schema)
+      const alias = col.as || col.relation
+      items.add(`${expr} AS \`${sanitizeAlias(alias)}\``)
+    } else if ('field' in col && col.field) {
+      if (!isProjectionExpression(col.field)) {
+        assertField(col.field, 'columns')
+      }
+      if (col.as) {
+        items.add(`${buildField(col.field)} AS \`${sanitizeAlias(col.as)}\``)
+      } else {
+        items.add(buildField(col.field))
+      }
     }
   }
 
@@ -123,7 +166,7 @@ function buildProjection(columns: QueryProjectionColumn[], sortFields: string[])
   return selected.includes('id') ? selected.join(', ') : `id, ${selected.join(', ')}`
 }
 
-export function buildTableQuery(table: string, body: QueryBody, validFields?: Set<string>, textFields?: Set<string>): BuildResult {
+export function buildTableQuery(table: string, body: QueryBody, validFields?: Set<string>, textFields?: Set<string>, schema?: TableSchema | null): BuildResult {
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
     throw new Error(`Invalid table name: ${table}`)
   }
@@ -149,9 +192,9 @@ export function buildTableQuery(table: string, body: QueryBody, validFields?: Se
   const sortSettings = body.sort?.filter((s) => !validFields || validFields.has(s.field)) ?? []
   const orderBy = sortSettings.length > 0 ? buildSort(sortSettings) : ''
   const projection = body.columns && body.columns.length > 0
-    ? buildProjection(body.columns, sortSettings.map((s) => s.field))
+    ? buildProjection(body.columns, sortSettings.map((s) => s.field), table, schema)
     : sortSettings.length > 0
-      ? buildProjection([], sortSettings.map((s) => s.field))
+      ? buildProjection([], sortSettings.map((s) => s.field), table, schema)
       : '*'
 
   const whereSql = combinedWhere ? `WHERE ${combinedWhere}` : ''
