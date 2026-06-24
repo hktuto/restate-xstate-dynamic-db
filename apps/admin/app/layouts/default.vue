@@ -68,7 +68,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
   }],
 ])
 
-const pageMeta = useState<PageMeta>('pageMeta')
+const pageMeta = useState<PageMeta>('pageMeta', () => ({}))
 const title = computed(() => unref(pageMeta.value.title) ?? '')
 const icon = computed(() => pageMeta.value.icon ?? 'i-lucide-table')
 </script>
