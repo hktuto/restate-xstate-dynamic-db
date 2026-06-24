@@ -19,7 +19,7 @@ async function open() {
   loading.value = true
   try {
     const api = useApi()
-    await api.fetch(`/api/admin/users/${props.context.record.id}`, { method: 'DELETE' })
+    await api.fetch(`/api/admin/platform-users/${props.context.record.id}`, { method: 'DELETE' })
     props.context.refresh?.()
   } catch (err: any) {
     alert(err?.message ?? 'Failed to delete user')
