@@ -2,7 +2,6 @@
 import type { ActionContext } from '../types'
 
 const props = defineProps<{ context: ActionContext }>()
-const emit = defineEmits(['success'])
 
 const { can } = useAdminPermission()
 const allowed = ref(false)
@@ -21,7 +20,7 @@ async function open() {
   try {
     const api = useApi()
     await api.fetch(`/api/admin/admin-user-groups/${props.context.record.id}`, { method: 'DELETE' })
-    emit('success')
+    props.context.refresh?.()
   } catch (err: any) {
     alert(err?.message ?? 'Failed to delete group')
   } finally {
