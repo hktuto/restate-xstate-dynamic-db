@@ -99,7 +99,7 @@ async function handleSave() {
   try {
     await api.fetch(`${viewBasePath()}/${updated.id}`, {
       method: 'PATCH',
-      body: JSON.stringify(updated),
+      body: updated,
     })
     clearTimeout(fetchTimeout)
     await loadRecords()
@@ -160,19 +160,19 @@ watch(
       :permissions-edit-link="permissionsEditLink()"
       @save="handleSave"
       @apply-filter="appliedFilter = buildAppliedFilter()"
-    />
+    >
+      <template #toolbar-actions>
+        <component
+          v-for="action in actions.toolbar"
+          :key="action.component"
+          :is="action.component"
+          :context="buildActionContext(action.action)"
+        />
+      </template>
+    </DataToolbar>
 
     <div v-if="saveError" class="text-sm text-red-600">
       {{ saveError }}
-    </div>
-
-    <div v-if="actions.toolbar.length" class="flex items-center gap-2">
-      <component
-        v-for="action in actions.toolbar"
-        :key="action.component"
-        :is="action.component"
-        :context="buildActionContext(action.action)"
-      />
     </div>
 
     <div v-if="error" class="text-red-600 text-sm">
