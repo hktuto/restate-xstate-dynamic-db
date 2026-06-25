@@ -1,4 +1,5 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
+import { promisify } from 'node:util'
 
 const SALT_BYTES = 16
 const KEYLEN = 32
@@ -37,19 +38,12 @@ function parseHash(hashed: string): ParsedHash | null {
   return { N, r, p, salt: parts[3]!, hash }
 }
 
-function scryptAsync(
+const scryptAsync = promisify(scrypt) as (
   password: string,
   salt: string,
   keylen: number,
   options: { N: number; r: number; p: number },
-): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    scrypt(password, salt, keylen, options, (err, derivedKey) => {
-      if (err) reject(err)
-      else resolve(derivedKey)
-    })
-  })
-}
+) => Promise<Buffer>
 
 export async function hashPassword(plain: string): Promise<string> {
   const salt = randomBytes(SALT_BYTES).toString('base64')

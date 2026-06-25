@@ -26,10 +26,6 @@
       "types": "./src/resource-types.ts",
       "default": "./src/resource-types.ts"
     },
-    "./schema-definitions": {
-      "types": "./src/schema-definitions.ts",
-      "default": "./src/schema-definitions.ts"
-    },
     "./schema-registry": {
       "types": "./src/schema-registry.ts",
       "default": "./src/schema-registry.ts"

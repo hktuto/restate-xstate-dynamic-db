@@ -15,7 +15,7 @@ import {
   deleteView,
 } from '../src/schema-registry.js'
 import { getSurreal, closeSurreal } from '../src/client.js'
-import { SYSTEM_COLUMNS } from '../src/schema-definitions.js'
+import { SYSTEM_COLUMNS } from '../src/schema-registry.js'
 import { uniqueTenantName } from './helpers.js'
 
 describe('schema-registry', () => {

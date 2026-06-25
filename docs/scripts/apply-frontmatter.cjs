@@ -11,22 +11,20 @@
 
 const fs = require('fs')
 const path = require('path')
+const { isDeepStrictEqual } = require('util')
 
 const DOCS_ROOT = path.resolve(__dirname, '..')
 const FORCE = process.argv.includes('--force')
 
-function walk(dir, files = []) {
-  for (const entry of fs.readdirSync(dir)) {
-    const full = path.join(dir, entry)
-    const stat = fs.statSync(full)
-    if (stat.isDirectory()) {
-      if (entry === '.obsidian' || entry === 'scripts' || entry === '90-Templates') continue
-      walk(full, files)
-    } else if (stat.isFile() && entry.endsWith('.md')) {
-      files.push(full)
-    }
-  }
-  return files
+function walk(dir) {
+  const skipDirs = ['.obsidian', 'scripts', '90-Templates']
+  return fs.readdirSync(dir, { recursive: true })
+    .map(entry => path.join(dir, entry))
+    .filter(full => {
+      if (!fs.statSync(full).isFile() || !full.endsWith('.md')) return false
+      const rel = path.relative(dir, full).replace(/\\/g, '/')
+      return !skipDirs.some(skip => rel.startsWith(skip + '/') || rel === skip)
+    })
 }
 
 function extractFirstHeading(content) {
@@ -70,26 +68,6 @@ function parseExistingFrontmatter(content) {
   return result
 }
 
-function frontmatterEqual(a, b) {
-  const keysA = Object.keys(a)
-  const keysB = Object.keys(b)
-  if (keysA.length !== keysB.length) return false
-  for (const key of keysA) {
-    if (!keysB.includes(key)) return false
-    const va = a[key]
-    const vb = b[key]
-    if (Array.isArray(va) && Array.isArray(vb)) {
-      if (va.length !== vb.length) return false
-      for (let i = 0; i < va.length; i++) {
-        if (va[i] !== vb[i]) return false
-      }
-    } else if (va !== vb) {
-      return false
-    }
-  }
-  return true
-}
-
 function extractTags(content) {
   const tags = new Set()
   const matches = content.matchAll(/#([a-zA-Z0-9_/-]+)/g)
@@ -107,18 +85,6 @@ function extractWikilinks(content) {
   const matches = content.matchAll(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g)
   for (const m of matches) links.add(`[[${m[1].trim()}]]`)
   return Array.from(links)
-}
-
-function inferStatus(tags, defaults, relPath, existingStatus) {
-  if (existingStatus) return existingStatus
-  const override = STATUS_OVERRIDES[relPath]
-  if (override) return override
-  const statusTag = tagValue(tags, 'status')
-  if (statusTag === 'active') return 'in-progress'
-  if (statusTag === 'blocker') return 'in-progress'
-  if (statusTag === 'deprecated') return 'idle'
-  if (statusTag === 'idea') return 'planned'
-  return statusTag || defaults.status
 }
 
 const AREA_OVERRIDES = {
@@ -320,10 +286,6 @@ function startsWithFrontmatter(content) {
   return trimmed.startsWith('---\n') || trimmed.startsWith('---\r\n')
 }
 
-function hasFrontmatter(content) {
-  return startsWithFrontmatter(content)
-}
-
 function stripOneFrontmatter(content) {
   const trimmed = content.trimStart()
   if (!startsWithFrontmatter(trimmed)) return content
@@ -333,13 +295,7 @@ function stripOneFrontmatter(content) {
 }
 
 function stripExistingFrontmatter(content) {
-  let previous
-  let current = content
-  do {
-    previous = current
-    current = stripOneFrontmatter(previous)
-  } while (current !== previous)
-  return current
+  return stripOneFrontmatter(content)
 }
 
 function protectCodeBlocks(content) {
@@ -379,7 +335,7 @@ function processFile(file) {
   let content = fs.readFileSync(file, 'utf8')
   const existing = parseExistingFrontmatter(content)
 
-  if (hasFrontmatter(content) && !FORCE) {
+  if (startsWithFrontmatter(content) && !FORCE) {
     console.log(`skip  ${relPath}`)
     return
   }
@@ -390,7 +346,7 @@ function processFile(file) {
   // updated), leave it alone so created/updated dates and the git diff stay clean.
   if (existing) {
     const compareFm = { ...fm, updated: existing.updated }
-    if (frontmatterEqual(compareFm, existing)) {
+    if (isDeepStrictEqual(compareFm, existing)) {
       console.log(`skip  ${relPath}`)
       return
     }

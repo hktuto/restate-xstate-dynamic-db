@@ -1,10 +1,10 @@
 ---
 title: PageRenderer migration design
-type: spec
-status: planned
-area: admin
+type: note
+status: in-progress
+area: docs
 created: 2026-06-21
-updated: 2026-06-21
+updated: 2026-06-25
 related:
   - [[50-Features/Resource Actions]]
   - [[50-Features/Views]]

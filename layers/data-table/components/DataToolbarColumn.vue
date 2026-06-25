@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useSortable } from '@vueuse/integrations/useSortable'
-import type { UseSortableOptions } from '@vueuse/integrations/useSortable'
-import type { SortableEvent } from 'sortablejs'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import Sortable from 'sortablejs'
+import type { Options as SortableOptions, SortableEvent } from 'sortablejs'
 import type { TableColumnConfig, TableSchema } from 'shared'
 
 interface Props {
@@ -108,7 +107,7 @@ function addLookup() {
 
 let draggedColumn: TableColumnConfig | null = null
 
-function makeOptions(list: 'visible' | 'hidden'): UseSortableOptions {
+function makeOptions(list: 'visible' | 'hidden'): SortableOptions {
   const isVisible = list === 'visible'
   const source = isVisible ? visibleColumns : hiddenColumns
 
@@ -117,7 +116,6 @@ function makeOptions(list: 'visible' | 'hidden'): UseSortableOptions {
     ghostClass: 'bg-blue-50',
     handle: '.drag-handle',
     group: 'columns',
-    watchElement: true,
     onStart: () => {
       draggedColumn = null
     },
@@ -152,8 +150,22 @@ function makeOptions(list: 'visible' | 'hidden'): UseSortableOptions {
 const visibleEl = ref<HTMLElement | null>(null)
 const hiddenEl = ref<HTMLElement | null>(null)
 
-useSortable(visibleEl, visibleColumns, makeOptions('visible'))
-useSortable(hiddenEl, hiddenColumns, makeOptions('hidden'))
+let visibleSortable: Sortable | undefined
+let hiddenSortable: Sortable | undefined
+
+function createSortable(el: HTMLElement | null, list: 'visible' | 'hidden', existing?: Sortable) {
+  if (!el) return existing
+  existing?.destroy()
+  return Sortable.create(el, makeOptions(list))
+}
+
+watch(visibleEl, (el) => { visibleSortable = createSortable(el, 'visible', visibleSortable) })
+watch(hiddenEl, (el) => { hiddenSortable = createSortable(el, 'hidden', hiddenSortable) })
+
+onBeforeUnmount(() => {
+  visibleSortable?.destroy()
+  hiddenSortable?.destroy()
+})
 
 function hide(col: TableColumnConfig) {
   const key = columnKey(col)

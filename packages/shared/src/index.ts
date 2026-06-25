@@ -1,4 +1,4 @@
-export * from './permissions.js'
+export * from './resource-catalog.js'
 export type { AccessTokenPayload } from './session.js'
 
 export interface CompanyRecord {
@@ -104,9 +104,6 @@ export interface WaitForWorkflowRequest {
   timeout?: number
   event?: string
 }
-
-/** @deprecated Use `CreateWorkflowRequest` instead. */
-export type ExecuteWorkflowRequest = CreateWorkflowRequest
 
 /** Supported SurrealDB column data types. */
 export interface ColumnDefinition {

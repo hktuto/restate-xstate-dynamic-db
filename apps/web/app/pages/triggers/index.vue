@@ -22,10 +22,7 @@ interface TriggerRow {
 }
 
 function generateUid() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return crypto.randomUUID()
 }
 
 /** Assign a local-only uid to each start rule for stable client-side keys. */

@@ -2,7 +2,7 @@
 import type { WorkflowDefinition } from 'shared'
 import type { EditorNode } from '../composables/types.js'
 import { useWorkflowEditor } from '../composables/useWorkflowEditor.js'
-import { useWorkflowActions } from '../composables/useWorkflowActions.js'
+import { actionsMetadata } from 'workflow-actions'
 import { useWorkflowValidator } from '../composables/useWorkflowValidator.js'
 import WorkflowToolbar from './WorkflowToolbar.vue'
 import WorkflowCanvas from './WorkflowCanvas.vue'
@@ -30,7 +30,7 @@ const definition = computed({
 })
 
 const editor = useWorkflowEditor({ definition, readonly: props.readonly })
-const { actions } = useWorkflowActions()
+const actions = actionsMetadata
 const { validate } = useWorkflowValidator()
 
 const canvasRef = ref<InstanceType<typeof WorkflowCanvas> | null>(null)

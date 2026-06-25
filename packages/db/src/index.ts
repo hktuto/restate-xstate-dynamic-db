@@ -1,7 +1,6 @@
 export { getSurreal, closeSurreal } from './client.js'
 export * from './tenant.js'
 export * from './schema-registry.js'
-export * from './schema-definitions.js'
 export * from './platform-status.js'
 export * from './resource-types.js'
 export * from './permission-resolver.js'

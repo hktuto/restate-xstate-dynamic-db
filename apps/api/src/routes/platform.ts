@@ -9,15 +9,4 @@ app.get('/platform-status', async (c) => {
     return c.json(await getPlatformStatus())
   })
 
-app.post('/webhook', async (c) => {
-    let body: unknown
-    try {
-      body = await c.req.json()
-    } catch {
-      return c.json({ ok: true })
-    }
-    console.log('[webhook received]', body)
-    return c.json({ ok: true })
-  })
-
 export const platformRoutes = app

@@ -1,13 +1,10 @@
 ---
 title: Resource Actions
 type: feature
-status: done
-area: admin
-app:
-  - admin
-  - web
+status: planned
+area: workflow
 created: 2026-06-21
-updated: 2026-06-24
+updated: 2026-06-25
 related:
   - [[50-Features/Views]]
   - [[40-Packages/data-table-layer]]

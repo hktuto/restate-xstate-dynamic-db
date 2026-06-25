@@ -2,7 +2,6 @@
   "name": "data-table-layer",
   "type": "module",
   "dependencies": {
-    "@vueuse/integrations": "^14.0.0",
     "shared": "workspace:*",
     "sortablejs": "^1.15.0"
   },

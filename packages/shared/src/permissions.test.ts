@@ -7,7 +7,7 @@ import {
   allActionsBitmask,
   defaultGroups,
   resourceType,
-} from './permissions.js'
+} from './resource-catalog.js'
 
 describe('permissions', () => {
   it('returns compound action values from the catalog', () => {

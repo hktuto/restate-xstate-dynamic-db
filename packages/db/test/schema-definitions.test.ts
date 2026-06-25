@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { GRAPH_RELATIONS, PLATFORM_TABLE_SCHEMAS, TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from '../src/schema-definitions.js'
+import { GRAPH_RELATIONS, PLATFORM_TABLE_SCHEMAS, TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from '../src/schema-registry.js'
 
 const VALID_DB_TYPES = [
   'string',
@@ -27,7 +27,7 @@ const VALID_DISPLAY_TYPES = [
   'tag',
 ] as const
 
-describe('schema-definitions', () => {
+describe('schema data', () => {
   it('includes companies and members', () => {
     expect(PLATFORM_TABLE_SCHEMAS.some((t) => t.name === 'companies')).toBe(true)
     expect(TENANT_TABLE_SCHEMAS.some((t) => t.name === 'members')).toBe(true)

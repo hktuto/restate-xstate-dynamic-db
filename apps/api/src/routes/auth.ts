@@ -130,13 +130,6 @@ async function startPlatformSession(
   return { access, refresh, platformSession }
 }
 
-async function revokePlatformSessionTree(platformSessionId: string) {
-  await revokePlatformSession('platform', platformSessionId)
-  // Best-effort: revoke linked tenant sessions across all known company namespaces.
-  // In practice a tenant session should be revoked per-company; sweeping all namespaces
-  // is left to a future cleanup job. For now we revoke when the company namespace is known.
-}
-
 const app = new Hono()
 
 app.post('/login', async (c) => {
@@ -247,7 +240,7 @@ app.post('/logout', async (c) => {
     if (accessToken) {
       const payload = verifyAccessTokenCookie(accessToken)
       if (payload?.sessionId) {
-        await revokePlatformSessionTree(payload.sessionId)
+        await revokePlatformSession('platform', payload.sessionId)
       }
     }
     clearTenantSession(c)

@@ -9,14 +9,11 @@
     "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "test": "vitest",
-    "test:ui": "vitest --ui",
     "db:seed": "pnpm -F db seed",
     "db:seed:workflows": "pnpm -F db seed:workflows",
     "restate:up": "docker compose up -d"
   },
   "devDependencies": {
-    "@vitest/ui": "^4.1.9",
-    "tsx": "^4.22.4",
     "vitest": "^4.1.9"
   }
 }

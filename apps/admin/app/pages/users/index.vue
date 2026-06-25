@@ -1,8 +1,23 @@
 <script setup lang="ts">
 usePageMeta({ title: 'Users', icon: 'i-lucide-users' })
-const config = useResourceCapabilities('admin_user')
+
+const { can } = useAdminPermission()
+const canUpdateView = ref(false)
+const canEditSchema = ref(false)
+const canManagePermissions = ref(false)
+
+onMounted(async () => {
+  canUpdateView.value = await can('admin_user', 'update_default_view_settings')
+  canEditSchema.value = await can('admin_user', 'edit_schema')
+  canManagePermissions.value = await can('admin_user', 'manage_permissions')
+})
 </script>
 
 <template>
-  <PageRenderer :config="config" />
+  <ViewRenderer
+    resource="admin_user"
+    :can-update-view="canUpdateView"
+    :can-edit-schema="canEditSchema"
+    :can-manage-permissions="canManagePermissions"
+  />
 </template>

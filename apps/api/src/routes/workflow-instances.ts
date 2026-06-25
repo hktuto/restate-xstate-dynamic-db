@@ -1,43 +1,59 @@
 import { Hono } from 'hono'
+import type { Context } from 'hono'
 import { updateWorkflowInstanceStatus, getWorkflowInstance, getWorkflowDesign } from 'db/tenant'
 import type { WorkflowInstanceStatus } from 'db/tenant'
+import { getPlatformWorkflowDesign } from 'db/platform'
 import { tenantAuth } from '../middleware/tenant.js'
-import type { TenantScope } from '../types.js'
+import type { AdminScope, TenantScope } from '../types.js'
 import { dispatchUserTrigger } from '../lib/dispatch.js'
 
 const VALID_STATUSES: WorkflowInstanceStatus[] = ['pending', 'running', 'waiting', 'done', 'error']
 
+export async function handleWorkflowTrigger(c: Context, mode: 'tenant' | 'platform') {
+  const scope = c.get('scope') as TenantScope | AdminScope
+  let body: { designId?: string; values?: unknown }
+  try {
+    body = await c.req.json<{ designId?: string; values?: unknown }>()
+  } catch {
+    return c.json({ error: 'Invalid JSON' }, 400)
+  }
+  if (!body.designId) return c.json({ error: 'designId required' }, 400)
+  if (typeof body.values !== 'object' || body.values === null) {
+    return c.json({ error: 'values must be an object' }, 400)
+  }
+
+  const design = mode === 'platform'
+    ? await getPlatformWorkflowDesign(body.designId)
+    : await getWorkflowDesign(scope.namespace, body.designId)
+  if (!design) return c.json({ error: 'Design not found' }, 404)
+
+  const rule = design.starts?.find((s) => s.type === 'user_trigger')
+  if (!rule) return c.json({ error: 'Design has no user trigger' }, 400)
+
+  try {
+    const instance = await dispatchUserTrigger(
+      scope.namespace,
+      design,
+      rule,
+      body.values as Record<string, unknown>,
+      scope.type === 'admin' ? (scope as AdminScope).userId : (scope as TenantScope).profileId,
+      scope.database,
+      mode === 'platform' ? 'platform' : 'tenant'
+    )
+    return c.json({ id: instance.id })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.startsWith('Missing required input:')) {
+      return c.json({ error: message }, 400)
+    }
+    throw err
+  }
+}
+
 const app = new Hono()
 
 app.post('/', tenantAuth, async (c) => {
-    const scope = c.get('scope') as TenantScope
-    let body: { designId?: string; values?: unknown }
-    try {
-      body = await c.req.json<{ designId?: string; values?: unknown }>()
-    } catch {
-      return c.json({ error: 'Invalid JSON' }, 400)
-    }
-    if (!body.designId) return c.json({ error: 'designId required' }, 400)
-    if (typeof body.values !== 'object' || body.values === null) {
-      return c.json({ error: 'values must be an object' }, 400)
-    }
-
-    const design = await getWorkflowDesign(scope.namespace, body.designId)
-    if (!design) return c.json({ error: 'Design not found' }, 404)
-
-    const rule = design.starts?.find((s) => s.type === 'user_trigger')
-    if (!rule) return c.json({ error: 'Design has no user trigger' }, 400)
-
-    try {
-      const instance = await dispatchUserTrigger(scope.namespace, design, rule, body.values as Record<string, unknown>, scope.profileId, scope.database)
-      return c.json({ id: instance.id })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      if (message.startsWith('Missing required input:')) {
-        return c.json({ error: message }, 400)
-      }
-      throw err
-    }
+    return handleWorkflowTrigger(c, 'tenant')
   })
 
 app.patch('/:id/status', async (c) => {

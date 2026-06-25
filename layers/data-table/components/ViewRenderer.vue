@@ -13,7 +13,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const api = useApi()
-const namespace = useNamespace()
+const namespace = { namespace: 'platform', database: 'admin' }
 const loadResourceActionPlacements = useResourceActionPlacements()
 const nsdb = computed(() => `${namespace.namespace}--${namespace.database}`)
 

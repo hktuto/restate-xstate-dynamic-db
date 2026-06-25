@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ActionContext } from '../types'
+import type { ActionContext } from 'shared'
 
 const props = defineProps<{ context: ActionContext }>()
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { WorkflowDefinition, StartRule, ActionInputMetadata } from 'shared'
-import { useWorkflowRun } from '../composables/useWorkflowRun.js'
+import { resolveInputs } from 'workflow-actions/catalog/resolve-inputs'
 import NestedFormInput from './NestedFormInput.vue'
 import { buildPayload } from './workflow-run-modal-helpers.js'
 
@@ -27,6 +28,7 @@ const loading = ref(false)
 const result = ref('')
 const error = ref('')
 const inputs = ref<ActionInputMetadata[]>([])
+const visibleInputs = computed(() => inputs.value.filter((i) => !i.hidden))
 const formValues = ref<Record<string, unknown>>({})
 
 function open() {
@@ -82,9 +84,8 @@ async function loadInputs() {
   }
 
   try {
-    const { visibleInputs } = await useWorkflowRun(props.namespace, props.definition, rule.startState, props.database)
-    inputs.value = visibleInputs.value
-    initFormValues(inputs.value)
+    inputs.value = await resolveInputs(props.namespace, props.definition, rule.startState, props.database)
+    initFormValues(visibleInputs.value)
   } catch (err) {
     reportError(err instanceof Error ? err.message : String(err))
   }
@@ -100,7 +101,7 @@ async function submit() {
   result.value = ''
   error.value = ''
 
-  const { values, errors } = buildPayload(inputs.value, formValues.value)
+  const { values, errors } = buildPayload(visibleInputs.value, formValues.value)
   const firstError = errors[0]
   if (firstError) {
     reportError(firstError)
@@ -111,7 +112,7 @@ async function submit() {
   try {
     const res = await api.fetch<{ id: string }>(`${props.apiBasePath}/workflow-instances`, {
       method: 'POST',
-      body: JSON.stringify({ designId: props.designId, values })
+      body: { designId: props.designId, values }
     })
     result.value = `Started instance ${res.id}`
     emit('success', res.id)
@@ -138,7 +139,7 @@ defineExpose({ open, close })
           No inputs required.
         </div>
 
-        <div v-for="input in inputs" :key="input.name" class="mb-4">
+        <div v-for="input in visibleInputs" :key="input.name" class="mb-4">
           <NestedFormInput :input="input" v-model="formValues[input.name]" />
         </div>
 

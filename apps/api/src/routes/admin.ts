@@ -22,7 +22,7 @@ import { listLatestHealthChecks, listHealthCheckHistoryForService, type HealthCh
 import { hashPassword } from 'shared/server'
 import { RESOURCE_CATALOG } from 'shared'
 import { adminAuth } from '../middleware/admin.js'
-import { requireAdminPermission, resolveAdminPermissions } from '../middleware/admin-permission.js'
+import { requireAdminPermission, resolveAdminPermissions } from '../middleware/permission.js'
 import type { AdminScope } from '../types.js'
 
 const DEFAULT_LIMIT = 20
@@ -74,16 +74,11 @@ app.get('/dashboard', requireAdminPermission('platform', 'view'), async (c) => {
   })
 
   // Platform users
-  function serializeUser(user: PlatformUserRecord) {
-    const { password: _, ...rest } = user
-    return rest
-  }
-
 app.get('/platform-users', requireAdminPermission('admin_user', 'view'), async (c) => {
     const users = await listPlatformUsers()
     const withGroups = await Promise.all(
       users.map(async (user) => ({
-        ...serializeUser(user),
+        ...(({ password: _, ...rest }) => rest)(user),
         groups: await listAdminUserGroupMemberships(user.id),
       }))
     )
@@ -94,7 +89,7 @@ app.get('/platform-users/:id', requireAdminPermission('admin_user', 'view'), asy
     const user = await getPlatformUserById(c.req.param('id'))
     if (!user) return c.json({ error: 'Not found' }, 404)
     const groups = await listAdminUserGroupMemberships(user.id)
-    return c.json({ ...serializeUser(user), groups })
+    return c.json({ ...(({ password: _, ...rest }) => rest)(user), groups })
   })
 
 app.post('/platform-users', requireAdminPermission('admin_user', 'create'), async (c) => {
@@ -118,7 +113,7 @@ app.post('/platform-users', requireAdminPermission('admin_user', 'create'), asyn
       await setAdminUserGroupMemberships(user.id, groupIds)
     }
     const groups = await listAdminUserGroupMemberships(user.id)
-    return c.json({ ...serializeUser(user), groups }, 201)
+    return c.json({ ...(({ password: _, ...rest }) => rest)(user), groups }, 201)
   })
 
 app.patch('/platform-users/:id', requireAdminPermission('admin_user', 'edit'), async (c) => {
@@ -145,7 +140,7 @@ app.patch('/platform-users/:id', requireAdminPermission('admin_user', 'edit'), a
     }
 
     const groups = await listAdminUserGroupMemberships(user.id)
-    return c.json({ ...serializeUser(user), groups })
+    return c.json({ ...(({ password: _, ...rest }) => rest)(user), groups })
   })
 
 app.delete('/platform-users/:id', requireAdminPermission('admin_user', 'delete'), async (c) => {

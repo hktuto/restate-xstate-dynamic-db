@@ -1,34 +1,18 @@
-export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
-  body?: BodyInit | Record<string, unknown> | unknown[] | object | null
-}
-
 export function useApi() {
   const config = useRuntimeConfig()
-  const baseUrl = config.public.apiUrl as string
   return {
-    async fetch<T = unknown>(path: string, init?: ApiFetchOptions): Promise<T> {
-      const body = init?.body
-      const serializedBody =
-        body && typeof body === 'object' && !(body instanceof FormData) && !(body instanceof Blob)
-          ? JSON.stringify(body)
-          : body
-      const res = await fetch(`${baseUrl}${path}`, {
-        ...init,
-        credentials: 'include',
-        body: serializedBody,
-        headers: {
-          ...(init?.headers ?? {}),
-          'Content-Type': 'application/json',
-        },
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        if (res.status === 401 && import.meta.client) {
-          await navigateTo('/login')
+    fetch: $fetch.create({
+      baseURL: config.public.apiUrl as string,
+      credentials: 'include',
+      onResponseError(context) {
+        const { response } = context
+        if (response?.status === 401 && import.meta.client) {
+          navigateTo('/login')
         }
-        throw new Error(body.error ?? `API error ${res.status}`)
-      }
-      return res.json() as Promise<T>
-    },
+        const body = response?._data as { error?: string } | undefined
+        const message = body?.error ?? `API error ${response?.status ?? 'unknown'}`
+        context.error = new Error(message)
+      },
+    }),
   }
 }

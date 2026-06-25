@@ -6,10 +6,6 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./meta": {
-      "types": "./src/meta.ts",
-      "default": "./src/meta.ts"
-    },
     "./runtime": {
       "types": "./src/runtime/index.ts",
       "default": "./src/runtime/index.ts"

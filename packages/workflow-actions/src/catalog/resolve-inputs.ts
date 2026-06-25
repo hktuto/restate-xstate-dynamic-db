@@ -1,6 +1,5 @@
-import type { WorkflowDefinition, ActionInputMetadata } from 'shared'
+import type { WorkflowDefinition, ActionInputMetadata, ColumnDefinition } from 'shared'
 import { getTableSchema } from 'db/schema-registry'
-import type { ColumnDefinition } from 'db/schema-definitions'
 
 import { actionsMetadata } from './actions.js'
 

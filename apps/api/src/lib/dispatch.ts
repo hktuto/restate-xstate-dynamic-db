@@ -9,18 +9,12 @@ import { notifyRuntimeCreate } from './notify-runtime.js'
 
 export type DispatchMode = 'tenant' | 'platform'
 
-export interface DispatchTriggerOptions {
-  skip?: boolean
-  companyId?: string
-  database?: string
-}
-
 export async function dispatchTrigger(
   namespace: string,
   tableName: string,
   crudEvent: string,
   record: Record<string, unknown>,
-  options: DispatchTriggerOptions = {},
+  options: { skip?: boolean; companyId?: string; database?: string } = {},
   mode: DispatchMode = 'tenant'
 ) {
   if (options.skip) return

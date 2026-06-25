@@ -120,22 +120,6 @@ function waitForConnection(key: string): Promise<Surreal> {
   })
 }
 
-export function configurePool(options: {
-  max?: number
-  idleTimeoutMs?: number
-  acquireTimeoutMs?: number
-  maxConnectionAgeMs?: number
-}): void {
-  if (options.max !== undefined) MAX_POOL_SIZE = options.max
-  if (options.idleTimeoutMs !== undefined) IDLE_TIMEOUT_MS = options.idleTimeoutMs
-  if (options.acquireTimeoutMs !== undefined) ACQUIRE_TIMEOUT_MS = options.acquireTimeoutMs
-  if (options.maxConnectionAgeMs !== undefined) MAX_CONNECTION_AGE_MS = options.maxConnectionAgeMs
-}
-
-if (process.env.VITEST) {
-  console.log('[db/client] SURREAL_URL =', SURREAL_URL)
-}
-
 export async function getSurreal(namespace?: string, database?: string): Promise<Surreal> {
   const ns = namespace || DEFAULT_NS
   const db = database || DEFAULT_DB

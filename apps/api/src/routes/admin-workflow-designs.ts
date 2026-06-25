@@ -8,7 +8,7 @@ import {
   deletePlatformWorkflowDesign,
 } from 'db/platform'
 import { adminAuth } from '../middleware/admin.js'
-import { requireAdminPermission } from '../middleware/admin-permission.js'
+import { requireAdminPermission } from '../middleware/permission.js'
 
 const app = new Hono()
 app.use(adminAuth())

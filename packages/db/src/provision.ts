@@ -1,6 +1,6 @@
 // packages/db/src/provision.ts
 import { getSurreal, closeSurreal } from './client.js'
-import { GRAPH_RELATIONS, TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-definitions.js'
+import { GRAPH_RELATIONS, TENANT_TABLE_SCHEMAS, SYSTEM_COLUMNS } from './schema-registry.js'
 import { generateDefaultView, upsertColumn, upsertRelation, upsertTable } from './schema-registry.js'
 import { seedResourceTypes } from './resource-types.js'
 

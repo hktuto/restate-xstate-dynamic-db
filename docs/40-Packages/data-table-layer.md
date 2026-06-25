@@ -1,10 +1,10 @@
 ---
 title: data-table layer
 type: package
-status: in-progress
+status: done
 area: architecture
 created: 2026-06-20
-updated: 2026-06-24
+updated: 2026-06-25
 related:
   - [[Data Model]]
   - [[Schema Registry Model]]

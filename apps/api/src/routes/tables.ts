@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import type { MiddlewareHandler } from 'hono'
 import { getSurreal, closeSurreal } from 'db/client'
 import {
   getTableSchema,
@@ -9,12 +10,8 @@ import {
 import type { ColumnInput } from 'db/schema-registry'
 import { tenantAuth } from '../middleware/tenant.js'
 import { adminAuth } from '../middleware/admin.js'
-import type { AdminScope, ApiScope, TenantScope } from '../types.js'
+import type { AdminScope, TenantScope } from '../types.js'
 import { buildTableQuery, type QueryBody } from './table-query-builder.js'
-
-function getScope(c: { get: (key: 'scope') => ApiScope }): ApiScope {
-  return c.get('scope')
-}
 
 async function runTableQuery(namespace: string, database: string, table: string, body: QueryBody) {
   const surreal = await getSurreal(namespace, database)
@@ -36,74 +33,45 @@ async function runTableQuery(namespace: string, database: string, table: string,
   }
 }
 
-function tenantTablesRouter() {
+function makeRouter<T extends 'tenant' | 'admin'>(
+  auth: MiddlewareHandler,
+  scopeType: T
+) {
+  type Scope = T extends 'tenant' ? TenantScope : AdminScope
   const r = new Hono()
-  r.use(tenantAuth)
+  r.use(auth)
 
   r.get('/', async (c) => {
-    const scope = getScope(c) as TenantScope
+    const scope = c.get('scope') as Scope
+    if (scope.type !== scopeType) return c.json({ error: 'Forbidden' }, 403)
     return c.json(await listUserTables(scope.namespace, scope.database))
   })
 
   r.get('/:table', async (c) => {
-    const scope = getScope(c) as TenantScope
+    const scope = c.get('scope') as Scope
+    if (scope.type !== scopeType) return c.json({ error: 'Forbidden' }, 403)
     const table = c.req.param('table')
     return c.json(await getTableSchema(scope.namespace, scope.database, table))
   })
 
   r.post('/:table/sync', async (c) => {
-    const scope = getScope(c) as TenantScope
+    const scope = c.get('scope') as Scope
+    if (scope.type !== scopeType) return c.json({ error: 'Forbidden' }, 403)
     const table = c.req.param('table')
     return c.json(await syncTableSchemaFromRecords(scope.namespace, scope.database, table))
   })
 
   r.post('/:table/query', async (c) => {
-    const scope = getScope(c) as TenantScope
+    const scope = c.get('scope') as Scope
+    if (scope.type !== scopeType) return c.json({ error: 'Forbidden' }, 403)
     const table = c.req.param('table')
     const body = await c.req.json<QueryBody>()
     return c.json(await runTableQuery(scope.namespace, scope.database, table, body))
   })
 
   r.post('/:table/columns', async (c) => {
-    const scope = getScope(c) as TenantScope
-    const table = c.req.param('table')
-    const body = await c.req.json<ColumnInput>()
-    return c.json(await upsertColumn(scope.namespace, scope.database, { ...body, table }))
-  })
-
-  return r
-}
-
-function adminTablesRouter() {
-  const r = new Hono()
-  r.use(adminAuth('nsdb'))
-
-  r.get('/', async (c) => {
-    const scope = getScope(c) as AdminScope
-    return c.json(await listUserTables(scope.namespace, scope.database))
-  })
-
-  r.get('/:table', async (c) => {
-    const scope = getScope(c) as AdminScope
-    const table = c.req.param('table')
-    return c.json(await getTableSchema(scope.namespace, scope.database, table))
-  })
-
-  r.post('/:table/sync', async (c) => {
-    const scope = getScope(c) as AdminScope
-    const table = c.req.param('table')
-    return c.json(await syncTableSchemaFromRecords(scope.namespace, scope.database, table))
-  })
-
-  r.post('/:table/query', async (c) => {
-    const scope = getScope(c) as AdminScope
-    const table = c.req.param('table')
-    const body = await c.req.json<QueryBody>()
-    return c.json(await runTableQuery(scope.namespace, scope.database, table, body))
-  })
-
-  r.post('/:table/columns', async (c) => {
-    const scope = getScope(c) as AdminScope
+    const scope = c.get('scope') as Scope
+    if (scope.type !== scopeType) return c.json({ error: 'Forbidden' }, 403)
     const table = c.req.param('table')
     const body = await c.req.json<ColumnInput>()
     return c.json(await upsertColumn(scope.namespace, scope.database, { ...body, table }))
@@ -113,6 +81,6 @@ function adminTablesRouter() {
 }
 
 const app = new Hono()
-app.route('/tables', tenantTablesRouter())
-app.route('/admin/tables/:nsdb', adminTablesRouter())
+app.route('/tables', makeRouter(tenantAuth, 'tenant'))
+app.route('/admin/tables/:nsdb', makeRouter(adminAuth('nsdb'), 'admin'))
 export const tablesRoutes = app

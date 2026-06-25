@@ -14,22 +14,10 @@ export interface RuntimeViewState {
   columns: TableColumnConfig[]
 }
 
-// ponytail: recursive toRaw + object/array clone handles Vue reactive proxies.
-// Upgrade to a generic structuredClone fallback if view config ever holds Dates/Maps/etc.
+// ponytail: structuredClone assumes plain, serializable view config.
+// Upgrade to a custom clone if columns/filters ever hold Dates, Maps, or functions.
 export function deepClone<T>(value: T): T {
-  if (value === undefined) return undefined as T
-  if (value === null || typeof value !== 'object') return value
-  if (Array.isArray(value)) {
-    return value.map(deepClone) as T
-  }
-  const raw = toRaw(value)
-  const clone: Record<string, unknown> = {}
-  for (const key in raw) {
-    if (Object.prototype.hasOwnProperty.call(raw, key)) {
-      clone[key] = deepClone(raw[key])
-    }
-  }
-  return clone as T
+  return structuredClone(toRaw(value))
 }
 
 export function buildRuntimeView(view: ViewDefinition): RuntimeViewState {
