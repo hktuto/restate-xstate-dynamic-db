@@ -56,6 +56,58 @@ app.get('/health-checks/history', requireAdminPermission('platform', 'view'), as
     })
   })
 
+app.post('/health-checks/refresh', requireAdminPermission('platform', 'view'), async (c) => {
+    const healthMonitorUrl = process.env.HEALTH_MONITOR_URL
+    if (!healthMonitorUrl) {
+      return c.json({ error: 'Health monitor unavailable' }, 503)
+    }
+
+    let body: Record<string, unknown> = {}
+    try {
+      const text = await c.req.text()
+      if (text.trim() !== '') {
+        body = JSON.parse(text) as Record<string, unknown>
+      }
+    } catch {
+      return c.json({ error: 'Invalid JSON body' }, 400)
+    }
+
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+      return c.json({ error: 'Invalid body' }, 400)
+    }
+
+    const service = body.service
+    if (service !== undefined && (typeof service !== 'string' || !VALID_SERVICES.includes(service as HealthCheckService))) {
+      return c.json({ error: 'Invalid service' }, 400)
+    }
+
+    try {
+      const res = await fetch(new URL('/refresh', healthMonitorUrl).toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(service === undefined ? {} : { service }),
+        signal: AbortSignal.timeout(10000),
+      })
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => 'unknown')
+        console.warn(`Health monitor refresh failed: HTTP ${res.status} ${text}`)
+        return c.json({ error: 'Health monitor returned an error' }, 502)
+      }
+
+      let data: { results: unknown }
+      try {
+        data = await res.json() as { results: unknown }
+      } catch {
+        return c.json({ error: 'Invalid response from health monitor' }, 502)
+      }
+      return c.json({ results: data.results })
+    } catch (err) {
+      console.warn('Failed to reach health monitor:', err)
+      return c.json({ error: 'Health monitor unavailable' }, 502)
+    }
+  })
+
   // Dashboard
 app.get('/dashboard', requireAdminPermission('platform', 'view'), async (c) => {
     const [companies, workflowDesigns] = await Promise.all([
