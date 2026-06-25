@@ -4,7 +4,7 @@ type: app
 status: done
 area: admin
 created: 2026-06-14
-updated: 2026-06-24
+updated: 2026-06-25
 app:
   - admin
 related:
@@ -36,7 +36,7 @@ The superadmin Nuxt application for platform-level management.
 - The `/user-groups` page uses `PageRenderer` with the `admin_user_group` config, with toolbar and row actions driven by the `admin_user_group` action placement config.
 - The `/companies` page is migrated to `PageRenderer` with the `company` config.
 - The `/workflow-designs` page is migrated to `PageRenderer` with the `workflow_design` config.
-- The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]].
+- The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]]. It has **Refresh** to reload the latest data and **Refresh now** to trigger an immediate health-check refresh.
 
 ## Routes
 

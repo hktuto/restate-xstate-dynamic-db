@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-14
-updated: 2026-06-19
+updated: 2026-06-25
 related:
   - [[Getting Started]]
   - [[Troubleshooting]]
@@ -35,6 +35,7 @@ pnpm --filter web dev
 - SurrealDB: http://localhost:8000
 - SurrealDB test instance: http://localhost:8001
 - Restate UI: http://localhost:9070
+- Health monitor HTTP endpoint: http://localhost:3010
 
 ## Run tests locally
 

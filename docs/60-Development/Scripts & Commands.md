@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-14
-updated: 2026-06-19
+updated: 2026-06-25
 related:
   - [[Getting Started]]
   - [[Running locally]]
@@ -51,6 +51,7 @@ related:
 | `docker compose logs -f surrealdb` | Tail SurrealDB logs. |
 | `docker compose logs -f surrealdb-test` | Tail test SurrealDB logs. |
 | `docker compose logs -f workflow-runtime` | Tail workflow-runtime logs. |
+| `docker compose logs -f health-monitor` | Tail health-monitor logs. |
 
 ## Related
 

@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: docs
 created: 2026-06-14
-updated: 2026-06-19
+updated: 2026-06-25
 related:
   - [[Getting Started]]
   - [[Docker Compose]]
@@ -26,6 +26,8 @@ related:
 | `SURREALDB_POOL_IDLE_TIMEOUT_MS` | `30000` | Idle connection eviction timeout. |
 | `SURREALDB_POOL_ACQUIRE_TIMEOUT_MS` | `10000` | Max wait for a pooled connection. |
 | `RESTATE_NODE_NAME` | — | Set when reusing an existing Restate data volume to avoid node-name mismatch (`RT0002`). |
+| `HEALTH_MONITOR_URL` | `http://localhost:3010` | URL the API uses to reach the health-monitor service. |
+| `HEALTH_MONITOR_PORT` | `3010` | Port the health-monitor HTTP server binds to. |
 
 ## Test environment
 

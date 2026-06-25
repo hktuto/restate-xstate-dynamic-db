@@ -4,7 +4,7 @@ type: runbook
 status: done
 area: ops
 created: 2026-06-14
-updated: 2026-06-19
+updated: 2026-06-25
 related:
   - [[SurrealDB Maintenance]]
   - [[Restate Operations]]
@@ -19,7 +19,7 @@ related:
 - **surrealdb-test** — Isolated test database on port `8001`. The test suite loads `.env.test`, which points `SURREAL_URL` at this instance.
 - **restate** — Durable runtime on ports `8080` and `9070`.
 - **workflow-runtime** — Restate service on port `9080` (HTTP/2) with health check on port `9081`.
-- **health-monitor** — Standalone health-check service, built from `apps/health-monitor/Dockerfile`.
+- **health-monitor** — Standalone health-check service, built from `apps/health-monitor/Dockerfile`. Exposes an internal HTTP server on port `3010` for refresh requests and a `/health` probe used by Docker Compose.
 - **restate-register** — One-shot registration of the workflow-runtime deployment.
 
 ## Volumes
@@ -34,14 +34,18 @@ The `health-monitor` service loads `.env` and then overrides the URLs so it can 
 
 | Variable | Compose value |
 |----------|---------------|
-| Variable | Compose value |
-|----------|---------------|
 | `SURREAL_URL` | `ws://surrealdb:8000/rpc` |
 | `RESTATE_META_URL` | `http://restate:9070` |
 | `WORKFLOW_RUNTIME_URL` | `http://host.docker.internal:9080` |
 | `API_URL` | `http://host.docker.internal:3002` |
+| `HEALTH_MONITOR_PORT` | `3010` |
 | `HEALTH_CHECK_INTERVAL_MS` | `1800000` (30 min) |
 | `HEALTH_CHECK_RETENTION_DAYS` | `365` |
+
+## Service dependencies
+
+- `api` waits for `health-monitor` to be healthy before starting, because the API triggers a health refresh on startup via `HEALTH_MONITOR_URL=http://health-monitor:3010`.
+- `health-monitor` exposes port `3010` bound to `127.0.0.1` on the host and provides a Docker `healthcheck` on `GET /health`.
 
 ## Common operations
 

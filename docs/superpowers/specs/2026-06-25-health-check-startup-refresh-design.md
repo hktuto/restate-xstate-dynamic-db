@@ -1,7 +1,7 @@
 ---
 title: Health Check Startup Refresh Design
 type: note
-status: done
+status: in-progress
 area: docs
 created: 2026-06-25
 updated: 2026-06-25
