@@ -100,11 +100,23 @@ function checkApi(): Promise<CheckResult> {
   return checkHttpService('api', 'API_URL', '/health')
 }
 
+const SERVICE_CHECKS: Record<HealthCheckService, () => Promise<CheckResult>> = {
+  surrealdb: checkSurrealDB,
+  restate: checkRestate,
+  'workflow-runtime': checkWorkflowRuntime,
+  api: checkApi,
+}
+
+export const VALID_SERVICES = Object.freeze(Object.keys(SERVICE_CHECKS) as HealthCheckService[])
+
+export async function runHealthCheckForService(service: HealthCheckService): Promise<CheckResult> {
+  const check = SERVICE_CHECKS[service]
+  if (!check) {
+    return { service, status: 'unhealthy', responseTimeMs: 0, message: `Unknown service: ${service}` }
+  }
+  return check()
+}
+
 export async function runHealthChecks(): Promise<CheckResult[]> {
-  return Promise.all([
-    checkSurrealDB(),
-    checkRestate(),
-    checkWorkflowRuntime(),
-    checkApi()
-  ])
+  return Promise.all(VALID_SERVICES.map((service) => SERVICE_CHECKS[service]()))
 }
