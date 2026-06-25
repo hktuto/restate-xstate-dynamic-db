@@ -49,6 +49,7 @@ const localSearch = computed({
       :schema-edit-link="schemaEditLink"
       :permissions-edit-link="permissionsEditLink"
     />
+    <slot name="toolbar-actions" />
     <UButton
       v-if="canUpdateView && dirty"
       color="primary"
