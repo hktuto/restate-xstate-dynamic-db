@@ -105,6 +105,9 @@ function startServer() {
       port: PORT,
       async fetch(req) {
         const url = new URL(req.url)
+        if (req.method === 'GET' && url.pathname === '/health') {
+          return Response.json({ ok: true })
+        }
         if (req.method !== 'POST' || url.pathname !== '/refresh') {
           return Response.json({ error: 'Not found' }, { status: 404 })
         }
