@@ -6,7 +6,7 @@ area: admin
 app:
   - admin
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-25
 related:
   - [[30-Apps/Admin App/Overview]]
   - [[30-Apps/Health Monitor/Overview]]
@@ -25,7 +25,7 @@ Superadmins can view the health of core platform services from the admin app. A 
 - SurrealDB
 - Restate — also verifies that the `workflow` service is registered in Restate.
 - workflow-runtime
-- web API
+- `api`
 
 ## Admin page
 
@@ -34,24 +34,35 @@ Superadmins can view the health of core platform services from the admin app. A 
 - Service status cards with the latest status, last check datetime, and response time.
 - Clicking a card expands it inline to show the last 20 history entries (status, checked-at datetime, response time, and any error message).
 - Service history is fetched on demand when a card is expanded.
-- A **Refresh** button reloads the latest health-check data.
+- A **Refresh** button reloads the latest health-check data from the API.
+- A **Refresh now** button triggers an immediate refresh via the health-monitor service.
 
 ## API
 
-- `GET /api/health-checks` returns the latest result for each monitored service.
-- `GET /api/health-checks/history?service=<service>&limit=20` returns the recent history for a single service.
+- `GET /api/admin/health-checks` returns the latest result for each monitored service.
+- `GET /api/admin/health-checks/history?service=<service>&limit=20` returns the recent history for a single service.
+
+## Refresh
+
+- The API server triggers a refresh on startup so the health page shows status immediately.
+- `POST /api/admin/health-checks/refresh` requests an immediate refresh from the health-monitor service.
+  - Accepts an optional `{ service }` body to refresh a single service; without it, refreshes all services.
+- The admin `/health` page has a **Refresh now** button that calls this endpoint.
 
 ## Configuration
 
-The standalone health-monitor service is configured via `.env.example`:
+The feature uses these environment variables (documented in `.env.example`):
 
 - `RESTATE_META_URL`
 - `WORKFLOW_RUNTIME_URL`
 - `API_URL`
 - `HEALTH_CHECK_INTERVAL_MS`
 - `HEALTH_CHECK_RETENTION_DAYS`
-
-The admin app only reads the existing health-check records through `GET /api/health-checks` and `GET /api/health-checks/history`.
+- `HEALTH_MONITOR_URL` — URL the API uses to reach the health-monitor service.
+- `HEALTH_MONITOR_PORT` — Port the health-monitor HTTP server binds to.
+- `SURREAL_URL`
+- `SURREAL_USER`
+- `SURREAL_PASS`
 
 ## Architecture
 

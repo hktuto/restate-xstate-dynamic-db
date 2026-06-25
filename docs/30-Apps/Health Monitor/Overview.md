@@ -4,7 +4,7 @@ type: app
 status: done
 area: ops
 created: 2026-06-15
-updated: 2026-06-16
+updated: 2026-06-25
 app:
   - health-monitor
 related:
@@ -27,17 +27,31 @@ A lightweight standalone service that periodically checks the health of core pla
 - Prunes health-check records older than `HEALTH_CHECK_RETENTION_DAYS` (default 365 days).
 - Gracefully shuts down on `SIGTERM`/`SIGINT`, waiting for any in-flight tick to finish.
 - Writes results via the `db` package so the admin and web apps can read them.
+- Exposes an internal HTTP endpoint (`POST /refresh`) so other services can request an immediate refresh.
+- Accepts an optional `{ service }` body to refresh a single service; without it, refreshes all services.
 
 ## Monitored services
 
 - SurrealDB
 - Restate — also verifies that the `workflow` service is registered.
 - workflow-runtime
-- web-api
+- api
 
 ## Configuration
 
-See `.env.example` for required env vars.
+Required env vars (see `.env.example`):
+
+- `RESTATE_META_URL`
+- `WORKFLOW_RUNTIME_URL`
+- `API_URL`
+- `HEALTH_MONITOR_PORT`
+- `HEALTH_CHECK_INTERVAL_MS`
+- `HEALTH_CHECK_RETENTION_DAYS`
+- `SURREAL_URL`
+- `SURREAL_USER`
+- `SURREAL_PASS`
+
+Other services use `HEALTH_MONITOR_URL` to reach this app.
 
 ## Commands
 
