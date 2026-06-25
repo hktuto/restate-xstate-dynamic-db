@@ -29,6 +29,7 @@ A lightweight standalone service that periodically checks the health of core pla
 - Writes results via the `db` package so the admin and web apps can read them.
 - Exposes an internal HTTP endpoint (`POST /refresh`) so other services can request an immediate refresh.
 - Accepts an optional `{ service }` body to refresh a single service; without it, refreshes all services.
+- Exposes `GET /health` for Docker Compose healthchecks.
 
 ## Monitored services
 

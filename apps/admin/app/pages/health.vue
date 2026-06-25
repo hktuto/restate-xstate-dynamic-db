@@ -116,14 +116,14 @@ function formatDate(value: string): string {
   <div class="space-y-6">
     <div class="flex items-center justify-end gap-2">
       <button
-        :disabled="refreshNowPending"
+        :disabled="refreshNowPending || pending"
         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
         @click="refreshNow()"
       >
         {{ refreshNowPending ? 'Refreshing...' : 'Refresh now' }}
       </button>
       <button
-        :disabled="pending"
+        :disabled="pending || refreshNowPending"
         class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         @click="refresh()"
       >
@@ -133,10 +133,10 @@ function formatDate(value: string): string {
 
     <div v-if="pending" class="text-gray-500">Loading health checks...</div>
     <div v-else-if="error" class="text-red-600">Failed to load health checks: {{ error.message }}</div>
+    <div v-if="refreshNowError" class="text-red-600">Refresh failed: {{ refreshNowError }}</div>
     <template v-else>
-      <div v-if="refreshNowError" class="text-red-600">Refresh failed: {{ refreshNowError }}</div>
       <div v-if="!data?.latest?.length" class="text-gray-500">
-        No health checks available yet. The health monitor service will populate them on its next scheduled run.
+        No health checks available yet. The API refreshes health checks on startup; you can also click Refresh now.
       </div>
       <div v-else class="space-y-4">
         <div

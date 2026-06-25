@@ -1,7 +1,7 @@
 ---
 title: Health Check Startup Refresh Implementation Plan
 type: note
-status: in-progress
+status: done
 area: docs
 created: 2026-06-25
 updated: 2026-06-25

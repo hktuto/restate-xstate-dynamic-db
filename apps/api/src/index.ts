@@ -9,7 +9,7 @@ serve({ fetch: app.fetch, port }, (info) => {
 
   const healthMonitorUrl = process.env.HEALTH_MONITOR_URL
   if (healthMonitorUrl) {
-    fetch(`${healthMonitorUrl}/refresh`, {
+    fetch(new URL('/refresh', healthMonitorUrl).toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),

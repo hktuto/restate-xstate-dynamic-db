@@ -47,16 +47,20 @@ async function refresh(service?: HealthCheckService): Promise<HealthCheckRecord[
 
   const records: HealthCheckRecord[] = []
   for (const result of results) {
-    const record = await createHealthCheck({
-      service: result.service,
-      status: result.status,
-      checkedAt: new Date().toISOString(),
-      responseTimeMs: result.responseTimeMs,
-      message: result.message,
-      details: result.details
-    })
-    await pruneHealthChecksByAge(result.service, RETENTION_MS)
-    records.push(record)
+    try {
+      const record = await createHealthCheck({
+        service: result.service,
+        status: result.status,
+        checkedAt: new Date().toISOString(),
+        responseTimeMs: result.responseTimeMs,
+        message: result.message,
+        details: result.details
+      })
+      await pruneHealthChecksByAge(result.service, RETENTION_MS)
+      records.push(record)
+    } catch (err) {
+      console.error(`Health monitor persistence failed for ${result.service}:`, err)
+    }
   }
   return records
 }
@@ -130,7 +134,14 @@ function startServer() {
 
         const result = await runRefresh(service as HealthCheckService | undefined)
         if (!result.ok) {
-          console.error('Health monitor refresh failed:', result.error)
+          const isRoutine =
+            result.error === 'Refresh already in progress' ||
+            result.error === 'Health monitor is shutting down'
+          if (isRoutine) {
+            console.warn('Health monitor refresh skipped:', result.error)
+          } else {
+            console.error('Health monitor refresh failed:', result.error)
+          }
           if (result.error === 'Refresh already in progress') {
             return Response.json({ error: 'Refresh already in progress' }, { status: 409 })
           }

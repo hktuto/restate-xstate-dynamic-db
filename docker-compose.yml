@@ -82,7 +82,7 @@ services:
       - HEALTH_CHECK_RETENTION_DAYS=365
       - HEALTH_MONITOR_PORT=3010
     ports:
-      - "3010:3010"
+      - "127.0.0.1:3010:3010"
     depends_on:
       - surrealdb
       - restate

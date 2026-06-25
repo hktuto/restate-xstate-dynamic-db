@@ -101,6 +101,9 @@ app.post('/health-checks/refresh', requireAdminPermission('platform', 'view'), a
       } catch {
         return c.json({ error: 'Invalid response from health monitor' }, 502)
       }
+      if (!Array.isArray(data.results)) {
+        return c.json({ error: 'Invalid response from health monitor' }, 502)
+      }
       return c.json({ results: data.results })
     } catch (err) {
       console.warn('Failed to reach health monitor:', err)
