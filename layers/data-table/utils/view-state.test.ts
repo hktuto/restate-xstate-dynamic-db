@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { reactive } from 'vue'
 import type { FilterGroup, ViewDefinition } from 'shared'
 import {
   buildRuntimeView,
@@ -154,5 +155,15 @@ describe('mergeRuntimeToView', () => {
 
     expect(merged.config.table?.columns[0]!.visible).toBe(false)
     expect(baseView.config.table?.columns[0]!.visible).toBe(true)
+  })
+
+  it('clones reactive runtime state without DataCloneError', () => {
+    const runtime = reactive(buildRuntimeView(baseView))
+    runtime.columns[0]!.visible = false
+
+    expect(() => mergeRuntimeToView(runtime as unknown as ReturnType<typeof buildRuntimeView>, baseView, true)).not.toThrow()
+
+    const merged = mergeRuntimeToView(runtime as unknown as ReturnType<typeof buildRuntimeView>, baseView, true)
+    expect(merged.config.table?.columns[0]!.visible).toBe(false)
   })
 })

@@ -102,7 +102,7 @@ async function handleSave() {
       body: updated,
     })
     clearTimeout(fetchTimeout)
-    await loadRecords()
+    emit('refresh')
   } catch (err: any) {
     saveError.value = err?.message ?? 'Failed to save view'
   }

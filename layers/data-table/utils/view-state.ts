@@ -14,10 +14,28 @@ export interface RuntimeViewState {
   columns: TableColumnConfig[]
 }
 
+function deepToRaw(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(deepToRaw)
+  if (value instanceof Date) return value
+  if (value instanceof RegExp) return value
+  if (value instanceof Map) return new Map([...value.entries()].map(([k, v]) => [k, deepToRaw(v)]))
+  if (value instanceof Set) return new Set([...value].map(deepToRaw))
+  if (value && typeof value === 'object') {
+    const raw = toRaw(value)
+    const clone: Record<string, unknown> = {}
+    for (const key of Object.keys(raw)) {
+      clone[key] = deepToRaw((raw as Record<string, unknown>)[key])
+    }
+    return clone
+  }
+  return value
+}
+
 // ponytail: structuredClone assumes plain, serializable view config.
-// Upgrade to a custom clone if columns/filters ever hold Dates, Maps, or functions.
+// deepToRaw strips Vue proxies before cloning so reactive arrays/objects don't throw DataCloneError.
+// Upgrade to a custom clone if columns/filters ever hold non-JSON values that structuredClone can't copy.
 export function deepClone<T>(value: T): T {
-  return structuredClone(toRaw(value))
+  return structuredClone(deepToRaw(value)) as T
 }
 
 export function buildRuntimeView(view: ViewDefinition): RuntimeViewState {

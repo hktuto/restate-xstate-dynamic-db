@@ -30,30 +30,6 @@ function labelFor(column: string) {
   return schemaColumns.find((s) => s.value === column)?.label ?? column
 }
 
-const relationOptions = computed(() =>
-  props.schema.relations
-    .filter((r) => {
-      if (r.kind === 'reference') return r.fromTable === props.schema.table.name && r.fromColumn
-      return (r.fromTable === props.schema.table.name || r.toTable === props.schema.table.name) && r.name
-    })
-    .map((r) => {
-      const isForward = r.fromTable === props.schema.table.name
-      const direction = isForward ? '→' : '←'
-      return {
-        label: `${r.name} ${direction} ${isForward ? r.toTable : r.fromTable}`,
-        value: r.name!,
-      }
-    })
-)
-
-const lookupFrom = ref<string>('')
-const lookupField = ref('name')
-const lookupAgg = ref<'list' | 'count' | ''>('')
-
-function selectedRelation() {
-  return props.schema.relations.find((r) => r.name === lookupFrom.value)
-}
-
 function columnKey(col: TableColumnConfig): string {
   if (col.type === 'lookup' && col.lookup) {
     const suffix = col.lookup.agg ?? col.lookup.field ?? ''
@@ -69,40 +45,6 @@ function displayLabel(col: TableColumnConfig): string {
     return `${col.lookup.relation}.${col.lookup.field ?? ''}`
   }
   return labelFor(col.column ?? '')
-}
-
-function addLookup() {
-  if (!lookupFrom.value) return
-  const relation = selectedRelation()
-  if (!relation) return
-
-  const agg = lookupAgg.value || undefined
-  const field = lookupField.value.trim() || undefined
-
-  if (agg === 'count') {
-    visibleColumns.value.push({
-      type: 'lookup',
-      lookup: { relation: lookupFrom.value, agg: 'count' },
-      label: `${lookupFrom.value} count`,
-      width: 'auto',
-      visible: true,
-    })
-  } else if (field) {
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)) return
-    visibleColumns.value.push({
-      type: 'lookup',
-      lookup: { relation: lookupFrom.value, field, agg: agg === 'list' ? 'list' : undefined },
-      label: `${lookupFrom.value} ${field}`,
-      width: 'auto',
-      visible: true,
-    })
-  } else {
-    return
-  }
-
-  emitColumns()
-  lookupField.value = 'name'
-  lookupAgg.value = ''
 }
 
 let draggedColumn: TableColumnConfig | null = null
@@ -228,27 +170,6 @@ function show(col: TableColumnConfig) {
               </div>
               <UIcon name="i-lucide-eye-off" class="text-gray-400 cursor-pointer" @click="show(col)" />
             </div>
-          </div>
-        </div>
-        <UDivider />
-        <div>
-          <div class="text-xs font-medium text-gray-500 mb-1">Add lookup</div>
-          <div class="space-y-2">
-            <USelect v-model="lookupFrom" :options="relationOptions" placeholder="Relation" size="xs" />
-            <USelect
-              v-model="lookupAgg"
-              :options="[
-                { label: 'Single value', value: '' },
-                { label: 'List', value: 'list' },
-                { label: 'Count', value: 'count' },
-              ]"
-              placeholder="Aggregate"
-              size="xs"
-            />
-            <UInput v-model="lookupField" :disabled="lookupAgg === 'count'" placeholder="Field (e.g. name)" size="xs" />
-            <UButton size="xs" color="neutral" :disabled="!lookupFrom || (lookupAgg !== 'count' && !lookupField)" @click="addLookup">
-              Add
-            </UButton>
           </div>
         </div>
       </div>

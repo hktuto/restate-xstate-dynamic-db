@@ -57,9 +57,9 @@ Action names must match permission actions defined in the resource catalog.
 
 ## UI flow
 
-1. A page renders `<PageRenderer :config="useResourceCapabilities('admin_user_group')" />` (or uses `ViewRenderer` directly for custom cases).
+1. A page renders `<ViewRenderer resource="admin_user_group" ... />` directly with permission booleans.
 2. `ViewRenderer` loads the resource type record, default view, schema, and action placements.
-3. `DataTableContainer` loads records and renders toolbar/row actions from the resolved placements.
+3. `DataTableContainer` renders toolbar actions in the `DataToolbar` `toolbar-actions` slot and row actions in the table row context menu.
 4. `ActionHost` mounts hidden action components for indirect triggers such as row double-click.
 
 ## Component registration

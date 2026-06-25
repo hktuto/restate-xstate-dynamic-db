@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-20
-updated: 2026-06-25
+updated: 2026-06-26
 related:
   - [[Data Model]]
   - [[Schema Registry Model]]
@@ -32,6 +32,9 @@ Resource-driven entry point. Loads a resource type, its default view and schema,
 Props:
 - `resource: string` — resource type name (e.g. `admin_user_group`).
 - `view?: string | ViewDefinition` — optional view id or a full view object.
+- `canUpdateView?: boolean`
+- `canEditSchema?: boolean`
+- `canManagePermissions?: boolean`
 
 It relies on app-specific overrides of two composables:
 - `useNamespace()` — returns `{ namespace, database }`.
@@ -52,6 +55,9 @@ Props:
 - `canUpdateView?: boolean`
 - `canEditSchema?: boolean`
 - `canManagePermissions?: boolean`
+
+Emits:
+- `refresh` — triggered after a successful save so `ViewRenderer` can reload the view and records.
 
 ### `ActionHost.vue`
 
@@ -77,7 +83,18 @@ It reads `view.config.table.columns` to decide visibility, labels, order, and wi
 
 ### `DataToolbar.vue`
 
-Combines filter, group, sort, column, and settings controls.
+Combines filter, group, sort, column, settings, and resource-action controls in a single row.
+
+Toolbar order (left to right):
+
+1. Search input
+2. Filter
+3. Group
+4. Sort
+5. Column
+6. Settings
+7. Resource actions (`<slot name="toolbar-actions" />`)
+8. Save view
 
 ### Toolbar pieces
 
@@ -87,6 +104,17 @@ Combines filter, group, sort, column, and settings controls.
 - `DataToolbarColumn` — split visible/hidden column lists with drag-and-drop between them and eye-icon toggles.
 - `DataToolbarFilter` — auto-adds an empty condition when the popover opens with no conditions.
 - `DataToolbarSetting` — settings dropdown with schema and permissions links.
+
+### Toolbar permissions
+
+| Control | Visible | Mutable |
+|---|---|---|
+| Search | always | always |
+| Filter | always | view-defined filter is locked unless `canUpdateView`; user-added conditions are editable |
+| Group / Sort / Column | always | always |
+| Settings | `canEditSchema \|\| canManagePermissions` | links enabled per permission |
+| Resource actions | rendered by resource placement config | each action component checks its own permission |
+| Save view | `canUpdateView && dirty` | `canUpdateView` |
 
 ### Query utilities
 
@@ -152,37 +180,33 @@ For the core model behind lookup columns, see [[Schema Registry Model]].
 
 ## Usage
 
-### Resource-driven admin page
-
-Admin pages should use the app-specific `PageRenderer` wrapper, which resolves permission booleans via `useResourceCapabilities` and sets page chrome via `usePageMeta`.
+Admin and tenant pages render `ViewRenderer` directly and supply the permission booleans.
 
 ```vue
 <script setup lang="ts">
 usePageMeta({ title: 'User Groups', icon: 'i-lucide-users' })
 
-const config = useResourceCapabilities('admin_user_group')
+const can = useAdminPermission()
 </script>
 
 <template>
-  <PageRenderer :config="config" />
+  <ViewRenderer
+    resource="admin_user_group"
+    :can-update-view="can('admin_user_group', 'update_default_view_settings')"
+    :can-edit-schema="can('admin_user_group', 'edit_schema')"
+    :can-manage-permissions="can('admin_user_group', 'manage_permissions')"
+  />
 </template>
 ```
 
-`PageRenderer` is defined in `apps/admin/app/components/PageRenderer.vue` and forwards the capabilities config to the layer's `ViewRenderer`.
-
-For tenant pages, use `ViewRenderer` directly and supply the permission booleans yourself:
-
-```vue
-<template>
-  <ViewRenderer resource="members" />
-</template>
-```
+For tenant pages the permission booleans come from the tenant-scoped permission composable instead.
 
 The app must provide:
 
 - A resource type record in the catalog with `table` and `resourceType` on its default view.
 - A resource action placement config under `app/config/resource-actions/<resource>.ts`.
 - Action components registered so their names match the `component` values in the config.
+- `useNamespace()` and `useResourceActionPlacements()` composable overrides.
 
 ## Configuration
 
