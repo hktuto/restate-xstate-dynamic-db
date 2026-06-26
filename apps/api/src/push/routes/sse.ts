@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { pushSessionMiddleware } from '../middleware/session.js'
-import { addConnection, removeConnection } from '../connection-manager.js'
+import { addConnection } from '../connection-manager.js'
 
 const HEARTBEAT_INTERVAL_MS = 30_000
 
@@ -19,17 +19,17 @@ export function createSseRoute() {
         data: JSON.stringify({ userId, connectedAt: new Date().toISOString() }),
       })
 
-      const heartbeat = setInterval(async () => {
-        await stream.writeSSE({ event: 'heartbeat', data: '{}' })
+      const heartbeat = setInterval(() => {
+        stream.writeSSE({ event: 'heartbeat', data: '{}' }).catch(() => {
+          // Client disconnected; onAbort will clear the interval.
+        })
       }, HEARTBEAT_INTERVAL_MS)
 
-      stream.onAbort(() => {
-        clearInterval(heartbeat)
-        removeConnection(userId, stream)
-      })
-
       await new Promise<void>((resolve) => {
-        stream.onAbort(() => resolve())
+        stream.onAbort(() => {
+          clearInterval(heartbeat)
+          resolve()
+        })
       })
     })
   })

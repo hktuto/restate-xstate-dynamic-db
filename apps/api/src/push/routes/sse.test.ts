@@ -22,17 +22,27 @@ describe('push sse route', () => {
   it('opens an SSE stream for an authenticated tenant', async () => {
     const app = createApp()
     const controller = new AbortController()
-    const resPromise = app.request('/push/sse', {
+    const res = await app.request('/push/sse', {
       headers: { Cookie: tenantCookie('acc:test') },
       signal: controller.signal,
     })
 
-    // Give the server time to start the stream.
-    await new Promise((r) => setTimeout(r, 100))
-    controller.abort()
-
-    const res = await resPromise
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toMatch(/text\/event-stream/)
+
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      if (buffer.includes('event: connected')) {
+        reader.releaseLock()
+        controller.abort()
+        break
+      }
+    }
   })
 })
