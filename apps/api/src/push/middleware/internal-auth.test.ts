@@ -14,11 +14,24 @@ describe('push internal auth', () => {
     const app = new Hono().use(pushInternalAuthMiddleware('secret')).get('/', (c) => c.text('ok'))
     const res = await app.request('/')
     expect(res.status).toBe(401)
+    expect(await res.json()).toEqual({ error: 'Unauthorized' })
   })
 
   it('rejects invalid token', async () => {
     const app = new Hono().use(pushInternalAuthMiddleware('secret')).get('/', (c) => c.text('ok'))
     const res = await app.request('/', { headers: { Authorization: 'Bearer wrong' } })
     expect(res.status).toBe(401)
+    expect(await res.json()).toEqual({ error: 'Unauthorized' })
+  })
+
+  it('rejects malformed authorization scheme', async () => {
+    const app = new Hono().use(pushInternalAuthMiddleware('secret')).get('/', (c) => c.text('ok'))
+    const res = await app.request('/', { headers: { Authorization: 'Basic secret' } })
+    expect(res.status).toBe(401)
+    expect(await res.json()).toEqual({ error: 'Unauthorized' })
+  })
+
+  it('throws when secret is empty', () => {
+    expect(() => pushInternalAuthMiddleware('')).toThrow('PUSH_INTERNAL_SECRET is required')
   })
 })

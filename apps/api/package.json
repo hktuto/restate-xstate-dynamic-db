@@ -6,6 +6,7 @@
     "dev": "tsx watch --env-file ../../.env src/index.ts",
     "start": "tsx --env-file ../../.env src/index.ts",
     "test": "vitest run",
+    "test:push": "vitest run --config vitest.push.config.ts src/push/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
