@@ -15,8 +15,7 @@ import { adminRoutes } from './routes/admin.js'
 import { userGroupsRoutes } from './routes/user-groups.js'
 import { permissionsRoutes } from './routes/permissions.js'
 import { resourceTypesRoutes } from './routes/resource-types.js'
-import { createSseRoute } from './push/routes/sse.js'
-import { createDeliverRoute } from './push/routes/deliver.js'
+import { createPushApp } from './push/index.js'
 
 export function createApp() {
   const app = new Hono()
@@ -37,7 +36,6 @@ export function createApp() {
   app.route('/api', platformRoutes)
   app.route('/api/user-groups', userGroupsRoutes)
   app.route('/api/admin', adminRoutes)
-  app.route('/push', createSseRoute())
-  app.route('/push', createDeliverRoute(process.env.PUSH_INTERNAL_SECRET ?? ''))
+  app.route('/push', createPushApp({ internalSecret: process.env.PUSH_INTERNAL_SECRET ?? '' }))
   return app
 }

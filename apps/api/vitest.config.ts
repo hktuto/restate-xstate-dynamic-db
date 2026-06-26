@@ -6,5 +6,8 @@ export default mergeConfig(base, defineConfig({
     hookTimeout: 30000,
     testTimeout: 30000,
     globalSetup: ['./tests/global-setup.ts'],
+    env: {
+      PUSH_INTERNAL_SECRET: 'push-secret',
+    },
   },
 }))
