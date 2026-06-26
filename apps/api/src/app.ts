@@ -15,6 +15,7 @@ import { adminRoutes } from './routes/admin.js'
 import { userGroupsRoutes } from './routes/user-groups.js'
 import { permissionsRoutes } from './routes/permissions.js'
 import { resourceTypesRoutes } from './routes/resource-types.js'
+import { createSseRoute } from './push/routes/sse.js'
 
 export function createApp() {
   const app = new Hono()
@@ -35,5 +36,6 @@ export function createApp() {
   app.route('/api', platformRoutes)
   app.route('/api/user-groups', userGroupsRoutes)
   app.route('/api/admin', adminRoutes)
+  app.route('/push', createSseRoute())
   return app
 }
