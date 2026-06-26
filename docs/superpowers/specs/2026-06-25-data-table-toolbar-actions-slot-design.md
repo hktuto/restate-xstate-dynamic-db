@@ -4,7 +4,7 @@ type: note
 status: in-progress
 area: docs
 created: 2026-06-25
-updated: 2026-06-25
+updated: 2026-06-26
 related:
   - [[40-Packages/data-table-layer]]
   - [[50-Features/Resource Actions]]
@@ -50,19 +50,20 @@ DataTableContainer
     ├── Group
     ├── Sort
     ├── Column
-    ├── Settings
-    ├── <slot name="toolbar-actions" />   # resource actions rendered here
+    ├── <slot name="toolbar-actions" />   # resource actions rendered here (including schema/permission links)
     └── Save view
 ```
+
+> Note: the hardcoded Settings dropdown was later moved into the resource-action system. See [[2026-06-26-data-table-schema-permission-actions-design|Data Table Schema and Permission Actions design]].
 
 ## Design
 
 ### `DataToolbar.vue`
 
-Add one slot between the Settings control and the Save-view button:
+Add one slot between the Column control and the Save-view button:
 
 ```vue
-<DataToolbarSetting ... />
+<DataToolbarColumn ... />
 <slot name="toolbar-actions" />
 <UButton v-if="canUpdateView && dirty" ...>Save view</UButton>
 ```
@@ -101,7 +102,6 @@ Built-in controls keep a fixed order and the existing permission gates:
 | Group | always | always |
 | Sort | always | always |
 | Column | always | always |
-| Settings | `canEditSchema \|\| canManagePermissions` | links enabled per permission |
 | Resource actions (slot) | rendered by resource placement config | each component checks its own permission |
 | Save view | `canUpdateView && dirty` | `canUpdateView` |
 
@@ -123,7 +123,7 @@ No changes to `ResourceActionPlacement`, `ViewActionBindings`, `ActionContext`, 
 
 ## Testing
 
-- Component test: `DataToolbar` renders slotted content between Settings and Save view.
+- Component test: `DataToolbar` renders slotted content between Column and Save view.
 - Component test: `DataTableContainer` passes `actions.toolbar` into the slot and no longer renders a separate actions row.
 - Existing action-component tests remain valid because the `ActionContext` contract does not change.
 

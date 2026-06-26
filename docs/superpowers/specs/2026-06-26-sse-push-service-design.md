@@ -1,7 +1,7 @@
 ---
 title: "SSE push service design"
 type: note
-status: planned
+status: done
 area: architecture
 app:
   - api
@@ -227,7 +227,6 @@ Observability:
 - `apps/api/src/push/middleware/internal-auth.ts` (new)
 - `apps/api/src/push/types.ts` (new)
 - `apps/api/src/app.ts` (mount push routes)
-- `apps/api/src/lib/env.ts` (add `PUSH_INTERNAL_SECRET`)
 - `apps/api/package.json` (add test scripts if needed)
 - `layers/shared-api/composables/usePush.ts` (new)
 - `.env.example` (add `PUSH_INTERNAL_SECRET`)

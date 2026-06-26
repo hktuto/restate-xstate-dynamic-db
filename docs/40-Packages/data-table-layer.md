@@ -33,8 +33,6 @@ Props:
 - `resource: string` — resource type name (e.g. `admin_user_group`).
 - `view?: string | ViewDefinition` — optional view id or a full view object.
 - `canUpdateView?: boolean`
-- `canEditSchema?: boolean`
-- `canManagePermissions?: boolean`
 
 It relies on app-specific overrides of two composables:
 - `useNamespace()` — returns `{ namespace, database }`.
@@ -53,8 +51,6 @@ Props:
 - `view: ViewDefinition`
 - `actions: ResolvedActions`
 - `canUpdateView?: boolean`
-- `canEditSchema?: boolean`
-- `canManagePermissions?: boolean`
 
 Emits:
 - `refresh` — triggered after a successful save so `ViewRenderer` can reload the view and records.
@@ -83,7 +79,7 @@ It reads `view.config.table.columns` to decide visibility, labels, order, and wi
 
 ### `DataToolbar.vue`
 
-Combines filter, group, sort, column, settings, and resource-action controls in a single row.
+Combines filter, group, sort, column, and resource-action controls in a single row.
 
 Toolbar order (left to right):
 
@@ -92,9 +88,8 @@ Toolbar order (left to right):
 3. Group
 4. Sort
 5. Column
-6. Settings
-7. Resource actions (`<slot name="toolbar-actions" />`)
-8. Save view
+6. Resource actions (`<slot name="toolbar-actions" />`) — includes schema/permission links when the host app configures them
+7. Save view
 
 ### Toolbar pieces
 
@@ -103,7 +98,6 @@ Toolbar order (left to right):
 - `DataToolbarSort` — multi-column sort builder.
 - `DataToolbarColumn` — split visible/hidden column lists with drag-and-drop between them and eye-icon toggles.
 - `DataToolbarFilter` — auto-adds an empty condition when the popover opens with no conditions.
-- `DataToolbarSetting` — settings dropdown with schema and permissions links.
 
 ### Toolbar permissions
 
@@ -112,7 +106,6 @@ Toolbar order (left to right):
 | Search | always | always |
 | Filter | always | view-defined filter is locked unless `canUpdateView`; user-added conditions are editable |
 | Group / Sort / Column | always | always |
-| Settings | `canEditSchema \|\| canManagePermissions` | links enabled per permission |
 | Resource actions | rendered by resource placement config | each action component checks its own permission |
 | Save view | `canUpdateView && dirty` | `canUpdateView` |
 
@@ -193,13 +186,13 @@ const can = useAdminPermission()
   <ViewRenderer
     resource="admin_user_group"
     :can-update-view="can('admin_user_group', 'update_default_view_settings')"
-    :can-edit-schema="can('admin_user_group', 'edit_schema')"
-    :can-manage-permissions="can('admin_user_group', 'manage_permissions')"
   />
 </template>
 ```
 
 For tenant pages the permission booleans come from the tenant-scoped permission composable instead.
+
+Schema and permission management links are not built into the layer. They are rendered as resource actions when the host app registers `edit_schema` and `manage_permissions` placements and provides the corresponding link components.
 
 The app must provide:
 

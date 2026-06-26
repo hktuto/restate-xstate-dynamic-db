@@ -1,7 +1,7 @@
 ---
 title: SSE Push Service
 type: feature
-status: planned
+status: done
 area: architecture
 app:
   - api

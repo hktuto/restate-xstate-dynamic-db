@@ -4,7 +4,7 @@ type: feature
 status: planned
 area: workflow
 created: 2026-06-21
-updated: 2026-06-25
+updated: 2026-06-26
 related:
   - [[50-Features/Views]]
   - [[40-Packages/data-table-layer]]
@@ -24,6 +24,7 @@ Resource actions bind permissions, UI placement, and behavior for a resource typ
 - **Action placement** — a config object that says an action appears in the toolbar, a row context menu, or on row double-click, and which component implements it.
 - **Action component** — a Vue component that receives an `ActionContext`, checks permission via `useAdminPermission().can()` (or the tenant equivalent), and exposes a trigger method for indirect invocation.
 - **Action binding** — a view can override which actions appear and where; if omitted, default bindings are derived from the resource placements.
+- **Meta-action** — an action that operates on the resource type definition rather than individual records, such as `edit_schema` or `manage_permissions`.
 
 ## Placement schema
 
@@ -49,6 +50,12 @@ export const resourceActionPlacements = {
   ],
   delete: [
     { type: ['table'], location: 'item-contextMenu', component: 'DeleteAdminUserGroupAction', method: 'open' },
+  ],
+  edit_schema: [
+    { type: ['table'], location: 'toolbar', component: 'EditSchemaLink', method: null },
+  ],
+  manage_permissions: [
+    { type: ['table'], location: 'toolbar', component: 'ManagePermissionsLink', method: null },
   ],
 }
 ```
@@ -79,6 +86,10 @@ Action components call the permission system with the action name from the catal
 ```ts
 const allowed = await can(resourceType, 'edit_info', record?.id)
 ```
+
+## Meta-actions
+
+Some actions, such as `edit_schema` and `manage_permissions`, protect the resource type definition rather than individual records. They are still declared in the resource catalog and resolved through the same placement system, but their components navigate to admin pages (e.g. `/schema/:table` and `/permissions/:table`) instead of opening record modals.
 
 ## Status
 

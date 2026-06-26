@@ -7,6 +7,10 @@ export function useApi() {
       onResponseError(context) {
         const { response } = context
         if (response?.status === 401 && import.meta.client) {
+          const authenticated = useState<boolean>('adminAuthenticated', () => false)
+          const user = useState<any>('adminUser', () => null)
+          authenticated.value = false
+          user.value = null
           navigateTo('/login')
         }
         const body = response?._data as { error?: string } | undefined
