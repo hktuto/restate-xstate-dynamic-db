@@ -72,8 +72,8 @@ services:
 
   health-monitor:
     build:
-      context: .
-      dockerfile: apps/health-monitor/Dockerfile
+      context: ./apps/health-monitor
+      dockerfile: Dockerfile
     env_file: .env
     environment:
       - SURREAL_URL=ws://surrealdb:8000/rpc
@@ -93,7 +93,7 @@ services:
       - restate
       - workflow-runtime
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3010/health"]
+      test: ["CMD-SHELL", "bun -e 'fetch(\"http://localhost:3010/health\").then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))'"]
       interval: 5s
       timeout: 3s
       retries: 5

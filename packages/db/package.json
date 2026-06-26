@@ -54,10 +54,6 @@
       "types": "./src/admin-user-groups.ts",
       "default": "./src/admin-user-groups.ts"
     },
-    "./health-checks": {
-      "types": "./src/health-checks.ts",
-      "default": "./src/health-checks.ts"
-    },
     "./workflow-actions": {
       "types": "./src/workflow-actions.ts",
       "default": "./src/workflow-actions.ts"

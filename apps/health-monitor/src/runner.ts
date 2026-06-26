@@ -1,4 +1,4 @@
-import { getSurreal, closeSurreal } from 'db/client'
+import { Surreal } from 'surrealdb'
 import type { HealthCheckInput, HealthCheckService } from './types.js'
 
 const CHECK_TIMEOUT_MS = 5000
@@ -22,17 +22,17 @@ async function checkSurrealDB(): Promise<CheckResult> {
     return { service, status: 'unhealthy', responseTimeMs: 0, message: 'Missing SurrealDB env vars' }
   }
   const start = Date.now()
+  const surreal = new Surreal()
   try {
     await withTimeout((async () => {
-      const surreal = await getSurreal('platform', 'admin')
-      try {
-        await surreal.query('RETURN 1')
-      } finally {
-        try { await closeSurreal(surreal) } catch {}
-      }
+      await surreal.connect(url, { namespace: 'platform', database: 'admin' })
+      await surreal.signin({ username: user, password: pass })
+      await surreal.query('RETURN 1')
+      await surreal.close()
     })(), CHECK_TIMEOUT_MS)
     return { service, status: 'healthy', responseTimeMs: Date.now() - start }
   } catch (err) {
+    try { await surreal.close() } catch {}
     return { service, status: 'unhealthy', responseTimeMs: Date.now() - start, message: err instanceof Error ? err.message : String(err) }
   }
 }
