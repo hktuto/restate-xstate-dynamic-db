@@ -20,7 +20,7 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/workflow-actions/package.json ./packages/workflow-actions/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copy workspace dependencies (imported as TypeScript source).
 COPY packages/shared ./packages/shared

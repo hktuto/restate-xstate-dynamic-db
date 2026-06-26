@@ -100,26 +100,6 @@ services:
       start_period: 5s
     restart: unless-stopped
 
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    env_file: .env
-    environment:
-      - SURREAL_URL=ws://surrealdb:8000/rpc
-      - SURREAL_USER=root
-      - SURREAL_PASS=root
-      - WEB_URL=http://host.docker.internal:3000
-      - ADMIN_URL=http://host.docker.internal:3001
-      - HEALTH_MONITOR_URL=http://health-monitor:3010
-    ports:
-      - "3002:3002"
-    depends_on:
-      surrealdb:
-        condition: service_started
-      health-monitor:
-        condition: service_healthy
-    restart: unless-stopped
 
 volumes:
   surreal-data:
