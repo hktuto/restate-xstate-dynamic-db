@@ -2,7 +2,8 @@
   "name": "health-monitor",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "db": "workspace:*"

@@ -208,19 +208,6 @@ export const PLATFORM_TABLE_SCHEMAS: TableSchemaDefinition[] = [
       { kind: 'reference', fromColumn: 'designId', toTable: 'workflow_designs', toColumn: 'id', type: 'many-to-many', fromTable: 'workflow_actions' },
     ],
   },
-  {
-    name: 'health_checks',
-    label: 'Health Checks',
-    columns: [
-      { name: 'service', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'surrealdb', value: 'surrealdb' }, { label: 'restate', value: 'restate' }, { label: 'workflow-runtime', value: 'workflow-runtime' }, { label: 'api', value: 'api' }] } },
-      { name: 'status', dbType: 'string', displayType: 'select', optional: true, config: { displayType: 'select', options: [{ label: 'healthy', value: 'healthy' }, { label: 'unhealthy', value: 'unhealthy' }] } },
-      { name: 'checkedAt', dbType: 'datetime', displayType: 'date', optional: true },
-      { name: 'responseTimeMs', dbType: 'number', displayType: 'number', optional: true },
-      { name: 'message', dbType: 'string', displayType: 'text', optional: true },
-      { name: 'details', dbType: 'object', displayType: 'text', optional: true },
-    ],
-    relations: undefined,
-  },
 ]
 
 /** Tenant-level table schemas, provisioned inside each company namespace. */

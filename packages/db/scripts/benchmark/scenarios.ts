@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto'
 import type { WorkflowDefinition } from 'shared'
 import * as platform from '../../src/platform.js'
 import * as tenant from '../../src/tenant.js'
-import * as health from '../../src/health-checks.js'
 // The benchmark reuses the test helper infrastructure for namespace provisioning.
 import {
   ensurePlatformNamespace,
@@ -245,47 +244,6 @@ export const platformScenarios = [
       await platform.getPlatformUserTaskById(id)
     },
   } satisfies Scenario<string>,
-  {
-    name: 'createHealthCheck',
-    group: 'platform',
-    setup: async () => {
-      await ensurePlatformNamespace()
-      await resetPlatformTables()
-    },
-    teardown: async () => {
-      await resetPlatformTables()
-    },
-    fn: async () => {
-      await health.createHealthCheck({
-        service: 'api',
-        status: 'healthy',
-        responseTimeMs: 10,
-        checkedAt: new Date().toISOString(),
-      })
-    },
-  } satisfies Scenario<void>,
-  {
-    name: 'listLatestHealthChecks',
-    group: 'platform',
-    setup: async () => {
-      await ensurePlatformNamespace()
-      await resetPlatformTables()
-      for (let i = 0; i < 100; i++) {
-        await health.createHealthCheck({
-          service: i % 2 === 0 ? 'api' : 'worker',
-          status: 'healthy',
-          responseTimeMs: i,
-          checkedAt: new Date(Date.now() - i * 1000).toISOString(),
-        })
-      }
-    },
-    teardown: async () => {
-      await resetPlatformTables()
-    },
-    fn: async () => {
-      await health.listLatestHealthChecks()
-    },
-  } satisfies Scenario<void>,
 ]
 
 interface TenantMemberState {

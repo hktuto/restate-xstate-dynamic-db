@@ -4,7 +4,7 @@ type: note
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-24
+updated: 2026-06-26
 related:
   - [[Multi-tenancy]]
   - [[50-Features/Tenant Authentication & Authorization]]
@@ -24,7 +24,6 @@ related:
 | `workflow_instances` | Running and historical platform workflow instances. Stores `designId`, `status`, `currentState`, `context`, and `triggerBy`. |
 | `workflow_actions` | Audit/state record for each action-state execution. Stored per instance, keyed by `instanceId:stateId`, with `status` (`started` / `completed` / `failed`) and timestamps. |
 | `user_tasks` | Manual tasks created by platform workflow instances. |
-| `health_checks` | Service health check records. |
 
 ## Tenant namespace (`company_<uuid>/main`)
 
@@ -67,8 +66,6 @@ These columns are declared as `displayType: 'select'` with a fixed option list i
 | `user_tasks` | `status` | `pending`, `completed`, `cancelled`, `rejected` |
 | `workflow_actions` | `status` | `started`, `completed`, `failed` |
 | `workflow_actions` | `resultEvent` | `ok`, `error`, `true`, `false` |
-| `health_checks` | `service` | `surrealdb`, `restate`, `workflow-runtime`, `api` |
-| `health_checks` | `status` | `healthy`, `unhealthy` |
 | `resource_types` | `scope` | `platform`, `tenant` |
 | `permission_groups` | `resourceType` | all catalog resource type names |
 | `_views` | `type` | `table` |

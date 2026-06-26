@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-21
+updated: 2026-06-26
 package: db
 related:
   - [[Data Model]]
@@ -104,11 +104,11 @@ Pool behavior is controlled by environment variables:
 | `SURREALDB_POOL_IDLE_TIMEOUT_MS` | `30000` | How long an idle connection can stay in the pool. |
 | `SURREALDB_POOL_ACQUIRE_TIMEOUT_MS` | `10000` | How long to wait for a free connection before throwing. |
 
-### Health checks
+### Platform status
 
-- `src/health-checks.ts` — types and persistence helpers for service health checks.
-  - `HealthCheckService`, `HealthCheckStatus`
-  - `createHealthCheck(...)`, `listLatestHealthChecks()`, `listHealthCheckHistory(limit)`, `pruneHealthChecks(service, keep)`
+- `src/platform-status.ts` — derives the current platform mode (`normal` / `degraded` / `maintenance`) from the latest health-check data fetched from `apps/health-monitor` via `HEALTH_MONITOR_URL`.
+
+Health-check persistence and scheduling live in `apps/health-monitor`, which stores results in a local SQLite database and exposes them over HTTP.
 
 ### Companies
 

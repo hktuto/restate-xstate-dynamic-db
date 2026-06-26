@@ -12,7 +12,6 @@ import * as client from '../src/client.js'
 import * as provision from '../src/provision.js'
 import * as platform from '../src/platform.js'
 import * as tenant from '../src/tenant.js'
-import * as health from '../src/health-checks.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -248,22 +247,6 @@ async function main() {
       tenant.getUserTaskById(ns, tTask.id),
     )
   }
-
-  // health-checks
-  const hc = await record(
-    'health-checks',
-    'createHealthCheck',
-    { service: 'api', status: 'healthy', responseTimeMs: 42 },
-    () =>
-      health.createHealthCheck({
-        service: 'api',
-        status: 'healthy',
-        responseTimeMs: 42,
-        checkedAt: new Date().toISOString(),
-      }),
-  )
-  await record('health-checks', 'listLatestHealthChecks', {}, () => health.listLatestHealthChecks())
-  await record('health-checks', 'listHealthCheckHistory', 10, () => health.listHealthCheckHistory(10))
 
   // cleanup
   await removeTenantNamespace(ns)

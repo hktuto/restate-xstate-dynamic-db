@@ -18,7 +18,6 @@ import {
   listAdminUserGroupMemberships,
   setAdminUserGroupMemberships,
 } from 'db/admin-user-groups'
-import { listLatestHealthChecks, listHealthCheckHistoryForService, type HealthCheckService } from 'db/health-checks'
 import { hashPassword } from 'shared/server'
 import { RESOURCE_CATALOG } from 'shared'
 import { adminAuth } from '../middleware/admin.js'
@@ -26,20 +25,69 @@ import { requireAdminPermission, resolveAdminPermissions } from '../middleware/p
 import type { AdminScope } from '../types.js'
 
 const DEFAULT_LIMIT = 20
+
+type HealthCheckService = 'surrealdb' | 'restate' | 'workflow-runtime' | 'api'
 const VALID_SERVICES: HealthCheckService[] = ['surrealdb', 'restate', 'workflow-runtime', 'api']
+
+function isValidService(value: unknown): value is HealthCheckService {
+  return typeof value === 'string' && (VALID_SERVICES as string[]).includes(value)
+}
+
+interface HealthCheckRecord {
+  id: number | string
+  service: HealthCheckService
+  status: 'healthy' | 'unhealthy'
+  checkedAt: string
+  responseTimeMs: number
+  message?: string
+  details?: Record<string, unknown>
+}
+
+async function fetchHealthMonitorJson<T>(path: string): Promise<{ ok: true; data: T } | { ok: false; status: number; text: string }> {
+  const healthMonitorUrl = process.env.HEALTH_MONITOR_URL
+  if (!healthMonitorUrl) {
+    return { ok: false, status: 503, text: 'Health monitor unavailable' }
+  }
+
+  let res: Response
+  try {
+    res = await fetch(new URL(path, healthMonitorUrl).toString(), {
+      signal: AbortSignal.timeout(10000),
+    })
+  } catch (err) {
+    console.warn('Failed to reach health monitor:', err)
+    return { ok: false, status: 502, text: 'Health monitor unavailable' }
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'unknown')
+    console.warn(`Health monitor returned HTTP ${res.status}: ${text}`)
+    return { ok: false, status: 502, text: 'Health monitor returned an error' }
+  }
+
+  try {
+    return { ok: true, data: await res.json() as T }
+  } catch (err) {
+    console.warn('Invalid JSON from health monitor:', err)
+    return { ok: false, status: 502, text: 'Invalid response from health monitor' }
+  }
+}
 
 const app = new Hono()
 app.use(adminAuth())
 
   // Health checks
 app.get('/health-checks', requireAdminPermission('platform', 'view'), async (c) => {
-    const latest = await listLatestHealthChecks()
-    return c.json({ latest })
+    const result = await fetchHealthMonitorJson<{ latest: HealthCheckRecord[] }>('/api/health-checks')
+    if (!result.ok) {
+      return c.json({ error: result.text }, result.status as 503 | 502)
+    }
+    return c.json(result.data)
   })
 
 app.get('/health-checks/history', requireAdminPermission('platform', 'view'), async (c) => {
     const service = c.req.query('service')
-    if (typeof service !== 'string' || !VALID_SERVICES.includes(service as HealthCheckService)) {
+    if (!isValidService(service)) {
       return c.json({ error: 'Missing or invalid service query parameter' }, 400)
     }
 
@@ -48,12 +96,13 @@ app.get('/health-checks/history', requireAdminPermission('platform', 'view'), as
       return c.json({ error: 'Invalid limit query parameter' }, 400)
     }
 
-    const history = await listHealthCheckHistoryForService(service as HealthCheckService, limit)
-    return c.json({
-      service: service as HealthCheckService,
-      limit,
-      history,
-    })
+    const result = await fetchHealthMonitorJson<{ service: HealthCheckService; limit: number; history: HealthCheckRecord[] }>(
+      `/api/health-checks/history?service=${encodeURIComponent(service)}&limit=${encodeURIComponent(limit)}`
+    )
+    if (!result.ok) {
+      return c.json({ error: result.text }, result.status as 503 | 502)
+    }
+    return c.json(result.data)
   })
 
 app.post('/health-checks/refresh', requireAdminPermission('platform', 'view'), async (c) => {
@@ -77,7 +126,7 @@ app.post('/health-checks/refresh', requireAdminPermission('platform', 'view'), a
     }
 
     const service = body.service
-    if (service !== undefined && (typeof service !== 'string' || !VALID_SERVICES.includes(service as HealthCheckService))) {
+    if (service !== undefined && !isValidService(service)) {
       return c.json({ error: 'Invalid service' }, 400)
     }
 

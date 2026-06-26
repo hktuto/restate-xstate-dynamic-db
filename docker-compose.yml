@@ -81,8 +81,11 @@ services:
       - HEALTH_CHECK_INTERVAL_MS=1800000
       - HEALTH_CHECK_RETENTION_DAYS=365
       - HEALTH_MONITOR_PORT=3010
+      - HEALTH_MONITOR_DB_PATH=/data/health-monitor.db
     ports:
       - "127.0.0.1:3010:3010"
+    volumes:
+      - health-monitor-data:/data
     depends_on:
       - surrealdb
       - restate
@@ -120,3 +123,4 @@ volumes:
   surreal-data:
   surreal-test-data:
   restate-data:
+  health-monitor-data:

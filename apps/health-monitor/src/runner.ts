@@ -1,5 +1,5 @@
 import { getSurreal, closeSurreal } from 'db/client'
-import type { HealthCheckInput, HealthCheckService } from 'db/health-checks'
+import type { HealthCheckInput, HealthCheckService } from './types.js'
 
 const CHECK_TIMEOUT_MS = 5000
 type CheckResult = Omit<HealthCheckInput, 'checkedAt'>

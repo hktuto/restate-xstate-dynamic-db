@@ -1,15 +1,21 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import { seedE2E, cleanupE2E, loginAdmin, adminRequest, json } from './fixtures.js'
 import type { TestFixture } from './fixtures.js'
 
 let fixture: TestFixture
 
 describe('E2E admin', () => {
+  const originalFetch = globalThis.fetch
+  const originalEnv = process.env.HEALTH_MONITOR_URL
+
   beforeAll(async () => {
+    process.env.HEALTH_MONITOR_URL = 'http://localhost:3010'
     fixture = await seedE2E()
   })
 
   afterAll(async () => {
+    globalThis.fetch = originalFetch
+    process.env.HEALTH_MONITOR_URL = originalEnv
     await cleanupE2E(fixture)
   })
 
@@ -26,6 +32,11 @@ describe('E2E admin', () => {
   })
 
   it('returns health checks', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ latest: [] }),
+    } as unknown as Response)
+
     const cookies = await adminCookies()
     const res = await adminRequest('GET', '/api/admin/health-checks', cookies)
     expect(res.status).toBe(200)
@@ -34,6 +45,11 @@ describe('E2E admin', () => {
   })
 
   it('returns health history for surrealdb', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ service: 'surrealdb', limit: 5, history: [] }),
+    } as unknown as Response)
+
     const cookies = await adminCookies()
     const res = await adminRequest('GET', '/api/admin/health-checks/history?service=surrealdb&limit=5', cookies)
     expect(res.status).toBe(200)
