@@ -3,7 +3,7 @@ import http from 'node:http'
 import { workflowObject } from './workflow.js'
 
 const PORT = Number(process.env.PORT) || 9080
-const HEALTH_PORT = Number(process.env.HEALTH_PORT) || 9081
+const HEALTH_PORT = Number(process.env.WORKFLOW_HEALTH_PORT) || 9081
 
 // Restate HTTP/2 endpoint
 restate

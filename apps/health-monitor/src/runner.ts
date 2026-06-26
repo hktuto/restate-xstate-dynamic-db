@@ -93,7 +93,7 @@ async function checkRestate(): Promise<CheckResult> {
 }
 
 function checkWorkflowRuntime(): Promise<CheckResult> {
-  return checkHttpService('workflow-runtime', 'WORKFLOW_RUNTIME_URL', '/health')
+  return checkHttpService('workflow-runtime', 'WORKFLOW_HEALTH_URL', '/health')
 }
 
 function checkApi(): Promise<CheckResult> {

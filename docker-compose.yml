@@ -44,13 +44,15 @@ services:
     env_file: .env
     environment:
       - NITRO_API_URL=http://host.docker.internal:3002
+      - WORKFLOW_HEALTH_PORT=8091
     ports:
       - "9080:9080"
+      - "9081:8091"
     depends_on:
       - restate
       - surrealdb
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9081/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:$${WORKFLOW_HEALTH_PORT}/health"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -76,9 +78,9 @@ services:
     environment:
       - SURREAL_URL=ws://surrealdb:8000/rpc
       - RESTATE_META_URL=http://restate:9070
-      - WORKFLOW_RUNTIME_URL=http://workflow-runtime:9080
+      - WORKFLOW_HEALTH_URL=http://workflow-runtime:8091
       - API_URL=http://host.docker.internal:3002
-      - HEALTH_CHECK_INTERVAL_MS=1800000
+      - HEALTH_CHECK_INTERVAL_MS=60000
       - HEALTH_CHECK_RETENTION_DAYS=365
       - HEALTH_MONITOR_PORT=3010
       - HEALTH_MONITOR_DB_PATH=/data/health-monitor.db
