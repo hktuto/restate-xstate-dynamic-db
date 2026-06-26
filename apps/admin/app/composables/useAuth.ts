@@ -9,6 +9,15 @@ export function useAuth() {
   const initialized = useState<boolean>('adminAuthInitialized', () => false)
 
   const api = useApi()
+  const { connect, disconnect } = usePush()
+
+  watch(authenticated, (isAuthenticated) => {
+    if (isAuthenticated) {
+      connect()
+    } else {
+      disconnect()
+    }
+  })
 
   async function init(): Promise<boolean> {
     if (initialized.value) {

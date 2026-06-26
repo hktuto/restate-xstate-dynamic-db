@@ -2,6 +2,15 @@
 const status = usePlatformStatus()
 const session = useCookie('tenant_session')
 const api = useApi()
+const { connect, disconnect } = usePush()
+
+watch(session, (value) => {
+  if (value) {
+    connect()
+  } else {
+    disconnect()
+  }
+}, { immediate: true })
 
 async function logout() {
   await api.fetch('/api/auth/logout', { method: 'POST' })
