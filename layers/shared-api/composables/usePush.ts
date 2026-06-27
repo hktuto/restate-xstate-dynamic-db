@@ -12,6 +12,7 @@ interface ListenerEntry {
 }
 
 interface PushState {
+  clientId: string | null
   eventSource: EventSource | null
   connected: ReturnType<typeof ref<boolean>>
   listeners: Map<string, Set<ListenerEntry>>
@@ -19,13 +20,14 @@ interface PushState {
 }
 
 const state: PushState = {
+  clientId: null,
   eventSource: null,
   connected: ref(false),
   listeners: new Map(),
   busListeners: new Map(),
 }
 
-function generateInstanceId(): string {
+function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }
 
@@ -74,9 +76,13 @@ function removeBusListener(type: string): void {
 function connect(): void {
   if (state.eventSource) return
 
+  state.clientId = generateId()
+
   const config = useRuntimeConfig()
-  const url = `${config.public.apiUrl as string}/push/sse`
-  const eventSource = new EventSource(url, { withCredentials: true })
+  const url = new URL(`${config.public.apiUrl as string}/push/sse`)
+  url.searchParams.set('clientId', state.clientId)
+
+  const eventSource = new EventSource(url.toString(), { withCredentials: true })
   state.eventSource = eventSource
 
   eventSource.onopen = () => {
@@ -100,11 +106,12 @@ function disconnect(): void {
   state.busListeners.clear()
   state.eventSource?.close()
   state.eventSource = null
+  state.clientId = null
   state.connected.value = false
 }
 
 export function usePush() {
-  const instanceId = generateInstanceId()
+  const instanceId = generateId()
   const unsubscribes: (() => void)[] = []
 
   function onMessage<T = unknown>(

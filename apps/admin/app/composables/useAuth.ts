@@ -16,6 +16,7 @@ export function useAuth() {
       connect()
     } else {
       disconnect()
+      connect()
     }
   })
 

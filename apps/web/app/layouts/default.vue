@@ -9,6 +9,7 @@ watch(session, (value) => {
     connect()
   } else {
     disconnect()
+    connect()
   }
 }, { immediate: true })
 
