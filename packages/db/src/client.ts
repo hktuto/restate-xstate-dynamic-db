@@ -11,6 +11,7 @@ let MAX_POOL_SIZE = Number(process.env.SURREALDB_POOL_MAX ?? 20)
 let IDLE_TIMEOUT_MS = Number(process.env.SURREALDB_POOL_IDLE_TIMEOUT_MS ?? 30_000)
 let ACQUIRE_TIMEOUT_MS = Number(process.env.SURREALDB_POOL_ACQUIRE_TIMEOUT_MS ?? 10_000)
 let MAX_CONNECTION_AGE_MS = Number(process.env.SURREALDB_MAX_CONNECTION_AGE_MS ?? 50 * 60 * 1000)
+let CONNECT_TIMEOUT_MS = Number(process.env.SURREALDB_CONNECT_TIMEOUT_MS ?? 10_000)
 
 interface PooledConnection {
   surreal: Surreal
@@ -34,12 +35,39 @@ function parseKey(key: string): { namespace: string; database: string } {
   return { namespace: parts[0]!, database: parts[1]! }
 }
 
+function withConnectionTimeout<T>(promise: Promise<T>, context: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`SurrealDB ${context} timed out after ${CONNECT_TIMEOUT_MS}ms`))
+    }, CONNECT_TIMEOUT_MS)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        clearTimeout(timer)
+        reject(err)
+      }
+    )
+  })
+}
+
 async function createConnection(key: string): Promise<Surreal> {
   const { namespace, database } = parseKey(key)
   const surreal = new Surreal()
-  await surreal.connect(SURREAL_URL, { namespace, database })
-  await surreal.signin({ username: SURREAL_USER, password: SURREAL_PASS })
-  return surreal
+  try {
+    await withConnectionTimeout(
+      surreal.connect(SURREAL_URL, { namespace, database }).then(() =>
+        surreal.signin({ username: SURREAL_USER, password: SURREAL_PASS })
+      ),
+      `connection to ${SURREAL_URL}`
+    )
+    return surreal
+  } catch (err) {
+    surreal.close().catch(() => {})
+    throw err
+  }
 }
 
 function isExpired(entry: PooledConnection): boolean {
@@ -128,9 +156,18 @@ export async function getSurreal(namespace?: string, database?: string): Promise
   // commands (e.g. DEFINE NAMESPACE). Don't pool those; create a fresh connection.
   if (!ns || !db) {
     const surreal = new Surreal()
-    await surreal.connect(SURREAL_URL)
-    await surreal.signin({ username: SURREAL_USER, password: SURREAL_PASS })
-    return surreal
+    try {
+      await withConnectionTimeout(
+        surreal.connect(SURREAL_URL).then(() =>
+          surreal.signin({ username: SURREAL_USER, password: SURREAL_PASS })
+        ),
+        `connection to ${SURREAL_URL}`
+      )
+      return surreal
+    } catch (err) {
+      surreal.close().catch(() => {})
+      throw err
+    }
   }
 
   const key = makeKey(ns, db)

@@ -4,7 +4,7 @@ type: package
 status: done
 area: architecture
 created: 2026-06-14
-updated: 2026-06-26
+updated: 2026-06-27
 package: db
 related:
   - [[Data Model]]
@@ -103,6 +103,7 @@ Pool behavior is controlled by environment variables:
 | `SURREALDB_POOL_MAX` | `20` | Maximum open connections across all namespaces. |
 | `SURREALDB_POOL_IDLE_TIMEOUT_MS` | `30000` | How long an idle connection can stay in the pool. |
 | `SURREALDB_POOL_ACQUIRE_TIMEOUT_MS` | `10000` | How long to wait for a free connection before throwing. |
+| `SURREALDB_CONNECT_TIMEOUT_MS` | `10000` | How long to wait for a new SurrealDB connection (connect + signin) before throwing. Prevents API requests from hanging indefinitely when SurrealDB is unreachable. |
 
 ### Platform status
 
