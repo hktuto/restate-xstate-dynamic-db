@@ -7,13 +7,9 @@ const { healthMonitorUrl } = useRuntimeConfig().public
 const redirect = computed(() => {
   const raw = route.query.redirect
   if (typeof raw !== 'string') return '/dashboard'
-  try {
-    const url = new URL(raw)
-    if (url.pathname === '/maintenance') return '/dashboard'
-    return raw
-  } catch {
-    return '/dashboard'
-  }
+  if (!raw.startsWith('/')) return '/dashboard'
+  if (raw === '/maintenance' || raw.startsWith('/maintenance?')) return '/dashboard'
+  return raw
 })
 
 const statusUrl = computed(() => {
@@ -32,6 +28,7 @@ function goBack() {
       <UIcon
         name="i-lucide-construction"
         class="text-amber-500 w-12 h-12"
+        aria-hidden="true"
       />
       <div>
         <h1 class="text-lg font-semibold">
@@ -52,6 +49,7 @@ function goBack() {
           variant="outline"
           :to="statusUrl"
           target="_blank"
+          aria-label="Check system status (opens in a new tab)"
         >
           Check system status
         </UButton>

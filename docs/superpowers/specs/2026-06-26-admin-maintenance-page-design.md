@@ -39,20 +39,22 @@ In `layers/shared-api/composables/useApi.ts`, extend `onResponseError` after the
 
 ```ts
 if (response?.status && response.status >= 500 && response.status <= 599) {
-  if (!window.location.pathname.startsWith('/maintenance')) {
-    window.location.href = '/maintenance?redirect=' + encodeURIComponent(window.location.href)
+  // 5xx errors may leave the app in a broken state; force a full page reload
+  // to the maintenance page rather than a client-side navigation.
+  if (import.meta.client && !window.location.pathname.startsWith('/maintenance')) {
+    window.location.href = '/maintenance?redirect=' + encodeURIComponent(window.location.pathname + window.location.search)
   }
 }
 ```
 
-Because the admin app sets `ssr: false`, the interceptor runs only in the browser and can use `window.location.href` directly. No `import.meta.client` guard or `navigateTo` is needed.
+Because the admin app sets `ssr: false`, the interceptor runs only in the browser and can use `window.location.href` directly. The `import.meta.client` guard keeps the shared layer safe for other consumers that may enable SSR.
 
 ### Maintenance page
 
 Create `apps/admin/app/pages/maintenance.vue` using the existing `auth` layout:
 
 - Read the `redirect` query param.
-- Validate and sanitize it: reject non-string values and URLs whose path is `/maintenance` to avoid a redirect loop. Default to `/dashboard`.
+- Validate and sanitize it: reject non-string values, values that don't start with `/`, and `/maintenance`. Default to `/dashboard`.
 - Read `healthMonitorUrl` from public runtime config and build `${healthMonitorUrl}/status`.
 - Render:
   - A construction/warning icon.
@@ -79,9 +81,9 @@ HEALTH_MONITOR_URL=http://localhost:3010
 
 1. User is on `/users`.
 2. An API call fails with HTTP 503.
-3. `useApi` interceptor sets `window.location.href` to `/maintenance?redirect=http%3A%2F%2Flocalhost%3A3001%2Fusers`.
+3. `useApi` interceptor sets `window.location.href` to `/maintenance?redirect=%2Fusers`.
 4. Browser loads `/maintenance`.
-5. Maintenance page decodes `redirect` and renders the "Go back" button.
+5. Maintenance page validates `redirect` and renders the "Go back" button.
 6. User clicks "Go back" → browser navigates back to `/users`.
 7. Or user clicks "Check system status" → new tab opens `http://localhost:3010/status`.
 

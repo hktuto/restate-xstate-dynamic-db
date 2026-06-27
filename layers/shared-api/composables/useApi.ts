@@ -17,7 +17,7 @@ export function useApi() {
           // 5xx errors may leave the app in a broken state; force a full page reload
           // to the maintenance page rather than a client-side navigation.
           if (import.meta.client && !window.location.pathname.startsWith('/maintenance')) {
-            window.location.href = '/maintenance?redirect=' + encodeURIComponent(window.location.href)
+            window.location.href = '/maintenance?redirect=' + encodeURIComponent(window.location.pathname + window.location.search)
             return
           }
         }

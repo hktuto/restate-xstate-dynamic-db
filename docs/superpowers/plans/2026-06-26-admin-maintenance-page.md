@@ -89,8 +89,10 @@ onResponseError(context) {
   }
 
   if (response?.status && response.status >= 500 && response.status <= 599) {
-    if (!window.location.pathname.startsWith('/maintenance')) {
-      window.location.href = '/maintenance?redirect=' + encodeURIComponent(window.location.href)
+    // 5xx errors may leave the app in a broken state; force a full page reload
+    // to the maintenance page rather than a client-side navigation.
+    if (import.meta.client && !window.location.pathname.startsWith('/maintenance')) {
+      window.location.href = '/maintenance?redirect=' + encodeURIComponent(window.location.pathname + window.location.search)
       return
     }
   }
@@ -101,7 +103,7 @@ onResponseError(context) {
 }
 ```
 
-Note: the admin app uses `ssr: false`, so `window.location.href` is safe for the 5xx redirect.
+Note: the admin app uses `ssr: false`, so `window.location.href` is safe for the 5xx redirect. The `import.meta.client` guard keeps the shared layer safe for other consumers.
 
 - [ ] **Step 3: Typecheck affected apps**
 
@@ -129,24 +131,19 @@ git commit -m "feat(shared-api): redirect to maintenance page on 5xx errors"
 definePageMeta({ layout: 'auth' })
 
 const route = useRoute()
-const config = useRuntimeConfig()
+const { healthMonitorUrl } = useRuntimeConfig().public
 
-const redirect = computed<string>(() => {
+const redirect = computed(() => {
   const raw = route.query.redirect
   if (typeof raw !== 'string') return '/dashboard'
-  try {
-    const url = new URL(raw)
-    if (url.pathname === '/maintenance') return '/dashboard'
-    return raw
-  } catch {
-    return '/dashboard'
-  }
+  if (!raw.startsWith('/')) return '/dashboard'
+  if (raw === '/maintenance' || raw.startsWith('/maintenance?')) return '/dashboard'
+  return raw
 })
 
-const healthMonitorStatusUrl = computed<string | null>(() => {
-  const base = config.public.healthMonitorUrl as string | undefined
-  if (!base) return null
-  return base.replace(/\/$/, '') + '/status'
+const statusUrl = computed(() => {
+  if (!healthMonitorUrl) return ''
+  return `${healthMonitorUrl}/status`
 })
 
 function goBack() {
@@ -155,29 +152,33 @@ function goBack() {
 </script>
 
 <template>
-  <UCard class="w-full max-w-md">
-    <div class="text-center space-y-4">
+  <UCard class="w-full max-w-sm text-center">
+    <div class="flex flex-col items-center gap-4">
       <UIcon
         name="i-lucide-construction"
-        class="w-12 h-12 mx-auto text-amber-500"
+        class="text-amber-500 w-12 h-12"
+        aria-hidden="true"
       />
-      <h1 class="text-xl font-semibold">
-        Service temporarily unavailable
-      </h1>
-      <p class="text-gray-500">
-        The platform is experiencing issues. You can go back or check the system status.
-      </p>
-      <div class="flex flex-col gap-2">
-        <UButton block @click="goBack">
+      <div>
+        <h1 class="text-lg font-semibold">
+          Service temporarily unavailable
+        </h1>
+        <p class="text-sm text-gray-500 mt-1">
+          The platform is experiencing issues. You can go back or check the system status.
+        </p>
+      </div>
+      <div class="flex flex-col gap-2 w-full">
+        <UButton block color="primary" @click="goBack">
           Go back
         </UButton>
         <UButton
-          v-if="healthMonitorStatusUrl"
+          v-if="healthMonitorUrl"
           block
           color="neutral"
           variant="outline"
-          :to="healthMonitorStatusUrl"
+          :to="statusUrl"
           target="_blank"
+          aria-label="Check system status (opens in a new tab)"
         >
           Check system status
         </UButton>
@@ -231,7 +232,7 @@ Then visit an admin page that calls that route (e.g. `/users`).
 
 - [ ] **Step 4: Confirm redirect**
 
-Expected: browser URL becomes `/maintenance?redirect=http%3A%2F%2Flocalhost%3A3001%2Fusers`.
+Expected: browser URL becomes `/maintenance?redirect=%2Fusers`.
 
 - [ ] **Step 5: Confirm "Go back" button**
 
