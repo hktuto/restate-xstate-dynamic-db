@@ -11,6 +11,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiUrl: process.env.API_URL ?? 'http://localhost:3002',
+      healthMonitorUrl: process.env.HEALTH_MONITOR_URL ?? 'http://localhost:3010',
     },
   },
   css: ['~/assets/css/main.css'],
