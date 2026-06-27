@@ -13,6 +13,12 @@ const placements: Record<string, ResourceActionPlacement[]> = {
   delete: [
     { type: ['table'], location: 'item-*', component: 'DeleteAction', method: 'open' },
   ],
+  edit_schema: [
+    { type: ['table'], location: 'toolbar', component: 'EditSchema', method: null },
+  ],
+  manage_permissions: [
+    { type: ['table'], location: 'toolbar', component: 'ManagePermissions', method: null },
+  ],
 }
 
 describe('resolveViewActions', () => {
@@ -63,6 +69,16 @@ describe('resolveViewActions', () => {
 
     expect(result.itemContextMenu).toEqual([
       { action: 'delete', component: 'DeleteAction', method: 'open' },
+    ])
+  })
+
+  it('resolves meta-actions into toolbar', () => {
+    const bindings: ViewActionBindings = { toolbar: ['edit_schema', 'manage_permissions'] }
+    const result = resolveViewActions('table', bindings, placements)
+
+    expect(result.toolbar).toEqual([
+      { action: 'edit_schema', component: 'EditSchema', method: null },
+      { action: 'manage_permissions', component: 'ManagePermissions', method: null },
     ])
   })
 })

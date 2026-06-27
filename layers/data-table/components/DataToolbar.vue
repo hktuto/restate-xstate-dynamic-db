@@ -9,10 +9,6 @@ interface Props {
   schema: TableSchema
   search?: string
   canUpdateView?: boolean
-  canEditSchema?: boolean
-  canManagePermissions?: boolean
-  schemaEditLink?: string
-  permissionsEditLink?: string
 }
 
 const props = defineProps<Props>()
@@ -43,12 +39,6 @@ const localSearch = computed({
     <DataToolbarGroup v-model="runtime.group" :schema="schema" />
     <DataToolbarSort v-model="runtime.sort" :schema="schema" />
     <DataToolbarColumn v-model="runtime.columns" :schema="schema" />
-    <DataToolbarSetting
-      :can-edit-schema="canEditSchema"
-      :can-manage-permissions="canManagePermissions"
-      :schema-edit-link="schemaEditLink"
-      :permissions-edit-link="permissionsEditLink"
-    />
     <slot name="toolbar-actions" />
     <UButton
       v-if="canUpdateView && dirty"

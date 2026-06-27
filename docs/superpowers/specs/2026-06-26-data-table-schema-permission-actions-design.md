@@ -1,7 +1,7 @@
 ---
 title: Data Table Schema and Permission Actions
 type: note
-status: planned
+status: done
 area: admin
 app:
   - admin
@@ -63,8 +63,8 @@ The toolbar order becomes:
 
 Add two globally-registered action components under `apps/admin/app/components/actions/common/`:
 
-- `EditSchemaLink.global.vue`
-- `ManagePermissionsLink.global.vue`
+- `EditSchema.global.vue`
+- `ManagePermissions.global.vue`
 
 Each receives an `ActionContext` prop, checks permission via `useAdminPermission().can()`, and renders a `UButton` link:
 
@@ -82,10 +82,10 @@ export const resourceActionPlacements = {
   // ... existing create, edit, delete placements
 
   edit_schema: [
-    { type: ['table'], location: 'toolbar', component: 'EditSchemaLink', method: null },
+    { type: ['table'], location: 'toolbar', component: 'EditSchema', method: null },
   ],
   manage_permissions: [
-    { type: ['table'], location: 'toolbar', component: 'ManagePermissionsLink', method: null },
+    { type: ['table'], location: 'toolbar', component: 'ManagePermissions', method: null },
   ],
 }
 ```
@@ -99,7 +99,7 @@ Each admin index page (`users/index.vue`, `user-groups/index.vue`, `companies/in
 ## Data flow
 
 1. `ViewRenderer` loads the resource type, default view, schema, and action placements.
-2. `resolveViewActions` maps `edit_schema` and `manage_permissions` placements to `EditSchemaLink` and `ManagePermissionsLink`.
+2. `resolveViewActions` maps `edit_schema` and `manage_permissions` placements to `EditSchema` and `ManagePermissions`.
 3. `DataTableContainer` renders them in the `toolbar-actions` slot inside `DataToolbar`.
 4. The link components read `ActionContext.resourceType`, check permission, and compute the table/nsdb link.
 
@@ -136,8 +136,8 @@ Each admin index page (`users/index.vue`, `user-groups/index.vue`, `companies/in
 - `apps/admin/app/pages/user-groups/index.vue`
 - `apps/admin/app/pages/companies/index.vue`
 - `apps/admin/app/pages/workflow-designs/index.vue`
-- `apps/admin/app/components/actions/common/EditSchemaLink.global.vue` (new)
-- `apps/admin/app/components/actions/common/ManagePermissionsLink.global.vue` (new)
+- `apps/admin/app/components/actions/common/EditSchema.global.vue` (new)
+- `apps/admin/app/components/actions/common/ManagePermissions.global.vue` (new)
 
 ### Docs
 - `docs/40-Packages/data-table-layer.md`

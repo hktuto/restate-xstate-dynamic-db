@@ -6,8 +6,6 @@ interface Props {
   resource: string
   view?: string | ViewDefinition
   canUpdateView?: boolean
-  canEditSchema?: boolean
-  canManagePermissions?: boolean
 }
 
 const props = defineProps<Props>()
@@ -143,8 +141,6 @@ onMounted(() => load())
       :view="viewDefinition"
       :actions="resolvedActions"
       :can-update-view="canUpdateView"
-      :can-edit-schema="canEditSchema"
-      :can-manage-permissions="canManagePermissions"
       @refresh="load"
     />
   </div>

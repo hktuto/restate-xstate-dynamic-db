@@ -1,7 +1,7 @@
 ---
 title: Resource Actions
 type: feature
-status: planned
+status: done
 area: workflow
 created: 2026-06-21
 updated: 2026-06-26
@@ -52,10 +52,10 @@ export const resourceActionPlacements = {
     { type: ['table'], location: 'item-contextMenu', component: 'DeleteAdminUserGroupAction', method: 'open' },
   ],
   edit_schema: [
-    { type: ['table'], location: 'toolbar', component: 'EditSchemaLink', method: null },
+    { type: ['table'], location: 'toolbar', component: 'EditSchema', method: null },
   ],
   manage_permissions: [
-    { type: ['table'], location: 'toolbar', component: 'ManagePermissionsLink', method: null },
+    { type: ['table'], location: 'toolbar', component: 'ManagePermissions', method: null },
   ],
 }
 ```

@@ -16,8 +16,6 @@ interface Props {
   view: ViewDefinition
   actions: ResolvedActions
   canUpdateView?: boolean
-  canEditSchema?: boolean
-  canManagePermissions?: boolean
 }
 
 const props = defineProps<Props>()
@@ -42,18 +40,6 @@ function queryBasePath(): string {
 
 function viewBasePath(): string {
   return props.scope === 'admin' ? `/api/admin/views/${props.nsdb}` : '/api/views'
-}
-
-function schemaEditLink(): string {
-  return props.scope === 'admin'
-    ? `/schema/${encodeURIComponent(props.table)}?nsdb=${encodeURIComponent(props.nsdb)}`
-    : `/schema/${encodeURIComponent(props.table)}`
-}
-
-function permissionsEditLink(): string {
-  return props.scope === 'admin'
-    ? `/permissions/${encodeURIComponent(props.table)}?nsdb=${encodeURIComponent(props.nsdb)}`
-    : `/permissions/${encodeURIComponent(props.table)}`
 }
 
 function buildActionContext(action: string, record?: Record<string, unknown>): ActionContext {
@@ -154,17 +140,13 @@ watch(
       :view="view"
       :schema="schema"
       :can-update-view="canUpdateView"
-      :can-edit-schema="canEditSchema"
-      :can-manage-permissions="canManagePermissions"
-      :schema-edit-link="schemaEditLink()"
-      :permissions-edit-link="permissionsEditLink()"
       @save="handleSave"
       @apply-filter="appliedFilter = buildAppliedFilter()"
     >
       <template #toolbar-actions>
         <component
           v-for="action in actions.toolbar"
-          :key="action.component"
+          :key="action.action"
           :is="action.component"
           :context="buildActionContext(action.action)"
         />
