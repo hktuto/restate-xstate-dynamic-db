@@ -4,7 +4,7 @@ type: app
 status: done
 area: admin
 created: 2026-06-14
-updated: 2026-06-25
+updated: 2026-06-26
 app:
   - admin
 related:
@@ -37,6 +37,7 @@ The superadmin Nuxt application for platform-level management.
 - The `/companies` page is migrated to `PageRenderer` with the `company` config.
 - The `/workflow-designs` page is migrated to `PageRenderer` with the `workflow_design` config.
 - The `/health` page reads health-check records written by the standalone [[30-Apps/Health Monitor/Overview|health-monitor service]]. It has **Refresh** to reload the latest data and **Refresh now** to trigger an immediate health-check refresh.
+- If any API call returns HTTP 5xx, the `useApi` interceptor redirects the browser to `/maintenance?redirect=<current-url>`. The maintenance page lets the user go back to the original URL or open the health monitor's `/status` HTML page in a new tab.
 
 ## Routes
 
@@ -50,6 +51,7 @@ The superadmin Nuxt application for platform-level management.
 | `/workflow-designs` | Manage platform workflow designs; detail page can run a user trigger from generated start-state inputs. |
 | `/triggers` | Manage platform db-trigger start rules on workflow designs. |
 | `/health` | Service health monitor. |
+| `/maintenance` | Shown when API calls fail with 5xx; offers a way back and a link to the health monitor status page. |
 
 ## Middleware
 

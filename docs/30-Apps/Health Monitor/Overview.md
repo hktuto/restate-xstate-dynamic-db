@@ -4,7 +4,7 @@ type: app
 status: done
 area: ops
 created: 2026-06-15
-updated: 2026-06-25
+updated: 2026-06-26
 app:
   - health-monitor
 related:
@@ -30,6 +30,7 @@ A lightweight standalone service that periodically checks the health of core pla
 - Exposes an internal HTTP endpoint (`POST /refresh`) so other services can request an immediate refresh.
 - Accepts an optional `{ service }` body to refresh a single service; without it, refreshes all services.
 - Exposes `GET /health` for Docker Compose healthchecks.
+- Exposes `GET /status` as a human-readable HTML page showing the latest health checks for all monitored services.
 
 ## Monitored services
 
